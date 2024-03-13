@@ -1,0 +1,100 @@
+---
+title: "Statistical Learning (5454) - Assignment 1" # change! 
+author: "Matthias Hochholzer, Lukas Pirnbacher, Anne Valder"
+date: "Due: 2024-03-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+# ADJUST SETUP 
+knitr::opts_chunk$set(echo = TRUE)
+# modify! 
+#knitr::opts_knit$set(root.dir = 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/A1')
+```
+
+<!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
+
+<!-- When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this: -->
+
+<!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->
+
+```{r,include=FALSE}
+# Clear memory
+rm(list=ls())
+```
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE}
+# Import libraries
+library(tidyverse)
+library(readr)
+library(dplyr)
+```
+
+# Exercise 1
+```{r Exercise 1, include=FALSE}
+# load data 
+data("diabetes", package = "lars")
+# y <- diabetes$y
+# X <- as.data.frame(diabetes$x)
+
+set.seed(123)
+# generate & separate train and test data 
+diabetes_rand <- diabetes[sample(nrow(diabetes)), ]
+
+train <- diabetes_rand[1:400, ]
+test <- diabetes_rand[401:nrow(diabetes), ]
+
+correlation_matrix <- cor(diabetes, use = "complete.obs")
+
+# View the correlation matrix
+print(correlation_matrix)
+#corrplot::corrplot() # class pairs()
+
+# Fit linear regression model using all explanatory variables
+lm <- lm(y ~ ., data = train)
+summary(lm)
+
+# Make predictions on the training set
+pred_train <- predict(lm, train)
+
+# Make predictions on the test set
+pred_test <- predict(lm, test)
+
+# Calculate MSE for the training set
+mse_train <- mean((train$y - pred_train)^2)
+
+# Calculate MSE for the test set
+mse_test <- mean((test$y - pred_test)^2)
+
+```
+- Explanation: Random selection
+- Explanation standardized 
+- Interpret correlation 
+
+# Exercise 2
+```{r Exercise 2, include=FALSE}
+# Clear memory
+rm(list=ls())
+
+data("Wage", package = "ISLR2")
+
+```
+
+# Exercise 3
+```{r Exercise 3, include=FALSE}
+
+```
+
+# Exercise 4
+```{r Exercise 4, include=FALSE}
+
+```
+
+# Exercise 5
+```{r Exercise 5, include=FALSE}
+
+```
+
+
+
+
