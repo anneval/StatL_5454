@@ -148,13 +148,22 @@ Best subset selection based on AIC.
 ```{r, warning=FALSE, include=TRUE}
 
 library(leaps)
-subset <- regsubsets(y ~ .,data = train, nvmax = 10)
+subset <- regsubsets(y ~ .,data = train)
 summary(subset)
 ```
 
 !!!! PROBLEM !!!!
 
 ```{r, include=TRUE}
+# predict doesn't work. We need a help function
+predict.regsubsets = function(object, newdata, id, ...) {
+    form = as.formula(object$call[[2]])
+    mat = model.matrix(form, newdata)
+    coefi = coef(object, id = id)
+    mat[, names(coefi)] %*% coefi
+}
+pred_train_sub <- predict.regsubsets(subset, newdata = train)
+
 # Make predictions on the training set
 pred_train_sub <- predict(subset, train)
 
