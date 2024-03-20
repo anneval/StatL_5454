@@ -5,7 +5,6 @@ date: "Due: 2024-03-25"
 output: pdf_document
 ---
 
-
 ```{r setup, include=FALSE}
 # ADJUST SETUP 
 knitr::opts_chunk$set(echo = TRUE)
@@ -32,29 +31,42 @@ library(dplyr)
 ```
 
 # Exercise 1
-```{r Exercise 1, include=FALSE}
-# load data 
-data("diabetes", package = "lars")
-# y <- diabetes$y
-# X <- as.data.frame(diabetes$x)
 
+Let's load the data
+```{r Exercise 1.0, include=TRUE}
+data("diabetes", package = "lars")
+diab.data <- cbind(diabetes$y,diabetes$x)
+colnames(diab.data)[1] <- "y"
+head(diab.data)
+```
+
+Setting a seed (123) and splitting the data into test and training data set. We don't know if ht eorder is random. If it isn't random we get a bias using the first 400 observations.
+```{r Exercise 1.1, include=TRUE}
+# set seed
 set.seed(123)
 # generate & separate train and test data 
-diabetes_rand <- diabetes[sample(nrow(diabetes)), ]
+train.data <- sample(seq_len(nrow(diab.data)), size = 400)
+train <- data.frame(diab.data[train.data, ])
+test <- data.frame(diab.data[-train.data, ])
+```
 
-train <- diabetes_rand[1:400, ]
-test <- diabetes_rand[401:nrow(diabetes), ]
-
-correlation_matrix <- cor(diabetes, use = "complete.obs")
-
-# View the correlation matrix
+All or just training set ?
+```{r Exercise 1.2, include=TRUE}
+# Correlation atrix
+correlation_matrix <- cor(diab.data, use = "complete.obs")
 print(correlation_matrix)
-#corrplot::corrplot() # class pairs()
 
+# Correlation plot
+pairs(diab.data)
+```
+
+```{r Exercise 1.3, include=TRUE}
 # Fit linear regression model using all explanatory variables
 lm <- lm(y ~ ., data = train)
 summary(lm)
 
+```
+```{r Exercise 1.4, include=TRUE}
 # Make predictions on the training set
 pred_train <- predict(lm, train)
 
@@ -62,17 +74,106 @@ pred_train <- predict(lm, train)
 pred_test <- predict(lm, test)
 
 # Calculate MSE for the training set
-mse_train <- mean((train$y - pred_train)^2)
+(mse_train <- mean((train$y - pred_train)^2))
 
 # Calculate MSE for the test set
-mse_test <- mean((test$y - pred_test)^2)
+(mse_test <- mean((test$y - pred_test)^2))
 
 ```
-- Explanation: Random selection
-- Explanation standardized 
-- Interpret correlation 
+
+-   Explanation: Random selection
+-   Explanation standardized
+-   Interpret correlation
+
+```{r Exercise 1.5, include=TRUE}
+# Fit a smaller mdoel
+lm_small <- lm(y ~ sex + bmi + map + ltg, data = train)
+summary(lm_small)
+```
+
+```{r Exercise 1.6, include=TRUE}
+# Make predictions on the training set
+pred_train_small <- predict(lm_small, train)
+
+# Make predictions on the test set
+pred_test_small <- predict(lm_small, test)
+
+# Calculate MSE for the training set
+(mse_train_small <- mean((train$y - pred_train_small)^2))
+
+# Calculate MSE for the test set
+(mse_test_small <- mean((test$y - pred_test_small)^2))
+
+```
+Comparing small and full model using an F-test
+
+```{r Exercise 1.7, include=TRUE}
+
+(F.small <- anova(lm,lm_small))
+
+```
+
+Stepwise regression based on the AIC
+```{r Exercise 1.8, include=FALSE}
+stepwise <- step(lm, criteria = "AIC")
+```
+```{r Exercise 1.9, include=TRUE}
+summary(stepwise)
+```
+
+```{r Exercise 1.10, include=TRUE}
+# Make predictions on the training set
+pred_train_step <- predict(stepwise, train)
+
+# Make predictions on the test set
+pred_test_step <- predict(stepwise, test)
+
+# Calculate MSE for the training set
+(mse_train_step <- mean((train$y - pred_train_step)^2))
+
+# Calculate MSE for the test set
+(mse_test_step <- mean((test$y - pred_test_step)^2))
+
+```
+Comparing stepwise and full model using an F-test
+
+```{r Exercise 1.7, include=TRUE}
+
+(F.small <- anova(lm,stepwise))
+
+```
+
+Best subset selection based on AIC.
+
+```{r Exercise 1.11, warning=FALSE, include=TRUE}
+
+library(leaps)
+subset <- regsubsets(y ~ .,data = train, nvmax = 10)
+summary(subset)
+```
+
+!!!! PROBLEM !!!!
+
+```{r Exercise 1.12, include=TRUE}
+# Make predictions on the training set
+pred_train_sub <- predict(subset, train)
+
+# Make predictions on the test set
+pred_test_sub <- predict(subset, test)
+
+# Calculate MSE for the training set
+(mse_train_sub <- mean((train$y - pred_train_sub)^2))
+
+# Calculate MSE for the test set
+(mse_test_sub <- mean((test$y - pred_test_sub)^2))
+
+```
+
+
+
 
 # Exercise 2
+
 ```{r Exercise 2, include=FALSE}
 # Clear memory
 rm(list=ls())
@@ -82,20 +183,19 @@ data("Wage", package = "ISLR2")
 ```
 
 # Exercise 3
+
 ```{r Exercise 3, include=FALSE}
 
 ```
 
 # Exercise 4
+
 ```{r Exercise 4, include=FALSE}
 
 ```
 
 # Exercise 5
+
 ```{r Exercise 5, include=FALSE}
 
 ```
-
-
-
-
