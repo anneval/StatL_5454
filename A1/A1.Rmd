@@ -28,190 +28,161 @@ rm(list=ls())
 library(tidyverse)
 library(readr)
 library(dplyr)
-library(knitr)
-library(leaps)
-library(reshape2)
-library(plyr)
-library(Hmisc)
 ```
 
 # Exercise 1
-```{r Exercise 1 prep, echo = FALSE, warning=F}
-# load data 
+
+Let's load the data
+```{r, include=TRUE}
 data("diabetes", package = "lars")
- 
-diabetes <- as.data.frame(cbind(diabetes$y,diabetes$x))
-colnames(diabetes)[1] <- "y"
- #describe(diabetes)
-summary(diabetes)
- 
- # kable(summary(diabetes), 
- #      col.names = colnames(diabetes), 
- #      caption="main",
- #      digits = 2) 
-
+diab.data <- cbind(diabetes$y,diabetes$x)
+colnames(diab.data)[1] <- "y"
+head(diab.data)
 ```
 
-
-```{r Exercise 1.1, echo = FALSE}
-set.seed(1)
+Setting a seed (123) and splitting the data into test and training data set. We don't know if ht eorder is random. If it isn't random we get a bias using the first 400 observations.
+```{r, include=TRUE}
+# set seed
+set.seed(123)
 # generate & separate train and test data 
-train_index<- sample(seq_len(nrow(diabetes)), size = 400)
-train <- data.frame(diabetes[train_index, ])
-test <- data.frame(diabetes[-train_index, ])
+train.data <- sample(seq_len(nrow(diab.data)), size = 400)
+train <- data.frame(diab.data[train.data, ])
+test <- data.frame(diab.data[-train.data, ])
 ```
-- Explanation: Random selection
 
+All or just training set ?
+```{r, include=TRUE}
+# Correlation atrix
+correlation_matrix <- cor(diab.data, use = "complete.obs")
+print(correlation_matrix)
 
-```{r Exercise 1.2, echo = FALSE}
-cormatrix <- cor(diabetes, use = "complete.obs")
-cormatrix  <- round(cormatrix,digits = 2)
-
-#print(cormatrix)
-kable(cormatrix, caption = "Correlation Matrix")
-pairs(diabetes, pch= 19)
-
-#corrplot::corrplot(diabetes)
+# Correlation plot
+pairs(diab.data)
 ```
-- Explanation standardized 
-- Interpret correlation 
 
-
-```{r Exercise 1.3, echo = FALSE}
+```{r, include=TRUE}
 # Fit linear regression model using all explanatory variables
-lm_full <- lm(y ~ ., data = train)
-summary(lm_full)
-printCoefmat(round(coef(summary(lm_full)), digits = 2))
+lm <- lm(y ~ ., data = train)
+summary(lm)
 
-# in sample fit 
-lm_full_mse_ins <- mean(lm_full$residuals^2)
-print(lm_full_mse_ins)
-
-# out of sample fit 
-pred_test <- predict(lm_full, test)
-lm_full_mse_oos <- mean((pred_test-test[,1])^2)
-print(lm_full_mse_oos)
 ```
-```{r Exercise 1.4, echo = FALSE}
-# Fit linear regression model using the covariates which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see summary(lm_full) for significance)
+```{r, include=TRUE}
+# Make predictions on the training set
+pred_train <- predict(lm, train)
 
-lm_small <- lm(y ~ sex + bmi + map + tc + ltg , data = train)
+# Make predictions on the test set
+pred_test <- predict(lm, test)
+
+# Calculate MSE for the training set
+(mse_train <- mean((train$y - pred_train)^2))
+
+# Calculate MSE for the test set
+(mse_test <- mean((test$y - pred_test)^2))
+
+```
+
+-   Explanation: Random selection
+-   Explanation standardized
+-   Interpret correlation
+
+```{r, include=TRUE}
+# Fit a smaller mdoel
+lm_small <- lm(y ~ sex + bmi + map + ltg, data = train)
 summary(lm_small)
-printCoefmat(round(coef(summary(lm_small)), digits = 2))
+```
 
-# in sample fit 
-lm_small_mse_ins <- mean(lm_small$residuals^2)
-print(lm_small_mse_ins)
+```{r, include=TRUE}
+# Make predictions on the training set
+pred_train_small <- predict(lm_small, train)
 
-# out of sample fit 
+# Make predictions on the test set
 pred_test_small <- predict(lm_small, test)
-lm_small_mse_oos <- mean((pred_test_small-test[,1])^2)
-print(lm_small_mse_oos)
 
-# Comparison of the two models using an F-test
-F_small <- anova(lm_full,lm_small)
-print(F_small)
+# Calculate MSE for the training set
+(mse_train_small <- mean((train$y - pred_train_small)^2))
+
+# Calculate MSE for the test set
+(mse_test_small <- mean((test$y - pred_test_small)^2))
+
 ```
-```{r Exercise 1.5, echo = FALSE}
-# stepwise model
+Comparing small and full model using an F-test
 
-lm_step <- step(lm_full, criteria = "AIC")
-summary(lm_step)
-printCoefmat(round(coef(summary(lm_step)), digits = 2))
+```{r, include=TRUE}
 
+(F.small <- anova(lm,lm_small))
 
-# in sample fit 
-lm_step_mse_ins <- mean(lm_step$residuals^2)
-print(lm_step_mse_ins)
-
-# out of sample fit 
-pred_test_step <- predict(lm_step, test)
-lm_step_mse_oos <- mean((pred_test_step-test[,1])^2)
-print(lm_step_mse_oos)
-
-
-# Comparison of the two models using an F-test
-F_step <- anova(lm_full,lm_step)
-print(F_step)
 ```
-```{r Exercise 1.6, echo = FALSE}
-# best subset selection model
 
-lm_subset <-  leaps::regsubsets(y ~ ., data = train, 
-     nvmax = 9, really.big = TRUE)
+Stepwise regression based on the AIC
+```{r, include=FALSE}
+stepwise <- step(lm, criteria = "AIC")
+```
+```{r, include=TRUE}
+summary(stepwise)
+```
 
-lm_subset_sum <- summary(lm_subset)##
-lm_subset_sum
+```{r, include=TRUE}
+# Make predictions on the training set
+pred_train_step <- predict(stepwise, train)
 
-plot(summary(lm_subset)$rss, xlab = "Subset size", ylab = "RSS", type = "b")
+# Make predictions on the test set
+pred_test_step <- predict(stepwise, test)
 
-# Find the model with the lowest AIC
-data.frame(
-Adj.R2 = which.max(lm_subset_sum$adjr2),
-BIC = which.min(lm_subset_sum$cp),
-AIC = which.min(lm_subset_sum$bic)
-)
+# Calculate MSE for the training set
+(mse_train_step <- mean((train$y - pred_train_step)^2))
 
+# Calculate MSE for the test set
+(mse_test_step <- mean((test$y - pred_test_step)^2))
 
-#help function
-select_model <- function(id, object, outcome){
-models <- summary(object)$which[id,-1]
-formula <- as.formula(object$call[[2]])
-outcome <- all.vars(formula)[1]
-predictors <- names(which(models == TRUE))
-predictors <- paste(predictors, collapse = "+")
-as.formula(paste0(outcome, "~", predictors))
+```
+Comparing stepwise and full model using an F-test
+
+```{r, include=TRUE}
+
+(F.small <- anova(lm,stepwise))
+
+```
+
+Best subset selection based on AIC.
+
+```{r, warning=FALSE, include=TRUE}
+
+library(leaps)
+subset <- regsubsets(y ~ .,data = train)
+summary(subset)
+```
+
+!!!! PROBLEM !!!!
+
+```{r, include=TRUE}
+# predict doesn't work. We need a help function
+predict.regsubsets = function(object, newdata, id, ...) {
+    form = as.formula(object$call[[2]])
+    mat = model.matrix(form, newdata)
+    coefi = coef(object, id = id)
+    mat[, names(coefi)] %*% coefi
 }
-#choose based on BIC
-lm_subset_aic <- lm(select_model(5,lm_subset,"Y"), train)
-lm_subset_aic_sum <- summary(lm_subset_aic)
-lm_subset_aic_sum
+pred_train_sub <- predict.regsubsets(subset, newdata = train)
 
-# in sample fit 
-lm_sub_mse_ins <- mean(lm_subset_aic$residuals^2)
-print(lm_sub_mse_ins)
+# Make predictions on the training set
+pred_train_sub <- predict(subset, train)
 
-# out of sample fit 
-pred_test_sub <- predict(lm_subset_aic, test)
-lm_sub_mse_oos <- mean((pred_test_sub-test[,1])^2)
-print(lm_sub_mse_oos)
+# Make predictions on the test set
+pred_test_sub <- predict(subset, test)
 
+# Calculate MSE for the training set
+(mse_train_sub <- mean((train$y - pred_train_sub)^2))
 
-# Comparison of the two models using an F-test
-F_sub <- anova(lm_full,lm_subset_aic)
-print(F_sub)
+# Calculate MSE for the test set
+(mse_test_sub <- mean((test$y - pred_test_sub)^2))
+
 ```
 
 
-
-```{r Exercise 1 summary, echo = FALSE}
-# Extract coefficients into data frames
-
-results <- join_all(list(melt(data.frame(as.list(lm_full$coefficients))),
-  melt(data.frame(as.list(lm_small$coefficients))),
-  melt(data.frame(as.list(lm_step$coefficients))),
-  melt(data.frame(as.list(lm_subset_aic$coefficients)))),
-  by="variable", type = "left")
-
-colnames(results) <- c("coef","full","small","stepwise","subset")
-results <- data.frame(lapply(results, as.character), stringsAsFactors = F)
-
-ins_MSE <- c("MSE in sample",lm_full_mse_ins, lm_small_mse_ins, lm_step_mse_ins, lm_sub_mse_ins)
-oos_MSE <- c("MSE out of sample",lm_full_mse_oos, lm_small_mse_oos, lm_step_mse_oos, lm_sub_mse_oos)
-
-results <- (rbind(results,ins_MSE,oos_MSE))
-
-results <- cbind(results[,1],data.frame(lapply(results[,-1],
-function(x) round(as.numeric(x),digits = 2))))
-
-rownames(results) <- results[,1]
-results <- results[,-1]
-
-kable(results, caption = "Results all models")
-```
 
 
 # Exercise 2
+
 ```{r Exercise 2, include=FALSE}
 # Clear memory
 rm(list=ls())
@@ -221,20 +192,19 @@ data("Wage", package = "ISLR2")
 ```
 
 # Exercise 3
+
 ```{r Exercise 3, include=FALSE}
 
 ```
 
 # Exercise 4
+
 ```{r Exercise 4, include=FALSE}
 
 ```
 
 # Exercise 5
+
 ```{r Exercise 5, include=FALSE}
 
 ```
-
-
-
-
