@@ -92,7 +92,7 @@ pred_test <- predict(lm_full, test)
 lm_full_mse_oos <- mean((pred_test-test[,1])^2)
 print(lm_full_mse_oos)
 ```
-In the next part, we  fit a smaller model where only the covariates are contained which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see model summary for the full model). This leaves us with the following covariates: "sex, bmi, map, tc, ltg". Again we evaluate the performance in-sample as well as on the test data. The in-sample MSE is now 2963.644 and the oos MSE is 3022.301. I.e. again we observe a higher out of sample MSE. When comparing this model to the full model using an F-test we see that the model improves when dropping insignificant coefficients.
+In the next part, we  fit a smaller model where only the covariates are contained which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see model summary for the full model). This leaves us with the following covariates: "sex, bmi, map, tc, ltg". Again we evaluate the performance in-sample as well as on the test data. The in-sample MSE is now 2963.644 and the oos MSE is 3022.301. I.e. again we observe a higher out of sample MSE. When comparing this model to the full model using an F-test we see that the full model, which includes more predictors, provides a significantly better fit to the data compared to the small model, as evidenced by the p-value (0.01221) being less than 0.05.
 
 ```{r Exercise 1.4, echo = FALSE}
 # Fit linear regression model using the covariates which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see summary(lm_full) for significance)
@@ -111,10 +111,10 @@ lm_small_mse_oos <- mean((pred_test_small-test[,1])^2)
 print(lm_small_mse_oos)
 
 # Comparison of the two models using an F-test
-F_small <- anova(lm_full,lm_small)
+F_small <- anova(lm_small,lm_full)
 print(F_small)
 ```
-In the following we use step wise regression based on the AIC to select a suitable model. We use the step() function which checks whether the AIC decreases when dropping variables in a step wise procedure and stops as soon as it does not decrease any further. In a similar matter to before we evaluate the performance in-sample as well as oos on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2870.25 and the oos MSE is 2966.798.The F-test suggests that the p-value (0.7182) is much greater than the typical alpha level of 0.05, suggesting there's no significant evidence to favor the full model over the step model regarding how well they explain the variability in y. In other words, the additional predictors in Model 1 (age, hdl, tch, and glu) do not significantly improve the model's explanatory power compared to the step model.
+In the following we use step wise regression based on the AIC to select a suitable model. We use the step() function which checks whether the AIC decreases when dropping variables in a step wise procedure and stops as soon as it does not decrease any further. In a similar matter to before we evaluate the performance in-sample as well as oos on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2870.25 and the oos MSE is 2966.798.The F-test suggests that the p-value (0.7182) is much greater than the typical alpha level of 0.05, suggesting there's no significant evidence to favor the full model over the step model regarding how well they explain the variability in y. In other words, the additional predictors in the full model (age, hdl, tch, and glu) do not significantly improve the model's explanatory power compared to the step model.
 ```{r Exercise 1.5, echo = FALSE}
 # stepwise model
 
@@ -137,11 +137,7 @@ print(lm_step_mse_oos)
 F_step <- anova(lm_full,lm_step)
 print(F_step)
 ```
-Here we use best subset selection to select a suitable model based on the AIC and using the leaps() function. We evaluate the performance in-sample as well as on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2911.967 and the oos MSE is 2956.157. 
-
-
-F-tets
-
+Here we use best subset selection to select a suitable model based on the AIC and using the leaps() function. We evaluate the performance in-sample as well as on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2911.967 and the oos MSE is 2956.157. The F-test suggests that the additional predictors included in the full model (age, tc, ldl, tch, glu) do not significantly improve the model's ability to explain the variability in the dependent variable, since the p-value (0.1716) is greater than the 0.05 significance level. This means there isn't enough statistical evidence to justify the added complexity of the full model over the sub set model for this data set.
 ```{r Exercise 1.6, echo = FALSE}
 # best subset selection model
 
@@ -190,11 +186,6 @@ F_sub <- anova(lm_full,lm_subset_aic)
 print(F_sub)
 ```
 Last, we summarize our results in the following table, containing the regression coefficients of the different models as well as the in-sample and the test data performance:
-
-
-
- F-test anschauen!!!! 
-
 ```{r Exercise 1 summary, echo = FALSE}
 # Extract coefficients into data frames
 
@@ -223,8 +214,7 @@ kable(results, caption = "Results all models")
 
 
 # Exercise 2
-We use the wage data set to fit different linear models. The data set is available in the R package ISLR2.
-
+We use the wage data set to fit different linear models. The data set is available in the R package ISLR2. First we load and prepare the data. We look at the summary statistics and omit the logwage variable. Next, we specify non-linear effects for the variable age by adding the variable age squared to our data set. Moreover, we chose suitable contrasts for the variable education to compare the different levels of education in a meaningful way. In R, contrasts define how categorical variables are encoded into numerical values for analysis. The default encoding is treatment coding (also known as dummy coding), where one level is chosen as a baseline and the other levels are compared to this baseline. For an ordinal variable like education, where the levels have a natural order, polynomial contrasts might be more appropriate as they can model the linear and non-linear relationships between the levels of education and the outcome variable. Next, we fit a linear regression model to predict wage using age, age sqaured and education as predictors. The summary results are depicted below. 
 ```{r Exercise 2 prep, echo = FALSE}
 # Clear memory
 #rm(list=ls())
@@ -235,8 +225,6 @@ summary(Wage)
 
 # exclude log wage
 Wage <- Wage[ , !(names(Wage) %in% c('logwage'))]
-
-#Fit a linear regression model to predict Wage. Omit the variable logwage before analysis, specify non-linear effects for the variable age and use suitable contrasts for the variable education
 
 # For the 'education' variable, we'll need to set up contrasts.
 summary(as.factor(Wage$education))
@@ -256,9 +244,8 @@ lm_wage_sum
 #lm_wage_sum <- broom::tidy(lm_wage_sum)
 #kable(lm_wage_sum, "latex", booktabs = T, digits = 3) %>%
  # kable_styling(latex_options = c("striped", "scale_down"))
-
 ```
-
+In the following we perform best subset selection (of wage ~ age + age_sq + education) to determine a suitable model. To do this we use again the leaps package in R. Below the summary and the plot comparing RSS and the subset size k. According to the AIC the best sub model is model 4.
 
 ```{r Exercise 2.1, echo = FALSE}
 #Use best subset selection to determine a suitable model.
@@ -277,19 +264,17 @@ Adj.R2 = which.max(lm_wage_sub_sum$adjr2),
 BIC = which.min(lm_wage_sub_sum$cp),
 AIC = which.min(lm_wage_sub_sum$bic) # best is model 4
 )
-
 #choose based on AIC
 #Error in eval(predvars, data, env) : object 'education.L' not found
 #lm_wage_sub_aic <- lm(select_model(4,lm_wage_sub,"wage"), Wage)
 #lm_wage_sub_aic_sum <- summary(lm_subset_aic)
 #lm_wage_sub_aic_sum
-
 ```
-
+Last we assess if it makes a difference if we include the polynom of the original variable age or orthogonal polynoms constructed using poly(age, k). Direct polynomials are straightforward (linear and squared terms of age), making them somewhat easier to interpret in terms of the direct effect of aging. However, they can be collinear, especially with higher-degree polynomials. Orthogonal polynomials deal with the potential issue of multicollinearity between the polynomial terms, leading to more stable coefficient estimates. However, the coefficients of orthogonal polynomials do not directly translate to the simple linear and quadratic terms, making them a bit more challenging to interpret. For predictive accuracy, orthogonal polynomials can sometimes offer an advantage, especially in complex models. For interpretation, direct polynomials might be preferred if the primary interest is in understanding the specific nature of the relationship between age and wage. In the context of our models AIC and BIC values are the same for both models using direct polynomial terms and orthogonal polynomials for age. This suggests that both models are equally good from the standpoint of information criteria, balancing model fit and complexity in a similar manner. In such a case, the decision on which model to choose may depends on other considerations, like interpreation etc.
 
 ```{r Exercise 2.2, echo = FALSE}
 # Direct polynomial terms
-lm_wage_sub_direct <- lm(wage ~ age + I(age_sq) + education, data = Wage)
+lm_wage_sub_direct <- lm(wage ~ age + age_sq + education, data = Wage)
 summary(lm_wage_sub_direct)
 
 # Orthogonal polynomials
@@ -308,9 +293,7 @@ bic_ortho_poly <- BIC(lm_wage_sub_ortho)
 
 ```
 
-Direct polynomials are straightforward (linear and squared terms of age), making them somewhat easier to interpret in terms of the direct effect of aging. However, they can be collinear, especially with higher-degree polynomials. Orthogonal polynomials deal with the potential issue of multicollinearity between the polynomial terms, leading to more stable coefficient estimates. However, the coefficients of orthogonal polynomials do not directly translate to the simple linear and quadratic terms, making them a bit more challenging to interpret. For predictive accuracy, orthogonal polynomials can sometimes offer an advantage, especially in complex models. For interpretation, direct polynomials might be preferred if the primary interest is in understanding the specific nature of the relationship between age and wage.
 
-Here: AIC and BIC values are the same (or virtually the same) for both models using direct polynomial terms and orthogonal polynomials for age. This suggests that both models are equally good from the standpoint of information criteria, balancing model fit and complexity in a similar manner. In such a case, the decision on which model to choose may depends on other considerations (see above).
 
 # Exercise 3
 ```{r Exercise 3, include=FALSE}
