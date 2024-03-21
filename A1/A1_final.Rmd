@@ -212,13 +212,44 @@ kable(results, caption = "Results all models")
 
 
 # Exercise 2
-```{r Exercise 2, include=FALSE}
+```{r Exercise 2 prep, include=FALSE}
 # Clear memory
-rm(list=ls())
+#rm(list=ls())
 
 data("Wage", package = "ISLR2")
+summary(Wage)
+#describe(Wage)
+
+# exclude log wage
+Wage <- Wage[ , !(names(Wage) %in% c('logwage'))] 
+
+#Fit a linear regression model to predict Wage. Omit the variable logwage before analysis, specify non-linear effects for the variable age and use suitable contrasts for the variable education
+
+
+# For the 'education' variable, we'll need to set up contrasts.
+# Assuming 'education' is a factor with ordered levels, we could use polynomial contrasts
+
+summary(as.factor(Wage$education))
+Wage <- Wage %>% 
+  mutate("age_sq" = age^2,
+          "education" = factor(Wage$education, ordered = TRUE))
+
+contrasts(Wage$education) <- contr.poly(levels(Wage$education)) # polynominal coding bc.we have ordinal variables, where the levels have a natural order
+
+lm_wage <- lm(wage ~ age + age_sq + education, data = Wage)
+summary(lm_wage)
+
+# or all X's variables? 
+#lm_wage <- lm(wage ~ ., data = Wage[,!(names(Wage) %in% c('age','year'))])
+```
+
+
+```{r Exercise 2, include=FALSE}
+#Use best subset selection to determine a suitable model.
+
 
 ```
+
 
 # Exercise 3
 ```{r Exercise 3, include=FALSE}
