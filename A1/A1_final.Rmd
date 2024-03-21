@@ -291,7 +291,7 @@ aic_ortho_poly <- AIC(lm_wage_sub_ortho)
 bic_ortho_poly <- BIC(lm_wage_sub_ortho)
 ```
 # Exercise 3
-We assume the following data generating process: $$y = x + x^2 + \epsilon, $$ with $\epsilon \sim N(0,\sigma^2_\epsilon) $ and  $x \sim N(0,\sigma^2_x) $ and $x$ and $\epsilon$ are independent. 
+We assume the following data generating process: $$y = x + x^2 + \epsilon$$ with $\epsilon \sim N(0,\sigma^2_{\epsilon})$ and  $x \sim N(0,\sigma^2_x)$ and $x$ and $\epsilon$ are independent. 
 First we analytically determine the test error using the squared error loss given parameter estimates $\hat \beta$.
 
 
@@ -299,7 +299,7 @@ First we analytically determine the test error using the squared error loss give
 #### slide deck 01 (p.17,28-29)
 
 Next, we draw a sample of size N = 40 as training data and determine the test error using the
-squared error loss using the analytical formula as well as simulation when estimating the regression coefficients $\beta$ using OLS. Assuming $\sigma^2_\epsilon = \sigma^2_x = 1$.
+squared error loss using the analytical formula as well as simulation when estimating the regression coefficients $\beta$ using OLS. Assuming $\sigma^2_{\epsilon} = \sigma^2_x = 1$.
 
 ```{r Exercise 3.1, include=FALSE}
 set.seed(123)
@@ -311,7 +311,7 @@ X <- matrix(cbind(rep(1,length(x)),x,x^2))
 ```
 
 Now, we estimate the expected test error for samples of size N = 40 used as training data for
-the squared error loss when estimating the regression coefficients $\beta$ using OLS and test data sets of suitable size drawn from the data generating process. Still assuming that $\sigma^2_\epsilon = \sigma^2_x = 1$
+the squared error loss when estimating the regression coefficients $\beta$ using OLS and test data sets of suitable size drawn from the data generating process. Still assuming that $\sigma^2_{\epsilon} = \sigma^2_x = 1$
 
 ```{r Exercise 3.2, include=FALSE}
 
