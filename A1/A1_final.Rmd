@@ -1,5 +1,5 @@
 ---
-title: "Statistical Learning (5454) - Assignment 1" # change! 
+title: "Statistical Learning (5454) - Assignment 1"  
 author: "Matthias Hochholzer, Lukas Pirnbacher, Anne Valder"
 date: "Due: 2024-03-25"
 output: pdf_document
@@ -7,7 +7,7 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 # ADJUST SETUP 
-knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(echo = TRUE)
 # modify! 
 #knitr::opts_knit$set(root.dir = 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/A1')
 ```
@@ -33,6 +33,8 @@ library(leaps)
 library(reshape2)
 library(plyr)
 library(Hmisc)
+library(broom)
+library(kableExtra)
 ```
 
 # Exercise 1
@@ -164,7 +166,7 @@ predictors <- names(which(models == TRUE))
 predictors <- paste(predictors, collapse = "+")
 as.formula(paste0(outcome, "~", predictors))
 }
-#choose based on BIC
+#choose based on AIC
 lm_subset_aic <- lm(select_model(5,lm_subset,"Y"), train)
 lm_subset_aic_sum <- summary(lm_subset_aic)
 lm_subset_aic_sum
@@ -192,7 +194,7 @@ results <- join_all(list(melt(data.frame(as.list(lm_full$coefficients))),
   melt(data.frame(as.list(lm_step$coefficients))),
   melt(data.frame(as.list(lm_subset_aic$coefficients)))),
   by="variable", type = "left")
-s
+
 colnames(results) <- c("coef","full","small","stepwise","subset")
 results <- data.frame(lapply(results, as.character), stringsAsFactors = F)
 
@@ -213,41 +215,89 @@ kable(results, caption = "Results all models")
 
 # Exercise 2
 ```{r Exercise 2 prep, include=FALSE}
-# Clear memory
-#rm(list=ls())
+# # Clear memory
+# #rm(list=ls())
+# 
+# data("Wage", package = "ISLR2")
+# summary(Wage)
+# #describe(Wage)
+# 
+# # exclude log wage
+# Wage <- Wage[ , !(names(Wage) %in% c('logwage'))] 
+# 
+# #Fit a linear regression model to predict Wage. Omit the variable logwage before analysis, specify non-linear effects for the variable age and use suitable contrasts for the variable education
+# 
+# # For the 'education' variable, we'll need to set up contrasts.
+# summary(as.factor(Wage$education))
+# Wage <- Wage %>% 
+#   mutate("age_sq" = age^2, #specify non-linear effects for the variable age: if more than squares use splines.. 
+#           "education" = factor(Wage$education, ordered = TRUE))
+# 
+# contrasts(Wage$education) <- contr.poly(levels(Wage$education)) # polynominal coding bc.we have ordinal variables, where the levels have a natural order
+# 
+# lm_wage <- lm(wage ~ age + age_sq + education, data = Wage)
+# # or all X's variables? Need contrasts for all other factors.. so I assume no 
+# #lm_wage_all <- lm(wage ~ . + age_sq, data = Wage)
+# 
+# lm_wage_sum <- summary(lm_wage)
+# 
+# # make output nice
+# #lm_wage_sum <- broom::tidy(lm_wage_sum)
+# #kable(lm_wage_sum, "latex", booktabs = T, digits = 3) %>%
+#  # kable_styling(latex_options = c("striped", "scale_down")) %>%
+#  # add_header_above(c(" " = 2, "Regression Summary" = 3))
 
-data("Wage", package = "ISLR2")
-summary(Wage)
-#describe(Wage)
-
-# exclude log wage
-Wage <- Wage[ , !(names(Wage) %in% c('logwage'))] 
-
-#Fit a linear regression model to predict Wage. Omit the variable logwage before analysis, specify non-linear effects for the variable age and use suitable contrasts for the variable education
-
-
-# For the 'education' variable, we'll need to set up contrasts.
-# Assuming 'education' is a factor with ordered levels, we could use polynomial contrasts
-
-summary(as.factor(Wage$education))
-Wage <- Wage %>% 
-  mutate("age_sq" = age^2,
-          "education" = factor(Wage$education, ordered = TRUE))
-
-contrasts(Wage$education) <- contr.poly(levels(Wage$education)) # polynominal coding bc.we have ordinal variables, where the levels have a natural order
-
-lm_wage <- lm(wage ~ age + age_sq + education, data = Wage)
-summary(lm_wage)
-
-# or all X's variables? 
-#lm_wage <- lm(wage ~ ., data = Wage[,!(names(Wage) %in% c('age','year'))])
 ```
 
 
-```{r Exercise 2, include=FALSE}
-#Use best subset selection to determine a suitable model.
+```{r Exercise 2.1, include=FALSE}
+# #Use best subset selection to determine a suitable model.
+# # best subset selection model
+# lm_wage_sub <-  leaps::regsubsets(wage ~ age + age_sq + education, data = Wage, 
+#      nvmax = 9, really.big = TRUE)
+# 
+# lm_wage_sub_sum <- summary(lm_wage_sub)##
+# lm_wage_sub_sum
+# 
+# plot(summary(lm_wage_sub)$rss, xlab = "Subset size", ylab = "RSS", type = "b")
+# 
+# # Find the model with the lowest AIC
+# data.frame(
+# Adj.R2 = which.max(lm_wage_sub_sum$adjr2),
+# BIC = which.min(lm_wage_sub_sum$cp),
+# AIC = which.min(lm_wage_sub_sum$bic) # best is model 4
+# )
+# 
+# #choose based on AIC
+# #Error in eval(predvars, data, env) : object 'education.L' not found
+# #lm_wage_sub_aic <- lm(select_model(4,lm_wage_sub,"wage"), Wage)
+# #lm_wage_sub_aic_sum <- summary(lm_subset_aic)
+# #lm_wage_sub_aic_sum
+
+```
 
 
+```{r Exercise 2.2, include=FALSE}
+# # Direct polynomial terms
+# lm_wage_sub_direct <- lm(wage ~ age + I(age_sq) + education, data = Wage)
+# summary(lm_wage_sub_direct)
+# 
+# # Orthogonal polynomials
+# lm_wage_sub_ortho <- lm(wage ~ poly(age, 2) + education, data = Wage)
+# summary(lm_wage_sub_ortho)
+# 
+# # comparison
+# # AIC and BIC for the direct polynomial model
+# aic_direct_poly <- AIC(lm_wage_sub_direct)
+# bic_direct_poly <- BIC(lm_wage_sub_direct)
+# 
+# # Calculate AIC and BIC for the orthogonal polynomials model
+# aic_ortho_poly <- AIC(lm_wage_sub_ortho)
+# bic_ortho_poly <- BIC(lm_wage_sub_ortho)
+# 
+# Direct polynomials are straightforward (linear and squared terms of age), making them somewhat easier to interpret in terms of the direct effect of aging. However, they can be collinear, especially with higher-degree polynomials. Orthogonal polynomials deal with the potential issue of multicollinearity between the polynomial terms, leading to more stable coefficient estimates. However, the coefficients of orthogonal polynomials do not directly translate to the simple linear and quadratic terms, making them a bit more challenging to interpret. For predictive accuracy, orthogonal polynomials can sometimes offer an advantage, especially in complex models. For interpretation, direct polynomials might be preferred if the primary interest is in understanding the specific nature of the relationship between age and wage.
+# 
+# Here: AIC and BIC values are the same (or virtually the same) for both models using direct polynomial terms and orthogonal polynomials for age. This suggests that both models are equally good from the standpoint of information criteria, balancing model fit and complexity in a similar manner. In such a case, the decision on which model to choose may depends on other considerations (see above).
 ```
 
 
