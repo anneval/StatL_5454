@@ -34,6 +34,8 @@ library(reshape2)
 library(plyr)
 library(Hmisc)
 library(broom)
+library(glmnet)
+library(MASS)
 #library(kableExtra) if included PDF does not compile..
 ```
 
@@ -351,12 +353,11 @@ Now, we estimate the expected test error for samples of size N = 40 used as trai
 ```
 
 # Exercise 5
-
 We use artificial data to perform LASSO and ridge regression. First, we set a random seed before the analysis. Then, we draw 100 observations from a 100-dimensional standard multivariate normal distribution. This is the matrix of covariates X of dimension 100 $\times$ 100. Next, we draw 100 observations for the dependent variable given by 
 $$y=\sum_{i=1}^{10}x_i+\epsilon, \quad \text{with} \ \epsilon \sim N(0,0.1)$$
 
-```{r Exercise 5.1, include=TRUE}
-library(MASS) # for mvrnorm
+```{r Exercise 5.1, echo=FALSE}
+#library(MASS) # for mvrnorm
 # set a random seed
 set.seed(123)
 
@@ -368,28 +369,34 @@ X <- mvrnorm(n=100, mu=rep(0,100), Sigma = diag(100))
 # Draw 100 observations for the dependent variable.
 
 y <- rowSums(X[,1:10]) + rnorm(100, mean=0,sd=0.1)
-
 ```
-
 Now, we fit LASSO and ridge models with different values of $\lambda$ using function \textit{glmnet} from package \textbf{glmnet}.
-
-```{r Exercise 5.2, include=TRUE}
-library(glmnet)
+```{r Exercise 5.2, echo=FALSE}
 
 # Note : default is intercept = TRUE
 lasso.fit <- glmnet(X, y, alpha=1)
 ridge.fit <- glmnet(X, y, alpha=0)
 
 ```
-
 We plot the default plots for the returned objects.
+```{r Exercise 5.3, echo=FALSE}
+#plot(lasso.fit)
+#mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+#mtext("numb. of non-zero coeff.", side = 3, line = 3, col = 1)
+#title("LASSO", line = 3)
+#plot(ridge.fit, xlab="L2 norm")
+#mtext("numb. of non-zero coeff.", side = 3, line = 3, col = 1)
+#mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+#title("Ridge", line = 3)
+```
 
-```{r Exercise 5.3, include=TRUE}
+```{r Exercise 5.3 new, echo=FALSE, fig.width=8, fig.height=5, out.width='\\textwidth'}
+par(mar=c(5, 4, 4, 2) + 0.1)
 plot(lasso.fit)
-mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+mtext("numb. of non-zero coeff.", side = 3, line = 2, col = 1)
 title("LASSO", line = 3)
 plot(ridge.fit, xlab="L2 norm")
-mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+mtext("numb. of non-zero coeff.", side = 3, line = 2, col = 1)
 title("Ridge", line = 3)
 ```
 
@@ -398,20 +405,20 @@ For LASSO, an L1 norm of zero gives an empty model. Variables enter the model wi
 For Ridge, an L2 norm of zero also gives an empty model. But compared to Ridge, all variables enter right away. Also note, that some are negative.
 
 Additionally, we plot the plots where the argument \textit{xvar} is set to \textit{"lambda"}.
-```{r Exercise 5.4, include=TRUE}
+```{r Exercise 5.4 neu, echo=FALSE, fig.width=8, fig.height=5, out.width='\\textwidth'}
+par(mar=c(5, 4, 4, 2) + 0.1)
 plot(lasso.fit, xvar="lambda")
-mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+mtext("numb. of non-zero coeff.", side = 3, line = 2, col = 1)
 title("LASSO", line = 3)
 plot(ridge.fit, xvar="lambda")
-mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+mtext("numb. of non-zero coeff.", side = 3, line = 2, col = 1)
 title("Ridge", line = 3)
 ```
-
 We basically see the same as before, just on another scale. This time the x-axis is log Lambda, the logarithm of the weight given to the regularization (the complexity parameter). For Lambda = 0, the solution is the OLS solution.
 
 Next, we determine the number of non-zero coefficients in dependence of $\lambda$ for LASSO and ridge.
 
-```{r Exercise 5.5, include=TRUE}
+```{r Exercise 5.5 , echo=FALSE, fig.width=8, fig.height=5, out.width='\\textwidth'}
 # lasso.fit$lambda
 # ridge.fit$lambda
 
@@ -425,12 +432,8 @@ plot(ridge.fit$lambda, lengths(ridge.nonzero), xlab = "lambda",
 ylab = "numb. of non-zero coeff.", ylim = c(0,110), main = "Ridge", type="l")
 ```
 We can see, that for LASSO, the number of non-zero coefficients decreases with lambda. We actually stay at 10 non-zero coefficents for Lambda values between $\sim 0.05-0.55$. For Ridge all variables are in the model for all values of lambda.
-
-
 Finally, we find the model fit as measured by the deviance() (= RSS) in dependence of $\lambda$ for LASSO and ridge.
-
-```{r Exercise 5.6, include=TRUE}
-
+```{r Exercise 5.6 , echo=FALSE, fig.width=8, fig.height=5, out.width='\\textwidth'}
 lasso.rss <- deviance(lasso.fit)
 ridge.rss <- deviance(ridge.fit)
 
