@@ -38,7 +38,9 @@ library(broom)
 ```
 
 # Exercise 1
-We use the diabetes data set from "lars" to fit several linear models. First we load and prepare the data and look at the summary statistics. 
+
+We use the diabetes data set from "lars" to fit several linear models. First we load and prepare the data and look at the summary statistics.
+
 ```{r Exercise 1 prep, echo = FALSE, warning=F}
 # load data 
 data("diabetes", package = "lars")
@@ -54,7 +56,9 @@ summary(diabetes)
  #      digits = 2) 
 
 ```
-Next, we set a random seed and split the data into train and test data set such that 400 observations (approx. 95%) are used for training and the remaining ones for testing. Selecting the observations for the training set randomly has several reasons. First, we prevent sample bias since the data may be ordered or have patterns based on how the data was collected. If the data has a temporal, spatial, or any systematic order, the first 400 observations might not represent the overall variability in the data set.  First we mitigate overfitting and improve model robustness. Overall this leads to increased generalizability of our results.
+
+Next, we set a random seed and split the data into train and test data set such that 400 observations (approx. 95%) are used for training and the remaining ones for testing. Selecting the observations for the training set randomly has several reasons. First, we prevent sample bias since the data may be ordered or have patterns based on how the data was collected. If the data has a temporal, spatial, or any systematic order, the first 400 observations might not represent the overall variability in the data set. First we mitigate overfitting and improve model robustness. Overall this leads to increased generalizability of our results.
+
 ```{r Exercise 1.1, echo = FALSE}
 set.seed(1)
 # generate & separate train and test data 
@@ -62,9 +66,11 @@ train_index<- sample(seq_len(nrow(diabetes)), size = 400)
 train <- data.frame(diabetes[train_index, ])
 test <- data.frame(diabetes[-train_index, ])
 ```
+
 The covariates are only available in standardized form. This can have several implications, both positive and negative.One the one hand standardization allows us to compare the relative importance of coefficients directly in a regression model, as they are on the same scale. This can be particularly useful in identifying which variables have the most significant effects on the outcome variable. This can in some cases also improve the numerical stability of the estimation process, especially when the variables were measured on vastly different scales. This can lead to more reliable and faster convergence in some algorithms.On the other hand while standardized coefficients facilitate comparison, they can complicate the interpretation of the model. The coefficients of standardized variables represent the change in the outcome variable for a one-standard-deviation change in the predictor variable, which may not be as intuitive as the original units. Moreover, when transforming back to the usual units the question is whether effects are captured correctly. \\
 
 Next, we analyze the pairwise correlation structure between the covariates as well as the covariates and the dependent variable y. These correlations impact model selection as we can get a first impression of whether or not a linear model would be a good assumption through the correlation matrix and the correlation scatter plot. We can see that sex is a categorical and tch seems to be discrete. We observe a clear linear relationship between tc and ldl with a correlation 0.90. Therefore we might ask ourselves if these two variables are really independent predictors. Adding only one to the regression instead of both comes with a slight omitted variable bias, but can make sense for dependent variables in terms of variance reduction. Also the correlation between tch and hdl lies above 0.70. In general, however, a linear relationship is not clearly observable.
+
 ```{r Exercise 1.2, echo = FALSE}
 cormatrix <- cor(diabetes, use = "complete.obs")
 cormatrix  <- round(cormatrix,digits = 2)
@@ -75,6 +81,7 @@ pairs(diabetes, pch= 19)
 
 #corrplot::corrplot(diabetes)
 ```
+
 Now, we fit linear regression model containing all explanatory variables and evaluate its performance using the in-sample mean squared error (MSE) and the out of sample (oos) MSE. As expected the in-sample MSE (2854.869) is lower than the oos MSE on the test data (2945.384).
 
 ```{r Exercise 1.3, echo = FALSE}
@@ -92,7 +99,8 @@ pred_test <- predict(lm_full, test)
 lm_full_mse_oos <- mean((pred_test-test[,1])^2)
 print(lm_full_mse_oos)
 ```
-In the next part, we  fit a smaller model where only the covariates are contained which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see model summary for the full model). This leaves us with the following covariates: "sex, bmi, map, tc, ltg". Again we evaluate the performance in-sample as well as on the test data. The in-sample MSE is now 2963.644 and the oos MSE is 3022.301. I.e. again we observe a higher out of sample MSE. When comparing this model to the full model using an F-test we see that the full model, which includes more predictors, provides a significantly better fit to the data compared to the small model, as evidenced by the p-value (0.01221) being less than 0.05.
+
+In the next part, we fit a smaller model where only the covariates are contained which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see model summary for the full model). This leaves us with the following covariates: "sex, bmi, map, tc, ltg". Again we evaluate the performance in-sample as well as on the test data. The in-sample MSE is now 2963.644 and the oos MSE is 3022.301. I.e. again we observe a higher out of sample MSE. When comparing this model to the full model using an F-test we see that the full model, which includes more predictors, provides a significantly better fit to the data compared to the small model, as evidenced by the p-value (0.01221) being less than 0.05.
 
 ```{r Exercise 1.4, echo = FALSE}
 # Fit linear regression model using the covariates which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see summary(lm_full) for significance)
@@ -114,7 +122,9 @@ print(lm_small_mse_oos)
 F_small <- anova(lm_small,lm_full)
 print(F_small)
 ```
+
 In the following we use step wise regression based on the AIC to select a suitable model. We use the step() function which checks whether the AIC decreases when dropping variables in a step wise procedure and stops as soon as it does not decrease any further. In a similar matter to before we evaluate the performance in-sample as well as oos on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2870.25 and the oos MSE is 2966.798.The F-test suggests that the p-value (0.7182) is much greater than the typical alpha level of 0.05, suggesting there's no significant evidence to favor the full model over the step model regarding how well they explain the variability in y. In other words, the additional predictors in the full model (age, hdl, tch, and glu) do not significantly improve the model's explanatory power compared to the step model.
+
 ```{r Exercise 1.5, echo = FALSE}
 # stepwise model
 
@@ -137,7 +147,9 @@ print(lm_step_mse_oos)
 F_step <- anova(lm_full,lm_step)
 print(F_step)
 ```
+
 Here we use best subset selection to select a suitable model based on the AIC and using the leaps() function. We evaluate the performance in-sample as well as on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2911.967 and the oos MSE is 2956.157. The F-test suggests that the additional predictors included in the full model (age, tc, ldl, tch, glu) do not significantly improve the model's ability to explain the variability in the dependent variable, since the p-value (0.1716) is greater than the 0.05 significance level. This means there isn't enough statistical evidence to justify the added complexity of the full model over the sub set model for this data set.
+
 ```{r Exercise 1.6, echo = FALSE}
 # best subset selection model
 
@@ -185,7 +197,9 @@ print(lm_sub_mse_oos)
 F_sub <- anova(lm_full,lm_subset_aic)
 print(F_sub)
 ```
+
 Last, we summarize our results in the following table, containing the regression coefficients of the different models as well as the in-sample and the test data performance:
+
 ```{r Exercise 1 summary, echo = FALSE}
 # Extract coefficients into data frames
 
@@ -212,9 +226,10 @@ results <- results[,-1]
 kable(results, caption = "Results all models")
 ```
 
-
 # Exercise 2
-We use the wage data set to fit different linear models. The data set is available in the R package ISLR2. First we load and prepare the data. We look at the summary statistics and omit the logwage variable. Next, we specify non-linear effects for the variable age by adding the variable age squared to our data set. Moreover, we chose suitable contrasts for the variable education to compare the different levels of education in a meaningful way. In R, contrasts define how categorical variables are encoded into numerical values for analysis. The default encoding is treatment coding (also known as dummy coding), where one level is chosen as a baseline and the other levels are compared to this baseline. For an ordinal variable like education, where the levels have a natural order, polynomial contrasts might be more appropriate as they can model the linear and non-linear relationships between the levels of education and the outcome variable. Next, we fit a linear regression model to predict wage using age, age sqaured and education as predictors. The summary results are depicted below. 
+
+We use the wage data set to fit different linear models. The data set is available in the R package ISLR2. First we load and prepare the data. We look at the summary statistics and omit the logwage variable. Next, we specify non-linear effects for the variable age by adding the variable age squared to our data set. Moreover, we chose suitable contrasts for the variable education to compare the different levels of education in a meaningful way. In R, contrasts define how categorical variables are encoded into numerical values for analysis. The default encoding is treatment coding (also known as dummy coding), where one level is chosen as a baseline and the other levels are compared to this baseline. For an ordinal variable like education, where the levels have a natural order, polynomial contrasts might be more appropriate as they can model the linear and non-linear relationships between the levels of education and the outcome variable. Next, we fit a linear regression model to predict wage using age, age sqaured and education as predictors. The summary results are depicted below.
+
 ```{r Exercise 2 prep, echo = FALSE}
 # Clear memory
 #rm(list=ls())
@@ -245,7 +260,8 @@ lm_wage_sum
 #kable(lm_wage_sum, "latex", booktabs = T, digits = 3) %>%
  # kable_styling(latex_options = c("striped", "scale_down"))
 ```
-In the following we perform best subset selection (of wage ~ age + age_sq + education) to determine a suitable model. To do this we use again the leaps package in R. Below the summary and the plot comparing RSS and the subset size k. According to the AIC the best sub model is model 4.
+
+In the following we perform best subset selection (of wage \~ age + age_sq + education) to determine a suitable model. To do this we use again the leaps package in R. Below the summary and the plot comparing RSS and the subset size k. According to the AIC the best sub model is model 4.
 
 ```{r Exercise 2.1, echo = FALSE}
 #Use best subset selection to determine a suitable model.
@@ -270,6 +286,7 @@ AIC = which.min(lm_wage_sub_sum$bic) # best is model 4
 #lm_wage_sub_aic_sum <- summary(lm_subset_aic)
 #lm_wage_sub_aic_sum
 ```
+
 Last we assess if it makes a difference if we include the polynom of the original variable age or orthogonal polynoms constructed using poly(age, k). Direct polynomials are straightforward (linear and squared terms of age), making them somewhat easier to interpret in terms of the direct effect of aging. However, they can be collinear, especially with higher-degree polynomials. Orthogonal polynomials deal with the potential issue of multicollinearity between the polynomial terms, leading to more stable coefficient estimates. However, the coefficients of orthogonal polynomials do not directly translate to the simple linear and quadratic terms, making them a bit more challenging to interpret. For predictive accuracy, orthogonal polynomials can sometimes offer an advantage, especially in complex models. For interpretation, direct polynomials might be preferred if the primary interest is in understanding the specific nature of the relationship between age and wage. In the context of our models AIC and BIC values are the same for both models using direct polynomial terms and orthogonal polynomials for age. This suggests that both models are equally good from the standpoint of information criteria, balancing model fit and complexity in a similar manner. In such a case, the decision on which model to choose may depends on other considerations, like interpreation etc.
 
 ```{r Exercise 2.2, echo = FALSE}
@@ -290,16 +307,23 @@ bic_direct_poly <- BIC(lm_wage_sub_direct)
 aic_ortho_poly <- AIC(lm_wage_sub_ortho)
 bic_ortho_poly <- BIC(lm_wage_sub_ortho)
 ```
+
 # Exercise 3
-We assume the following data generating process: $$y = x + x^2 + \epsilon$$ with $\epsilon \sim N(0,\sigma^2_{\epsilon})$ and  $x \sim N(0,\sigma^2_x)$ and $x$ and $\epsilon$ are independent. 
-First we analytically determine the test error using the squared error loss given parameter estimates $\hat \beta$.
 
+We assume the following data generating process: $$y = x + x^2 + \epsilon$$ with $\epsilon \sim N(0,\sigma^2_{\epsilon})$ and $x \sim N(0,\sigma^2_x)$ and $x$ and $\epsilon$ are independent. First we analytically determine the test error using the squared error loss given parameter estimates $\hat \beta$.
 
-### Herleitung: 
-#### slide deck 01 (p.17,28-29)
+Given a training set $\tau$ the test error (also called generalization error) of the model $\hat f$ is given by $Err_{\tau}=\mathbb{E}_{X^0,Y^0} [L(Y^0,\hat f(X^0))|\tau]$ , with $\hat f(X^0) = \hat \beta_1 x^0 + \hat \beta_2 (x^0)^2$ and $Y^0=f(X^0)+\epsilon=x^0+(x^0)^2+\epsilon$. The squared error loss function is $L(Y^0,\hat f(X^0))=(Y^0-\hat f(X^0))^2$. Then it follows,
 
-Next, we draw a sample of size N = 40 as training data and determine the test error using the
-squared error loss using the analytical formula as well as simulation when estimating the regression coefficients $\beta$ using OLS. Assuming $\sigma^2_{\epsilon} = \sigma^2_x = 1$.
+$$
+Err_{\tau}= \mathbb{E}_{X^0,Y^0} [ (x^0+(x^0)^2+\epsilon- \hat \beta_1 x^0 + \hat \beta_2 (x^0)^2)^2|\tau] \\
+= \mathbb{E}_{X^0,Y^0} [ (\underbrace{(1-\hat\beta_1)x^0+(1-\hat\beta_2)(x^0)^2}_{\text{red}(x^0)}+\epsilon)^2|\tau] \\
+=\mathbb{E}_{X^0,Y^0} [ (\text{red}(x^0))^2+\epsilon^2+2 \ \text{red}(x^0) \epsilon \\
+= \mathbb{E}_{X^0,Y^0} [(1-\hat\beta_1)^2(x^0)^2+(1-\hat\beta_2)^2(x^0)^4 +2(1-\hat\beta_1)(1-\hat\beta_2)(x^0)^3|\tau] + \mathbb{E}_{X^0,Y^0} [\epsilon^2|\tau]+ \mathbb{E}_{X^0,Y^0}[\text{red}(x^0) \epsilon|\tau]\\
+= (1-\hat\beta_1)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^2|\tau]+(1-\hat\beta_2)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^4|\tau] +2(1-\hat\beta_1)(1-\hat\beta_2)\mathbb{E}_{X^0,Y^0} [(x^0)^3|\tau] +\sigma_{\epsilon}^2\\
+= (1-\hat\beta_1)^2 \sigma_x^2 + (1-\hat\beta_2)^2 3 \sigma_x^4+\sigma_{\epsilon}^2
+$$ In the last step we used the $2^{nd}$, $3^{rd}$ and $4^{th}$ moment of the Normal distribution. In the step before, we used the fact, that $x$ an $\epsilon$ are independent.
+
+Next, we draw a sample of size N = 40 as training data and determine the test error using the squared error loss using the analytical formula as well as simulation when estimating the regression coefficients $\beta$ using OLS. Assuming $\sigma^2_{\epsilon} = \sigma^2_x = 1$.
 
 ```{r Exercise 3.1, include=FALSE}
 set.seed(123)
@@ -310,24 +334,20 @@ x <- rnorm(40,0,1)
 X <- matrix(cbind(rep(1,length(x)),x,x^2))
 ```
 
-Now, we estimate the expected test error for samples of size N = 40 used as training data for
-the squared error loss when estimating the regression coefficients $\beta$ using OLS and test data sets of suitable size drawn from the data generating process. Still assuming that $\sigma^2_{\epsilon} = \sigma^2_x = 1$
+Now, we estimate the expected test error for samples of size N = 40 used as training data for the squared error loss when estimating the regression coefficients $\beta$ using OLS and test data sets of suitable size drawn from the data generating process. Still assuming that $\sigma^2_{\epsilon} = \sigma^2_x = 1$
 
 ```{r Exercise 3.2, include=FALSE}
 
 ```
 
-
 # Exercise 4
+
 ```{r Exercise 4, include=FALSE}
 
 ```
 
 # Exercise 5
+
 ```{r Exercise 5, include=FALSE}
 
 ```
-
-
-
-
