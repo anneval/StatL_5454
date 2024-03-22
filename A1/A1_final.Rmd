@@ -348,6 +348,93 @@ Now, we estimate the expected test error for samples of size N = 40 used as trai
 
 # Exercise 5
 
-```{r Exercise 5, include=FALSE}
+We use artificial data to perform LASSO and ridge regression. First, we set a random seed before the analysis. Then, we draw 100 observations from a 100-dimensional standard multivariate normal distribution. This is the matrix of covariates X of dimension 100 $\times$ 100. Next, we draw 100 observations for the dependent variable given by 
+$$y=\sum_{i=1}^{10}x_i+\epsilon, \quad \text{with} \ \epsilon \sim N(0,0.1)$$
+
+```{r Exercise 5.1, include=TRUE}
+library(MASS) # for mvrnorm
+# set a random seed
+set.seed(123)
+
+# Draw 100 observations from a 100-dimensional standard multivariate normal distribution. Mean is 0. Cov. matrix is the identity matrix.
+
+X <- mvrnorm(n=100, mu=rep(0,100), Sigma = diag(100))
+
+# Draw 100 observations for the dependent variable.
+
+y <- rowSums(X[,1:10]) + rnorm(100, mean=0,sd=0.1)
 
 ```
+
+Now, we fit LASSO and ridge models with different values of $\lambda$ using function \textit{glmnet} from package \textbf{glmnet}.
+
+```{r Exercise 5.2, include=TRUE}
+library(glmnet)
+
+# Note : default is intercept = TRUE
+lasso.fit <- glmnet(X, y, alpha=1)
+ridge.fit <- glmnet(X, y, alpha=0)
+
+```
+
+We plot the default plots for the returned objects.
+
+```{r Exercise 5.3, include=TRUE}
+plot(lasso.fit)
+mtext("numb. of non-zero coeff.", side = 1, line = -14.9, col = 1)
+title("LASSO", line = 3)
+plot(ridge.fit, xlab="L2 norm")
+mtext("numb. of non-zero coeff.", side = 1, line = -14.9, col = 1)
+title("Ridge", line = 3)
+```
+
+Each line represents one variable. L1 norm is the regularization term of LASSO, and L2 the regularization term of Ridge. A small L1 or L2 norm represent a lot of regularization. On the other hand, a high L1 or L2 norm represent low regularization.
+For LASSO, an L1 norm of zero gives an empty model. Variables enter the model with increasing L1 norm, as their coefficients take non-zero values. On the top axis, we see the number of non-zero coefficients. 
+For Ridge, an L2 norm of zero also gives an empty model. But compared to Ridge, all variables enter right away. Also note, that some are negative.
+
+Additionally, we plot the plots where the argument \textit{xvar} is set to \textit{"lambda"}.
+```{r Exercise 5.4, include=TRUE}
+plot(lasso.fit, xvar="lambda")
+mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+title("LASSO", line = 3)
+plot(ridge.fit, xvar="lambda")
+mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
+title("Ridge", line = 3)
+```
+
+We basically see the same as before, just on another scale. This time the x-axis is log Lambda, the logarithm of the weight given to the regularization (the complexity parameter). For Lambda = 0, the solution is the OLS solution.
+
+Next, we determine the number of non-zero coefficients in dependence of $\lambda$ for LASSO and ridge.
+
+```{r Exercise 5.5, include=TRUE}
+# lasso.fit$lambda
+# ridge.fit$lambda
+
+lasso.nonzero <- predict(lasso.fit, type = "nonzero")
+ridge.nonzero <- predict(ridge.fit, type = "nonzero")
+
+plot(lasso.fit$lambda, lengths(lasso.nonzero), xlab = "lambda",
+ylab = "numb. of non-zero coeff.", ylim = c(0,22), main = "LASSO", type="l")
+
+plot(ridge.fit$lambda, lengths(ridge.nonzero), xlab = "lambda",
+ylab = "numb. of non-zero coeff.", ylim = c(0,110), main = "Ridge", type="l")
+```
+We can see, that for LASSO, the number of non-zero coefficients decreases with lambda. We actually stay at 10 non-zero coefficents for Lambda values between $\sim 0.05-0.55$. For Ridge all variables are in the model for all values of lambda.
+
+
+Finally, we find the model fit as measured by the deviance() (= RSS) in dependence of $\lambda$ for LASSO and ridge.
+
+```{r Exercise 5.6, include=TRUE}
+
+lasso.rss <- deviance(lasso.fit)
+ridge.rss <- deviance(ridge.fit)
+
+plot(lasso.fit$lambda, lasso.rss, xlab = "lambda", ylab = "RSS", xlim = c(0,1.25),
+ylim = c(0,1000), main = "LASSO", type="l")
+
+plot(ridge.fit$lambda, ridge.rss, xlab = "lambda", ylab = "RSS", xlim = c(0,1250),
+ylim = c(0,1000), main = "Ridge", type="l")
+
+
+```
+In general, a low Lambda gives a better fit (lower RSS). Compared to LASS0, for Ridge the RSS increases faster with increasing Lambda. This could be a result of all variables entering already with low levels of Lambda.
