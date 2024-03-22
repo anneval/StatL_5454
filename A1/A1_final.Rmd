@@ -315,13 +315,17 @@ We assume the following data generating process: $$y = x + x^2 + \epsilon$$ with
 Given a training set $\tau$ the test error (also called generalization error) of the model $\hat f$ is given by $Err_{\tau}=\mathbb{E}_{X^0,Y^0} [L(Y^0,\hat f(X^0))|\tau]$ , with $\hat f(X^0) = \hat \beta_1 x^0 + \hat \beta_2 (x^0)^2$ and $Y^0=f(X^0)+\epsilon=x^0+(x^0)^2+\epsilon$. The squared error loss function is $L(Y^0,\hat f(X^0))=(Y^0-\hat f(X^0))^2$. Then it follows,
 
 $$
-Err_{\tau}= \mathbb{E}_{X^0,Y^0} [ (x^0+(x^0)^2+\epsilon- \hat \beta_1 x^0 + \hat \beta_2 (x^0)^2)^2|\tau] \\
-= \mathbb{E}_{X^0,Y^0} [ (\underbrace{(1-\hat\beta_1)x^0+(1-\hat\beta_2)(x^0)^2}_{\text{red}(x^0)}+\epsilon)^2|\tau] \\
-=\mathbb{E}_{X^0,Y^0} [ (\text{red}(x^0))^2+\epsilon^2+2 \ \text{red}(x^0) \epsilon \\
-= \mathbb{E}_{X^0,Y^0} [(1-\hat\beta_1)^2(x^0)^2+(1-\hat\beta_2)^2(x^0)^4 +2(1-\hat\beta_1)(1-\hat\beta_2)(x^0)^3|\tau] + \mathbb{E}_{X^0,Y^0} [\epsilon^2|\tau]+ \mathbb{E}_{X^0,Y^0}[\text{red}(x^0) \epsilon|\tau]\\
-= (1-\hat\beta_1)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^2|\tau]+(1-\hat\beta_2)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^4|\tau] +2(1-\hat\beta_1)(1-\hat\beta_2)\mathbb{E}_{X^0,Y^0} [(x^0)^3|\tau] +\sigma_{\epsilon}^2\\
-= (1-\hat\beta_1)^2 \sigma_x^2 + (1-\hat\beta_2)^2 3 \sigma_x^4+\sigma_{\epsilon}^2
-$$ In the last step we used the $2^{nd}$, $3^{rd}$ and $4^{th}$ moment of the Normal distribution. In the step before, we used the fact, that $x$ an $\epsilon$ are independent.
+\begin{aligned}
+Err_{\tau}&= \mathbb{E}_{X^0,Y^0} [ (x^0+(x^0)^2+\epsilon- \hat \beta_1 x^0 + \hat \beta_2 (x^0)^2)^2|\tau] \\
+&= \mathbb{E}_{X^0,Y^0} [ (\underbrace{(1-\hat\beta_1)x^0+(1-\hat\beta_2)(x^0)^2}_{\text{red}(x^0)}+\epsilon)^2|\tau] \\
+&=\mathbb{E}_{X^0,Y^0} [ (\text{red}(x^0))^2+\epsilon^2+2 \ \text{red}(x^0) \epsilon \\
+&= \mathbb{E}_{X^0,Y^0} [(1-\hat\beta_1)^2(x^0)^2+(1-\hat\beta_2)^2(x^0)^4 +2(1-\hat\beta_1)(1-\hat\beta_2)(x^0)^3|\tau] + \mathbb{E}_{X^0,Y^0} [\epsilon^2|\tau]+ \mathbb{E}_{X^0,Y^0}[\text{red}(x^0) \epsilon|\tau]\\
+&= (1-\hat\beta_1)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^2|\tau]+(1-\hat\beta_2)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^4|\tau] +2(1-\hat\beta_1)(1-\hat\beta_2)\mathbb{E}_{X^0,Y^0} [(x^0)^3|\tau] +\sigma_{\epsilon}^2\\
+&= (1-\hat\beta_1)^2 \sigma_x^2 + (1-\hat\beta_2)^2 3 \sigma_x^4+\sigma_{\epsilon}^2
+\end{aligned}
+$$
+
+In the last step we used the $2^{nd}$, $3^{rd}$ and $4^{th}$ moment of the Normal distribution. In the step before, we used the fact, that $x$ an $\epsilon$ are independent.
 
 Next, we draw a sample of size N = 40 as training data and determine the test error using the squared error loss using the analytical formula as well as simulation when estimating the regression coefficients $\beta$ using OLS. Assuming $\sigma^2_{\epsilon} = \sigma^2_x = 1$.
 
@@ -356,7 +360,8 @@ library(MASS) # for mvrnorm
 # set a random seed
 set.seed(123)
 
-# Draw 100 observations from a 100-dimensional standard multivariate normal distribution. Mean is 0. Cov. matrix is the identity matrix.
+# Draw 100 observations from a 100-dimensional standard multivariate normal distribution.
+# Mean is 0. Cov. matrix is the identity matrix.
 
 X <- mvrnorm(n=100, mu=rep(0,100), Sigma = diag(100))
 
@@ -381,10 +386,10 @@ We plot the default plots for the returned objects.
 
 ```{r Exercise 5.3, include=TRUE}
 plot(lasso.fit)
-mtext("numb. of non-zero coeff.", side = 1, line = -14.9, col = 1)
+mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
 title("LASSO", line = 3)
 plot(ridge.fit, xlab="L2 norm")
-mtext("numb. of non-zero coeff.", side = 1, line = -14.9, col = 1)
+mtext("numb. of non-zero coeff.", side = 1, line = -16.2, col = 1)
 title("Ridge", line = 3)
 ```
 
