@@ -64,7 +64,7 @@ Next, we set a random seed and split the data into train and test data set such 
 ```{r Exercise 1.1, echo = FALSE}
 set.seed(1)
 # generate & separate train and test data 
-train_index<- sample(seq_len(nrow(diabetes)), size = 400)
+train_index <- sample(seq_len(nrow(diabetes)), size = 400)
 train <- data.frame(diabetes[train_index, ])
 test <- data.frame(diabetes[-train_index, ])
 ```
@@ -312,39 +312,110 @@ bic_ortho_poly <- BIC(lm_wage_sub_ortho)
 
 # Exercise 3
 
-We assume the following data generating process: $$y = x + x^2 + \epsilon$$ with $\epsilon \sim N(0,\sigma^2_{\epsilon})$ and $x \sim N(0,\sigma^2_x)$ and $x$ and $\epsilon$ are independent. First we analytically determine the test error using the squared error loss given parameter estimates $\hat \beta$.
+We assume the following data generating process:
+$$y = f(x) + \epsilon =  x + x^2 + \epsilon,$$
+with $\epsilon \sim N(0,\sigma^2_{\epsilon})$, $x \sim N(0,\sigma^2_x)$ and $x$ and $\epsilon$ being independent. First we analytically determine the test error using the squared error loss for given parameter estimates $\hat \beta = \left(\hat{\beta}_1, \hat{\beta}_2\right)'$.
 
-Given a training set $\tau$ the test error (also called generalization error) of the model $\hat f$ is given by $Err_{\tau}=\mathbb{E}_{X^0,Y^0} [L(Y^0,\hat f(X^0))|\tau]$ , with $\hat f(X^0) = \hat \beta_1 x^0 + \hat \beta_2 (x^0)^2$ and $Y^0=f(X^0)+\epsilon=x^0+(x^0)^2+\epsilon$. The squared error loss function is $L(Y^0,\hat f(X^0))=(Y^0-\hat f(X^0))^2$. Then it follows,
+Given a training set $\mathcal{T}$, the test error (also called generalization error) of the model $\hat f$ is given by 
+$$Err_{\mathcal{T}}=\mathbb{E}_{x,y} [L(y,\hat{f}(x)) \, | \, \mathcal{T}],$$ 
+where $\hat f(x) = \hat \beta_1 x + \hat \beta_2 x^2$ and $L(y,\hat{f}(x)) = (y - \hat{f}(x))^2$ denotes the squared error loss function. It follows that
 
 $$
 \begin{aligned}
-Err_{\tau}&= \mathbb{E}_{X^0,Y^0} [ (x^0+(x^0)^2+\epsilon- \hat \beta_1 x^0 + \hat \beta_2 (x^0)^2)^2|\tau] \\
-&= \mathbb{E}_{X^0,Y^0} [ (\underbrace{(1-\hat\beta_1)x^0+(1-\hat\beta_2)(x^0)^2}_{\text{red}(x^0)}+\epsilon)^2|\tau] \\
-&=\mathbb{E}_{X^0,Y^0} [ (\text{red}(x^0))^2+\epsilon^2+2 \ \text{red}(x^0) \epsilon \\
-&= \mathbb{E}_{X^0,Y^0} [(1-\hat\beta_1)^2(x^0)^2+(1-\hat\beta_2)^2(x^0)^4 +2(1-\hat\beta_1)(1-\hat\beta_2)(x^0)^3|\tau] + \mathbb{E}_{X^0,Y^0} [\epsilon^2|\tau]+ \mathbb{E}_{X^0,Y^0}[\text{red}(x^0) \epsilon|\tau]\\
-&= (1-\hat\beta_1)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^2|\tau]+(1-\hat\beta_2)^2 \mathbb{E}_{X^0,Y^0} [(x^0)^4|\tau] +2(1-\hat\beta_1)(1-\hat\beta_2)\mathbb{E}_{X^0,Y^0} [(x^0)^3|\tau] +\sigma_{\epsilon}^2\\
-&= (1-\hat\beta_1)^2 \sigma_x^2 + (1-\hat\beta_2)^2 3 \sigma_x^4+\sigma_{\epsilon}^2
+Err_{\mathcal{T}} &= \mathbb{E}_{x,y} \left[ 
+\bigl(x+x^2+\epsilon- \hat \beta_1 x - \hat \beta_2 x^2 \bigr)^2 \, \Big| \, \mathcal{T} \right] \\
+&= \mathbb{E}_{x,y} \Bigl[ \bigl( \underbrace{(1-\hat\beta_1)x+(1-\hat\beta_2)x^2}_{\text{red}(x)}+\epsilon\bigr)^2 \, \Big| \, \mathcal{T} \Bigr] \\
+&=\mathbb{E}_{x,y} \left[ \text{red}(x)^2 + \epsilon^2 + 2 \ \text{red}(x) \epsilon \, | \, \mathcal{T} \right] \\
+&= \mathbb{E}_{x,y} \left[(1-\hat\beta_1)^2x^2+(1-\hat\beta_2)^2x^4 +2(1-\hat\beta_1)(1-\hat\beta_2)x^3 \, | \, \mathcal{T}\right] + \mathbb{E}_{x,y} \left[\epsilon^2 \, | \, \mathcal{T}\right] + \mathbb{E}_{x,y} \left[\text{red}(x) \epsilon \, | \, \mathcal{T}\right]\\
+&= (1-\hat\beta_1)^2 \mathbb{E}_{x,y} \left[x^2 \, | \, \mathcal{T} \right] + (1-\hat\beta_2)^2 \mathbb{E}_{x,y} \left[x^4 \, | \, \mathcal{T}\right] + 2(1-\hat\beta_1)(1-\hat\beta_2) \mathbb{E}_{x,y} \left[x^3 \, | \, \mathcal{T}\right] +\sigma_{\epsilon}^2\\
+&= (1-\hat\beta_1)^2 \sigma_x^2 + (1-\hat\beta_2)^2 3 \sigma_x^4+\sigma_{\epsilon}^2,
 \end{aligned}
 $$
 
-In the last step we used the $2^{nd}$, $3^{rd}$ and $4^{th}$ moment of the Normal distribution. In the step before, we used the fact, that $x$ an $\epsilon$ are independent.
+where $\text{red}(x)$ is the reducible error. In the last step we used the $2^{nd}$, $3^{rd}$ and $4^{th}$ moment of the Normal distribution. In the step before, we used the fact, that $x$ an $\epsilon$ are independent.
 
-Next, we draw a sample of size N = 40 as training data and determine the test error using the squared error loss using the analytical formula as well as simulation when estimating the regression coefficients $\beta$ using OLS. Assuming $\sigma^2_{\epsilon} = \sigma^2_x = 1$.
+Next, we draw a sample of size $N = 40$ as training data (assuming $\sigma^2_{\epsilon} = \sigma^2_x = 1$) and estimate the regression coefficients using OLS. We then determine the test error using the analytical formula as well as simulations. For the simulations we generate a test sample of size $N_{test} = 10,000$, in order for the mean of the squared prediction errors to be a reasonable approximation of the test error. 
 
-```{r Exercise 3.1, include=FALSE}
+Ultimately, we find that simulated and analytical test errors are quite similar and given by
+
+```{r Exercise 3.1, echo=FALSE}
+
+# helper function to generate data
+GenerateData <- function(N = 40, var_epsilon = 1, var_x = 1){
+  
+  # draw sample for epsilon
+  epsilon <- rnorm(N,0,sd = sqrt(var_epsilon))
+  # draw sample for x
+  x <- rnorm(N,0, sd = sqrt(var_x))
+  # compute y
+  y <- x + x^2 + epsilon
+  
+  # create data set
+  data <- as.data.frame(cbind(y,x,x^2))
+  colnames(data) <- c("y", "x", "x_squared")
+  
+  return(data)
+}
+
+# function to compute test error (analytically and based on simulations)
+TestError <- function(N_train = 40, N_test = 10000,
+                       var_epsilon = 1, var_x = 1){
+  
+  # generate training data
+  data_train <- GenerateData(N = N_train, var_epsilon = var_epsilon, var_x = var_x)
+  y_train <- as.vector(data_train$y)
+  X_train <- as.matrix(data_train[c("x","x_squared")])
+  
+  # estimate beta_hat
+  beta_hat <- solve(crossprod(X_train))%*%crossprod(X_train,y_train)
+  
+  # compute test error using our analytical formula
+  error_analytical <- (1-beta_hat[1])^2*var_x + 3*(1-beta_hat[2])^2*var_x^2 + var_epsilon
+  
+  # compute test error using simulation
+  data_test <- GenerateData(N = N_test, var_epsilon = var_epsilon, 
+                            var_x = var_x) # generate test data
+  y_test <- as.vector(data_test$y)
+  X_test <- as.matrix(data_test[c("x", "x_squared")])
+  
+  y_predict <- X_test%*%beta_hat # predicted values
+  prediction_errors <- y_predict - y_test
+  
+  error_simulated <- mean(prediction_errors^2) # MSE
+  
+  return(c("test_error_analytical" = error_analytical,
+           "test_error_simulated" = error_simulated))
+}
+
+# set seed and apply our function
 set.seed(123)
-#draw sample for epsilon
-epsilon <- rnorm(40,0,1)
-#draw sample for x
-x <- rnorm(40,0,1)
-X <- matrix(cbind(rep(1,length(x)),x,x^2))
+(test_errors <- TestError())
 ```
 
-Now, we estimate the expected test error for samples of size N = 40 used as training data for the squared error loss when estimating the regression coefficients $\beta$ using OLS and test data sets of suitable size drawn from the data generating process. Still assuming that $\sigma^2_{\epsilon} = \sigma^2_x = 1$
+Finally, we want to determine the expected test error, which is defined as
+$$
+Err = \mathbb{E}_{x,y}\left[L(y,\hat{f}(x)) \right] = \mathbb{E}_{\mathcal{T}} \left[Err_{\mathcal{T}}\right].
+$$
+
 
 ```{r Exercise 3.2, include=FALSE}
+N_tau <- 1000
+test_errors_vec <- numeric(N_tau)
+
+for(i in 1:N_tau){
+  test_errors_vec[i] <- TestError()[1]
+}
+
+expected_test_error <- mean(test_errors_vec)
 
 ```
+
+We estimate the expected test error as the mean test error across $N_{\mathcal{T}} = 1000$ different training samples of size $N = 40$ and find that $Err = `r expected_test_error`$. Consequently, the expected test error is similar to the test error we obtained above. However, a closer look at the summary statistics of the test errors computed for different sets of training data shows that there is in fact some variation in $Err_{\mathcal{T}}$, depending on the particular characteristics of the respective trainings data $\mathcal{T}$. 
+
+```{r Exercise 3.2 summary, echo=FALSE}
+summary(test_errors_vec)
+```
+
 
 # Exercise 4
 
