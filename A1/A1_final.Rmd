@@ -3,6 +3,13 @@ title: "Statistical Learning (5454) - Assignment 1"
 author: "Matthias Hochholzer, Lukas Pirnbacher, Anne Valder"
 date: "Due: 2024-03-25"
 output: pdf_document
+
+header-includes:
+  - \usepackage{bm}
+  - \newcommand*{\defeq}{\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
+  - \newcommand*{\eqdef}{=\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}}
 ---
 
 ```{r setup, include=FALSE}
@@ -59,7 +66,7 @@ summary(diabetes)
 
 ```
 
-Next, we set a random seed and split the data into train and test data set such that 400 observations (approx. 95%) are used for training and the remaining ones for testing. Selecting the observations for the training set randomly has several reasons. First, we prevent sample bias since the data may be ordered or have patterns based on how the data was collected. If the data has a temporal, spatial, or any systematic order, the first 400 observations might not represent the overall variability in the data set. First we mitigate overfitting and improve model robustness. Overall this leads to increased generalizability of our results.
+Next, we set a random seed and split the data into train and test data set such that 400 observations (approx. 95%) are used for training and the remaining ones for testing. Selecting the observations for the training set randomly has several reasons. First, we prevent sample bias since the data may be ordered or have patterns based on how the data was collected. If the data has a temporal, spatial, or any systematic order, the first 400 observations might not represent the overall variability in the data set. Second, we mitigate overfitting and improve model robustness. Overall this leads to increased generalizability of our results.
 
 ```{r Exercise 1.1, echo = FALSE}
 set.seed(1)
@@ -69,9 +76,9 @@ train <- data.frame(diabetes[train_index, ])
 test <- data.frame(diabetes[-train_index, ])
 ```
 
-The covariates are only available in standardized form. This can have several implications, both positive and negative.One the one hand standardization allows us to compare the relative importance of coefficients directly in a regression model, as they are on the same scale. This can be particularly useful in identifying which variables have the most significant effects on the outcome variable. This can in some cases also improve the numerical stability of the estimation process, especially when the variables were measured on vastly different scales. This can lead to more reliable and faster convergence in some algorithms.On the other hand while standardized coefficients facilitate comparison, they can complicate the interpretation of the model. The coefficients of standardized variables represent the change in the outcome variable for a one-standard-deviation change in the predictor variable, which may not be as intuitive as the original units. Moreover, when transforming back to the usual units the question is whether effects are captured correctly. \\
+The covariates are only available in standardized form. This can have several implications, both positive and negative. On the one hand, standardization allows us to compare the relative importance of coefficients directly in a regression model, as they are on the same scale. This can be particularly useful in identifying which variables have the most significant effects on the outcome variable. This can in some cases also improve the numerical stability of the estimation process, especially when the variables were measured on vastly different scales. This can lead to more reliable and faster convergence in some algorithms. On the other hand, while standardized coefficients facilitate comparison, they can complicate the interpretation of the model. The coefficients of standardized variables represent the change in the outcome variable for a one-standard-deviation change in the predictor variable, which may not be as intuitive as the original units. Moreover, when transforming back to the usual units, the question is whether effects are captured correctly. \\
 
-Next, we analyze the pairwise correlation structure between the covariates as well as the covariates and the dependent variable y. These correlations impact model selection as we can get a first impression of whether or not a linear model would be a good assumption through the correlation matrix and the correlation scatter plot. We can see that sex is a categorical and tch seems to be discrete. We observe a clear linear relationship between tc and ldl with a correlation 0.90. Therefore we might ask ourselves if these two variables are really independent predictors. Adding only one to the regression instead of both comes with a slight omitted variable bias, but can make sense for dependent variables in terms of variance reduction. Also the correlation between tch and hdl lies above 0.70. In general, however, a linear relationship is not clearly observable.
+Next, we analyze the pairwise correlation structure between the covariates as well as the covariates and the dependent variable $y$. These correlations impact model selection as we can get a first impression of whether or not a linear model would be a good assumption through the correlation matrix and the correlation scatter plot. We can see that sex is a categorical and tch seems to be discrete. We observe a clear linear relationship between tc and ldl with a correlation 0.90. Therefore we might ask ourselves if these two variables are really independent predictors. Adding only one to the regression instead of both comes with a slight omitted variable bias, but can make sense for dependent variables in terms of variance reduction. Also the correlation between tch and hdl lies above 0.70. In general, however, a linear relationship is not clearly observable.
 
 ```{r Exercise 1.2, echo = FALSE}
 cormatrix <- cor(diabetes, use = "complete.obs")
@@ -84,7 +91,7 @@ pairs(diabetes, pch= 19)
 #corrplot::corrplot(diabetes)
 ```
 
-Now, we fit linear regression model containing all explanatory variables and evaluate its performance using the in-sample mean squared error (MSE) and the out of sample (oos) MSE. As expected the in-sample MSE (2854.869) is lower than the oos MSE on the test data (2945.384).
+Now, we fit a linear regression model containing all explanatory variables and evaluate its performance using the in-sample mean squared error (MSE) and the out of sample (oos) MSE. As expected the in-sample MSE (2854.869) is lower than the oos MSE on the test data (2945.384).
 
 ```{r Exercise 1.3, echo = FALSE}
 # Fit linear regression model using all explanatory variables
@@ -314,7 +321,7 @@ bic_ortho_poly <- BIC(lm_wage_sub_ortho)
 
 We assume the following data generating process:
 $$y = f(x) + \epsilon =  x + x^2 + \epsilon,$$
-with $\epsilon \sim N(0,\sigma^2_{\epsilon})$, $x \sim N(0,\sigma^2_x)$ and $x$ and $\epsilon$ being independent. First we analytically determine the test error using the squared error loss for given parameter estimates $\hat \beta = \left(\hat{\beta}_1, \hat{\beta}_2\right)'$.
+where $\epsilon \sim N(0,\sigma^2_{\epsilon})$, $x \sim N(0,\sigma^2_x)$ and $x$ and $\epsilon$ are independent. First, we analytically determine the test error using the squared error loss for given parameter estimates $\hat \beta = \left(\hat{\beta}_1, \hat{\beta}_2\right)'$.
 
 Given a training set $\mathcal{T}$, the test error (also called generalization error) of the model $\hat f$ is given by 
 $$Err_{\mathcal{T}}=\mathbb{E}_{x,y} [L(y,\hat{f}(x)) \, | \, \mathcal{T}],$$ 
@@ -324,15 +331,15 @@ $$
 \begin{aligned}
 Err_{\mathcal{T}} &= \mathbb{E}_{x,y} \left[ 
 \bigl(x+x^2+\epsilon- \hat \beta_1 x - \hat \beta_2 x^2 \bigr)^2 \, \Big| \, \mathcal{T} \right] \\
-&= \mathbb{E}_{x,y} \Bigl[ \bigl( \underbrace{(1-\hat\beta_1)x+(1-\hat\beta_2)x^2}_{\text{red}(x)}+\epsilon\bigr)^2 \, \Big| \, \mathcal{T} \Bigr] \\
-&=\mathbb{E}_{x,y} \left[ \text{red}(x)^2 + \epsilon^2 + 2 \ \text{red}(x) \epsilon \, | \, \mathcal{T} \right] \\
-&= \mathbb{E}_{x,y} \left[(1-\hat\beta_1)^2x^2+(1-\hat\beta_2)^2x^4 +2(1-\hat\beta_1)(1-\hat\beta_2)x^3 \, | \, \mathcal{T}\right] + \mathbb{E}_{x,y} \left[\epsilon^2 \, | \, \mathcal{T}\right] + \mathbb{E}_{x,y} \left[\text{red}(x) \epsilon \, | \, \mathcal{T}\right]\\
+&= \mathbb{E}_{x,y} \Bigl[ \bigl( \underbrace{(1-\hat\beta_1)x+(1-\hat\beta_2)x^2}_{\eqdef \text{red}(x)}+\epsilon\bigr)^2 \, \Big| \, \mathcal{T} \Bigr] \\
+&=\mathbb{E}_{x,y} \left[ \text{red}(x)^2 + \epsilon^2 + 2  \text{red}(x) \epsilon \, | \, \mathcal{T} \right] \\
+&= \mathbb{E}_{x,y} \left[(1-\hat\beta_1)^2x^2+(1-\hat\beta_2)^2x^4 +2(1-\hat\beta_1)(1-\hat\beta_2)x^3 \, | \, \mathcal{T}\right] + \mathbb{E}_{x,y} \left[\epsilon^2 \, | \, \mathcal{T}\right] + 2\mathbb{E}_{x,y} \left[\text{red}(x) \epsilon \, | \, \mathcal{T}\right]\\
 &= (1-\hat\beta_1)^2 \mathbb{E}_{x,y} \left[x^2 \, | \, \mathcal{T} \right] + (1-\hat\beta_2)^2 \mathbb{E}_{x,y} \left[x^4 \, | \, \mathcal{T}\right] + 2(1-\hat\beta_1)(1-\hat\beta_2) \mathbb{E}_{x,y} \left[x^3 \, | \, \mathcal{T}\right] +\sigma_{\epsilon}^2\\
 &= (1-\hat\beta_1)^2 \sigma_x^2 + (1-\hat\beta_2)^2 3 \sigma_x^4+\sigma_{\epsilon}^2,
 \end{aligned}
 $$
 
-where $\text{red}(x)$ is the reducible error. In the last step we used the $2^{nd}$, $3^{rd}$ and $4^{th}$ moment of the Normal distribution. In the step before, we used the fact, that $x$ an $\epsilon$ are independent.
+where $\text{red}(x)$ is the reducible error. In the last step we used the $2^{nd}$, $3^{rd}$ and $4^{th}$ moment of the Normal distribution. In the step before, we used the fact, that $x$ and $\epsilon$ are independent and that $\mathbb{E}[ \epsilon] = 0$.
 
 Next, we draw a sample of size $N = 40$ as training data (assuming $\sigma^2_{\epsilon} = \sigma^2_x = 1$) and estimate the regression coefficients using OLS. We then determine the test error using the analytical formula as well as simulations. For the simulations we generate a test sample of size $N_{test} = 10,000$, in order for the mean of the squared prediction errors to be a reasonable approximation of the test error. 
 
@@ -410,7 +417,7 @@ expected_test_error <- mean(test_errors_vec)
 
 ```
 
-We estimate the expected test error as the mean test error across $N_{\mathcal{T}} = 1000$ different training samples of size $N = 40$ and find that $Err = `r expected_test_error`$. Consequently, the expected test error is similar to the test error we obtained above. However, a closer look at the summary statistics of the test errors computed for different sets of training data shows that there is in fact some variation in $Err_{\mathcal{T}}$, depending on the particular characteristics of the respective trainings data $\mathcal{T}$. 
+We estimate the expected test error as the mean test error across $N_{\mathcal{T}} = 1000$ different training samples of size $N = 40$ and find that $Err = `r expected_test_error`$. Consequently, the expected test error is similar to the test error we obtained above. However, a closer look at the summary statistics of the test errors computed for different sets of training data shows that there is in fact some variation in $Err_{\mathcal{T}}$, depending on the particular characteristics of the respective training data $\mathcal{T}$. 
 
 ```{r Exercise 3.2 summary, echo=FALSE}
 summary(test_errors_vec)
@@ -419,9 +426,68 @@ summary(test_errors_vec)
 
 # Exercise 4
 
-```{r Exercise 4, include=FALSE}
+We consider the data generating process
+$$
+\bm{y} = \bm{X\beta} + \bm{\epsilon},
+$$
+where $\bm{\epsilon} \sim N(\bm{0}, \sigma_{\epsilon}^2 \bm{I})$ and $\bm{X} \in \mathbb{R}^{N \times p}$ is a fixed covariate matrix. First, we want to derive the in-sample error for given parameter estimates $\hat{\bm{\beta}}$ using the squared error loss.
 
-```
+Let $\bm{x}_i$ denote the $i$-th row of $\bm{X}$, i.e. the covariates of observation $i = 1, \ldots, N$. Similarly, let $y_i$ and $\epsilon_i$ denote the $i$-th entry of $\bm{y}$ and $\bm{\epsilon}$, respectively. The in-sample error for given training data $\mathcal{T}$ can then be defined as
+$$
+Err_{in} = \frac{1}{N} \sum_{i = 1}^N \mathbb{E}_{y_i^0} \left[\left(y_i^0 - \hat{f}(x_i)\right)^2 \, \Bigl| \, \mathcal{T} \right],
+$$
+where $y_i^0 = f(x_i) + \epsilon_i^0 = \bm{x}_i\bm{\beta} + \epsilon_i^0$ is a new response for observation $i = 1, \ldots, N$ and $\hat{f}(x_i) = \bm{x}_i\hat{\bm{\beta}}$. For arbitrary $i = 1,\ldots, N$ it now follows that
+$$
+\begin{aligned}
+ \mathbb{E}_{y_i^0} \left[\left(y_i^0 - \hat{f}(x_i)\right)^2 \, \Bigl| \, \mathcal{T} \right] &=  \mathbb{E}_{y_i^0} \left[\left(\bm{x}_i\bm{\beta} + \epsilon_i^0 - {x}_i\hat{\bm{\beta}})\right)^2 \, \Bigl| \, \mathcal{T} \right] \\
+ &=  \mathbb{E}_{y_i^0} \left[\left(\bm{x}_i(\bm{\beta}-\bm{\hat{\beta}})\right)^2 + 2\epsilon_i^0 \bm{x}_i(\bm{\beta}-\bm{\hat{\beta}}) + \left(\epsilon_i^0\right)^2 \, \Bigl| \, \mathcal{T} \right] \\
+ &= \left(\bm{x}_i (\bm{\beta}- \bm{\hat{\beta}})\right)^2 + 2 \bm{x}_i(\bm{\beta}-\bm{\hat{\beta}}) \underbrace{\mathbb{E}\left[\epsilon_i^0 \right]}_{ = 0} +  \underbrace{\mathbb{E}\left[ (\epsilon_i^0)^2\right]}_{=\sigma_\epsilon^2} \\
+ &= \sigma_{\epsilon}^2 + \left(\bm{x}_i (\bm{\beta}- \bm{\hat{\beta}})\right)^2 .
+\end{aligned}
+$$
+The in-sample error can therefore be written as
+$$
+\begin{aligned}
+Err_{in} &= \frac{1}{N} \sum_{i=1}^N \sigma_{\epsilon}^2 + \left(\bm{x}_i (\bm{\beta}- \bm{\hat{\beta}})\right)^2 \\
+&= \sigma_{\epsilon}^2 + \frac{1}{N} \left(\bm{X}(\bm{\beta}- \bm{\hat{\beta}})\right)'\left(\bm{X}(\bm{\beta}- \bm{\hat{\beta}})\right) \\
+&= \sigma_{\epsilon}^2 + \frac{1}{N}(\bm{\beta}- \bm{\hat{\beta}})' \bm{X}'\bm{X} (\bm{\beta}- \bm{\hat{\beta}}).
+\end{aligned}
+$$
+Next, we want to determine the expected in-sample error for OLS estimates of the regression coefficients. The expected in-sample error can be obtained by averaging the in-sample error over the distribution of training data $\mathcal{T}$. Hence, we are interested in $\mathbb{E}_{\mathcal{T}}\left[Err_{in}\right]$. Since the design matrix $\bm{X}$ is deterministic in this example, the only source of randomness in our training data are the error terms $\bm{\epsilon}^{\mathcal{T}} = \left(\epsilon_1^{\mathcal{T}}, \ldots, \epsilon_N^{\mathcal{T}}\right)'$. 
+
+Let us first consider the in-sample error for OLS estimates and fixed training data $\mathcal{T}$. The OLS estimates can be expressed as
+$$
+\begin{aligned}
+\bm{\hat{\beta}} &= \left(\bm{X}'\bm{X}\right)^{-1}\bm{X}'\bm{y}^{\mathcal{T}} \\
+&= \left(\bm{X}'\bm{X}\right)^{-1}\bm{X}'\left(\bm{X}\bm{\beta} + \bm{\epsilon}^{\mathcal{T}}\right) \\
+&= \left(\bm{X}'\bm{X}\right)^{-1}\bm{X}'\bm{X}\bm{\beta} + \underbrace{\left(\bm{X}'\bm{X}\right)^{-1}\bm{X}'}_{\eqdef\bm{X}^{\dagger}} \bm{\epsilon}^{\mathcal{T}} \\
+&= \bm{\beta} + \bm{X}^{\dagger}\bm{\epsilon}^{\mathcal{T}}
+\end{aligned}
+$$
+Hence, the in-sample error is given by
+$$
+\begin{aligned}
+Err_{in} &= \sigma_{\epsilon}^2 + \frac{1}{N}\left(-\bm{X}^{\dagger}\bm{\epsilon}^{\mathcal{T}} \right)' \bm{X}'\bm{X}\left(-\bm{X}^{\dagger} \bm{\epsilon}^{\mathcal{T}}\right) \\
+&= \sigma_{\epsilon}^2 + \frac{1}{N} \left(\bm{\epsilon}^{\mathcal{T}} \right)'\left(\bm{X}^{\dagger}\right)' \bm{X}'\bm{X}\bm{X}^{\dagger} \bm{\epsilon}^{\mathcal{T}} \\
+&= \sigma_{\epsilon}^2 + \frac{1}{N} \left(\bm{\epsilon}^{\mathcal{T}} \right)' \bm{X} (\bm{X}'\bm{X})^{-1}\bm{X}'\bm{X}(\bm{X}'\bm{X})^{-1}\bm{X}' \bm{\epsilon}^{\mathcal{T}} \\
+&=  \sigma_{\epsilon}^2 + \frac{1}{N} \left(\bm{\epsilon}^{\mathcal{T}} \right)' \underbrace{\bm{X} (\bm{X}'\bm{X})^{-1}\bm{X}'}_{\eqdef P_X} \bm{\epsilon}^{\mathcal{T}},
+\end{aligned}
+$$
+where the projection matrix $P_X$ is the orthogonal projection onto the column space of $\bm{X}$. Assuming that $\bm{X}$ has full column rank, which is a necessary and sufficient condition for $\bm{X}'\bm{X}$ to be invertible, it follows that $\text{rank}(P_X) = p$.
+
+In order to derive the expected in-sample error, we make use of the following result: If $P$ is a projection matrix with rank $r$ and $z \sim N(0,\bm{I})$, then the quadratic form $z'Pz$ is distributed as $\chi^2(r)$. In particular,
+$$
+\left(\sigma_{\epsilon}^{-1}\bm{\epsilon}^{\mathcal{T}}\right)'P_X \left(\sigma_{\epsilon}^{-1}\bm{\epsilon}^{\mathcal{T}}\right) \sim \chi^2(p).
+$$
+Consequently, we find that the expected in-sample error is given by
+$$
+\begin{aligned}
+\mathbb{E}_{\mathcal{T}}\left[Err_{in} \right] &= \mathbb{E}_{\mathcal{T}}\left[\sigma_{\epsilon}^2 + \frac{\sigma_{\epsilon}^2}{N} \left(\sigma_{\epsilon}^{-1}\bm{\epsilon}^{\mathcal{T}}\right)'P_X \left(\sigma_{\epsilon}^{-1}\bm{\epsilon}^{\mathcal{T}}\right) \right] \\
+&= \sigma_{\epsilon}^2 + \frac{\sigma_{\epsilon}^2}{N} \underbrace{\mathbb{E}_{\mathcal{T}}\left[\left(\sigma_{\epsilon}^{-1}\bm{\epsilon}^{\mathcal{T}}\right)'P_X \left(\sigma_{\epsilon}^{-1}\bm{\epsilon}^{\mathcal{T}}\right)  \right]}_{=p} \\
+&= \sigma_{\epsilon}^2\left(1 + \frac{p}{N}\right).
+\end{aligned}
+$$
+
 
 # Exercise 5
 We use artificial data to perform LASSO and ridge regression. First, we set a random seed before the analysis. Then, we draw 100 observations from a 100-dimensional standard multivariate normal distribution. This is the matrix of covariates X of dimension 100 $\times$ 100. Next, we draw 100 observations for the dependent variable given by 
