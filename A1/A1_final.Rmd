@@ -47,6 +47,13 @@ library(MASS)
 #library(kableExtra) if included PDF does not compile..
 ```
 
+
+
+
+
+
+<!-- EXERCISE 1 -->
+
 # Exercise 1
 
 We use the diabetes data set from "lars" to fit several linear models. First we load and prepare the data and look at the summary statistics.
@@ -77,9 +84,9 @@ train <- data.frame(diabetes[train_index, ])
 test <- data.frame(diabetes[-train_index, ])
 ```
 
-The covariates are only available in standardized form. This can have several implications, both positive and negative. On the one hand, standardization allows us to compare the relative importance of coefficients directly in a regression model, as they are on the same scale. This can be particularly useful in identifying which variables have the most significant effects on the outcome variable. This can in some cases also improve the numerical stability of the estimation process, especially when the variables were measured on vastly different scales. This can lead to more reliable and faster convergence in some algorithms. On the other hand, while standardized coefficients facilitate comparison, they can complicate the interpretation of the model. The coefficients of standardized variables represent the change in the outcome variable for a one-standard-deviation change in the predictor variable, which may not be as intuitive as the original units. Moreover, when transforming back to the usual units, the question is whether effects are captured correctly. \\
+The covariates are only available in standardized form. This can have several implications, both positive and negative. On the one hand, standardization allows us to compare the relative importance of coefficients directly in a regression model, as they are on the same scale. This can be particularly useful in identifying which variables have the most significant effects on the outcome variable. This can in some cases also improve the numerical stability of the estimation process, especially when the variables were measured on vastly different scales. This can lead to more reliable and faster convergence in some algorithms. On the other hand, while standardized coefficients facilitate comparison, they can complicate the interpretation of the model. The coefficients of standardized variables represent the change in the outcome variable for a one-standard-deviation change in the predictor variable, which may not be as intuitive as the original units. Moreover, when transforming back to the usual units, the question is whether effects are captured correctly. 
 
-Next, we analyze the pairwise correlation structure between the covariates as well as the covariates and the dependent variable $y$. These correlations impact model selection as we can get a first impression of whether or not a linear model would be a good assumption through the correlation matrix and the correlation scatter plot. We can see that sex is a categorical and tch seems to be discrete. We observe a clear linear relationship between tc and ldl with a correlation 0.90. Therefore we might ask ourselves if these two variables are really independent predictors. Adding only one to the regression instead of both comes with a slight omitted variable bias, but can make sense for dependent variables in terms of variance reduction. Also the correlation between tch and hdl lies above 0.70. In general, however, a linear relationship is not clearly observable.
+Next, we analyze the pairwise correlation structure between the covariates as well as the covariates and the dependent variable $y$. These correlations impact model selection as we can get a first impression of whether or not a linear model would be a good assumption through the correlation matrix and the correlation scatter plot. We can see that $sex$ is a categorical variable and $tch$ seems to be discrete. We observe a clear linear relationship between $tc$ and $ldl$ with a correlation coefficient of $0.9$. Therefore we might ask ourselves if these two variables are really independent predictors. Adding only one to the regression instead of both comes with a slight omitted variable bias, but can make sense for dependent variables in terms of variance reduction. Also the correlation between $tch$ and $hdl$ lies above 0.7. In general, however, a (strong) linear relationship among the covariates is not clearly observable.
 
 ```{r Exercise 1.2, echo = FALSE}
 cormatrix <- cor(diabetes, use = "complete.obs")
@@ -92,115 +99,159 @@ pairs(diabetes, pch= 19)
 #corrplot::corrplot(diabetes)
 ```
 
-Now, we fit a linear regression model containing all explanatory variables and evaluate its performance using the in-sample mean squared error (MSE) and the out of sample (oos) MSE. As expected the in-sample MSE (2854.869) is lower than the oos MSE on the test data (2945.384).
+Now, we fit a linear regression model containing all explanatory variables and evaluate its performance using the in-sample mean squared error (MSE) and the out of sample (oos) MSE. 
 
 ```{r Exercise 1.3, echo = FALSE}
 # Fit linear regression model using all explanatory variables
 lm_full <- lm(y ~ ., data = train)
 summary(lm_full)
-printCoefmat(round(coef(summary(lm_full)), digits = 2))
+#printCoefmat(round(coef(summary(lm_full)), digits = 2))
 
 # in sample fit 
 lm_full_mse_ins <- mean(lm_full$residuals^2)
-print(lm_full_mse_ins)
 
 # out of sample fit 
 pred_test <- predict(lm_full, test)
 lm_full_mse_oos <- mean((pred_test-test[,1])^2)
-print(lm_full_mse_oos)
+
+print(c("in_sample_MSE" = lm_full_mse_ins,
+        "out_of_sample_MSE" = lm_full_mse_oos))
 ```
 
-In the next part, we fit a smaller model where only the covariates are contained which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see model summary for the full model). This leaves us with the following covariates: "sex, bmi, map, tc, ltg". Again we evaluate the performance in-sample as well as on the test data. The in-sample MSE is now 2963.644 and the oos MSE is 3022.301. I.e. again we observe a higher out of sample MSE. When comparing this model to the full model using an F-test we see that the full model, which includes more predictors, provides a significantly better fit to the data compared to the small model, as evidenced by the p-value (0.01221) being less than 0.05.
+As expected, the in-sample MSE (2854.869) is lower than the oos MSE on the test data (2945.384).
+
+In the next part, we fit a smaller model where only the covariates are contained, which according to a $t$-test are significant at the 5% significance level conditional on all other variables being included (see model summary for the full model). This leaves us with the following covariates: $sex$, $bmi$, $map$, $tc$ and $ltg$. Again, we evaluate the performance in-sample as well as on the test data.   
 
 ```{r Exercise 1.4, echo = FALSE}
 # Fit linear regression model using the covariates which according to a t-test are significant at the 5% significance level conditional on all other variables being included (see summary(lm_full) for significance)
 
 lm_small <- lm(y ~ sex + bmi + map + tc + ltg , data = train)
 summary(lm_small)
-printCoefmat(round(coef(summary(lm_small)), digits = 2))
+#printCoefmat(round(coef(summary(lm_small)), digits = 2))
 
 # in sample fit 
 lm_small_mse_ins <- mean(lm_small$residuals^2)
-print(lm_small_mse_ins)
+#print(lm_small_mse_ins)
 
 # out of sample fit 
 pred_test_small <- predict(lm_small, test)
 lm_small_mse_oos <- mean((pred_test_small-test[,1])^2)
-print(lm_small_mse_oos)
+#print(lm_small_mse_oos)
+
+# print MSE (in-sample and out-of-sample)
+print(c("in_sample_MSE" = lm_small_mse_ins,
+        "out_of_sample_MSE" = lm_small_mse_oos))
 
 # Comparison of the two models using an F-test
 F_small <- anova(lm_small,lm_full)
 print(F_small)
 ```
 
-In the following we use step wise regression based on the AIC to select a suitable model. We use the step() function which checks whether the AIC decreases when dropping variables in a step wise procedure and stops as soon as it does not decrease any further. In a similar matter to before we evaluate the performance in-sample as well as oos on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2870.25 and the oos MSE is 2966.798. The F-test suggests that the p-value (0.7182) is much greater than the typical $\alpha$-level of 0.05, suggesting there's no significant evidence to favor the full model over the step model regarding how well they explain the variability in y. In other words, the additional predictors in the full model (age, hdl, tch, and glu) do not significantly improve the model's explanatory power compared to the step model.
+The in-sample MSE is now 2963.644 and the oos MSE is 3022.301. Hence, we once again observe a higher out-of-sample MSE. When comparing this smaller model to the full model using an $F$-test, we see that the full model, which includes more predictors, provides a significantly better fit to the data compared to the small model, as evidenced by the p-value (0.01221) being less than 0.05.
+
+
+In the following, we use stepwise regression based on the AIC to select a suitable model. We use the \textit{step()} function, which checks whether the AIC decreases when dropping variables in a stepwise procedure and stops as soon as it does not decrease any further. In a similar manner to before, we evaluate the performance in-sample as well as oos on the test data and compare this model to the full model using an $F$-test. 
 
 ```{r Exercise 1.5, echo = FALSE}
 # stepwise model
-
 lm_step <- step(lm_full, criteria = "AIC")
-summary(lm_step)
-printCoefmat(round(coef(summary(lm_step)), digits = 2))
 
+
+```
+
+Consequently, stepwise regression based on the AIC yields the following model:
+
+
+```{r Exercise 1.5 continued, echo = FALSE}
+
+#summary(lm_step)
+printCoefmat(round(coef(summary(lm_step)), digits = 2))
 
 # in sample fit 
 lm_step_mse_ins <- mean(lm_step$residuals^2)
-print(lm_step_mse_ins)
+#print(lm_step_mse_ins)
 
 # out of sample fit 
 pred_test_step <- predict(lm_step, test)
 lm_step_mse_oos <- mean((pred_test_step-test[,1])^2)
-print(lm_step_mse_oos)
+#print(lm_step_mse_oos)
 
+
+# print MSE (in-sample and out-of-sample)
+print(c("in_sample_MSE" = lm_step_mse_ins,
+        "out_of_sample_MSE" = lm_step_mse_oos))
 
 # Comparison of the two models using an F-test
 F_step <- anova(lm_full,lm_step)
 print(F_step)
 ```
 
-Here we use best subset selection to select a suitable model based on the AIC and using the leaps() function. We evaluate the performance in-sample as well as on the test data and compare this model to the full model using an F-test. The in-sample MSE is now 2911.967 and the oos MSE is 2956.157. The F-test suggests that the additional predictors included in the full model (age, tc, ldl, tch, glu) do not significantly improve the model's ability to explain the variability in the dependent variable, since the p-value (0.1716) is greater than the 0.05 significance level. This means there isn't enough statistical evidence to justify the added complexity of the full model over the sub set model for this data set.
+
+
+The in-sample MSE is now 2870.25 and the oos MSE is 2966.798. The p-value of the $F$-test (0.7182) is much greater than the typical $\alpha$-level of 0.05, suggesting there's no significant evidence to favor the full model over the step model, regarding how well they explain the variability in $y$. In other words, the additional predictors in the full model ($age$, $hdl$, $tch$, and $glu$) do not significantly improve the model's explanatory power compared to the model suggested by stepwise regression based on the AIC.
+
+
+Next, we use best subset selection to select a suitable model. In order to do so, we make use of the \textit{regsubsets()} function from the \textbf{leaps} package.
 
 ```{r Exercise 1.6, echo = FALSE}
 # best subset selection model
-
 lm_subset <-  leaps::regsubsets(y ~ ., data = train, 
-     nvmax = 9, really.big = TRUE)
+     nvmax = 12, really.big = TRUE)
 
-lm_subset_sum <- summary(lm_subset)##
+lm_subset_sum <- summary(lm_subset)
 lm_subset_sum
 
 plot(summary(lm_subset)$rss, xlab = "Subset size", ylab = "RSS", type = "b")
 
+
+```
+So far, the algorithm has helped us to determine the best-fitting model for different levels of model complexity, i.e. different numbers of covariates. As can be seen in the plot above, the residual sum of squares (RSS) decreases with increasing model complexity. However, the incremental reduction in RSS from including additional explanatory variables diminishes rather quickly. Hence, we now want to find the optimal model complexity based on the AIC.
+
+
+```{r Exercise 1.6 continued, echo=FALSE}
 # Find the model with the lowest AIC
-data.frame(
-Adj.R2 = which.max(lm_subset_sum$adjr2),
-BIC = which.min(lm_subset_sum$cp),
-AIC = which.min(lm_subset_sum$bic)
+best_model <- data.frame(
+  Adj.R2 = which.max(lm_subset_sum$adjr2),
+  BIC = which.min(lm_subset_sum$bic),
+  AIC = which.min(lm_subset_sum$cp) # Mallows' cp = AIC in case of linear regression
 )
+rownames(best_model) <- "best_model"
+best_model
 
+```
+The AIC suggests that model 6 (with covariates `r names(which(lm_subset_sum$which[6,-1]))`) is the best model, while Adjusted $R^2$ and BIC recommend a slightly larger and smaller model, respectively.
 
-#help function
-select_model <- function(id, object, outcome){
-models <- summary(object)$which[id,-1]
-formula <- as.formula(object$call[[2]])
-outcome <- all.vars(formula)[1]
-predictors <- names(which(models == TRUE))
-predictors <- paste(predictors, collapse = "+")
-as.formula(paste0(outcome, "~", predictors))
+We now evaluate the performance of the chosen model in-sample as well as on the test data and compare it to the full model using an $F$-test. 
+
+```{r Exercise 1.6 continued further, echo=FALSE}
+# help function
+select_model <- function(id, object){
+  models <- summary(object)$which[id,-1] # get booleans of 'active' and 'inactive' covariates
+  formula <- as.formula(object$call[[2]]) # get model formula
+  outcome <- all.vars(formula)[1] # get dependent variable
+  predictors <- names(which(models)) # get names of active variables 
+  predictors <- paste(predictors, collapse = "+") # create formula for covariates
+  as.formula(paste0(outcome, "~", predictors)) # create formula for selected model
 }
-#choose based on AIC
-lm_subset_aic <- lm(select_model(5,lm_subset,"Y"), train)
+
+# choose model based on AIC
+lm_subset_aic <- lm(select_model(best_model$AIC,lm_subset), train)
 lm_subset_aic_sum <- summary(lm_subset_aic)
 lm_subset_aic_sum
 
 # in sample fit 
 lm_sub_mse_ins <- mean(lm_subset_aic$residuals^2)
-print(lm_sub_mse_ins)
+#print(lm_sub_mse_ins)
 
 # out of sample fit 
 pred_test_sub <- predict(lm_subset_aic, test)
 lm_sub_mse_oos <- mean((pred_test_sub-test[,1])^2)
-print(lm_sub_mse_oos)
+#print(lm_sub_mse_oos)
+
+# print MSE (in-sample and out-of-sample)
+print(c("in_sample_MSE" = lm_sub_mse_ins,
+        "out_of_sample_MSE" = lm_sub_mse_oos))
+
 
 
 # Comparison of the two models using an F-test
@@ -208,6 +259,10 @@ F_sub <- anova(lm_full,lm_subset_aic)
 print(F_sub)
 ```
 
+
+Since best subset selection has led us to the same model choice as the stepwise regression, in-sample, out-of-sample performance as well as the $F$-test against the full model yield the same conclusions as above.
+
+\newpage
 Last, we summarize our results in the following table, containing the regression coefficients of the different models as well as the in-sample and the test data performance:
 
 ```{r Exercise 1 summary, echo=FALSE, message=FALSE, warning=FALSE}
@@ -222,8 +277,8 @@ results <- join_all(list(melt(data.frame(as.list(lm_full$coefficients))),
 colnames(results) <- c("coef","full","small","stepwise","subset")
 results <- data.frame(lapply(results, as.character), stringsAsFactors = F)
 
-ins_MSE <- c("MSE in sample",lm_full_mse_ins, lm_small_mse_ins, lm_step_mse_ins, lm_sub_mse_ins)
-oos_MSE <- c("MSE out of sample",lm_full_mse_oos, lm_small_mse_oos, lm_step_mse_oos, lm_sub_mse_oos)
+ins_MSE <- c("MSE in-sample",lm_full_mse_ins, lm_small_mse_ins, lm_step_mse_ins, lm_sub_mse_ins)
+oos_MSE <- c("MSE out-of-sample",lm_full_mse_oos, lm_small_mse_oos, lm_step_mse_oos, lm_sub_mse_oos)
 
 results <- (rbind(results,ins_MSE,oos_MSE))
 
@@ -233,12 +288,34 @@ function(x) round(as.numeric(x),digits = 2))))
 rownames(results) <- results[,1]
 results <- results[,-1]
 
-kable(results, caption = "Results all models")
+kable(results, caption = "Results for all models")
 ```
 
+While it is clear that the full model has the best in-sample performance in terms of MSE, it is somewhat surprising that the full model outperforms our alternative candidates on the test data as well.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- EXERCISE 2 -->
 # Exercise 2
 
-We use the wage data set to fit different linear models. The data set is available in the R package \textit{ISLR2}. First we load and prepare the data. We look at the summary statistics and omit the logwage variable. Next, we specify non-linear effects for the variable age by adding the variable age squared to our data set. Moreover, we chose suitable contrasts for the variable education to compare the different levels of education in a meaningful way. In R, contrasts define how categorical variables are encoded into numerical values for analysis. The default encoding is treatment coding (also known as dummy coding), where one level is chosen as a baseline and the other levels are compared to this baseline. For an ordinal variable like education, where the levels have a natural order, polynomial contrasts might be more appropriate as they can model the linear and non-linear relationships between the levels of education and the outcome variable. Next, we fit a linear regression model to predict wage using age, $\text{age}^2$ and education as predictors. The summary results are depicted below.
+We use the wage data set to fit different linear models. The data set is available in the R package \textbf{ISLR2}. First, we load and prepare the data and have a look at the summary statistics. 
+
+Next, we fit a linear regression model to predict wage using age and education as predictors. We specify non-linear effects for the variable age by including a polynomial of degree 10. Moreover, we choose suitable contrasts for the variable education to compare the different levels of education in a meaningful way. Contrasts define how categorical variables are encoded into numerical values for the analysis. The default encoding in R is treatment coding (also known as dummy coding), where one level is chosen as a baseline and the other levels are compared to this baseline. For an ordinal variable like education, where the levels have a natural order, polynomial contrasts might be more appropriate as they can model the linear and non-linear relationships between the levels of education and the outcome variable. 
+
 
 ```{r Exercise 2 prep, echo = FALSE}
 # Clear memory
@@ -251,17 +328,23 @@ summary(Wage)
 # exclude log wage
 Wage <- Wage[ , !(names(Wage) %in% c('logwage'))]
 
+# create polynomial of 'age'
+age_raw_poly <- poly(Wage$age, degree = 10, raw = TRUE)
+colnames(age_raw_poly) <- paste0("age", 1:10)
+
+Wage <- cbind(Wage, age_raw_poly[,-1]) # add to data
+
 # For the 'education' variable, we'll need to set up contrasts.
 summary(as.factor(Wage$education))
 Wage <- Wage %>%
-  mutate("age_sq" = age^2, #specify non-linear effects for the variable age: if more than squares use splines..
-          "education" = factor(Wage$education, ordered = TRUE))
+  mutate("education" = factor(Wage$education, ordered = TRUE))
 
 contrasts(Wage$education) <- contr.poly(levels(Wage$education)) # polynominal coding bc.we have ordinal variables, where the levels have a natural order
 
-lm_wage <- lm(wage ~ age + age_sq + education, data = Wage)
-# or all X's variables? Need contrasts for all other factors.. so I assume no
-#lm_wage_all <- lm(wage ~ . + age_sq, data = Wage)
+formula_full <- as.formula(paste0("wage ~ age + ", 
+                       paste(colnames(age_raw_poly)[-1], collapse = " + "),
+                       " + education")) 
+lm_wage <- lm(formula_full, data = Wage)
 
 lm_wage_sum <- summary(lm_wage)
 lm_wage_sum
@@ -270,62 +353,197 @@ lm_wage_sum
 #kable(lm_wage_sum, "latex", booktabs = T, digits = 3) %>%
  # kable_styling(latex_options = c("striped", "scale_down"))
 ```
-
-In the following we perform best subset selection (of wage \~ age + age_sq + education) to determine a suitable model. To do this we use again the \textit{leaps} package in R. Below are the summary and the plot comparing RSS and the subset size k. According to the AIC the best sub model is model 4.
+We can see from the summaries of our full model that education has significant explanatory power with respect to wages and that wages ceteris paribus increase with higher levels of education. At the same time, none of the coefficients corresponding to the polynomial of $age$ are significantly different from zero conditional on all other variables being in the model. This is not necessarily a sign that $age$ cannot predict wages, but rather a sign of overfitting and some collinearity issues related to including a polynomial of such a high degree. Consequently, we now perform best subset selection to determine a suitable model. To do this, we once again use the \textbf{leaps} package in R. 
 
 ```{r Exercise 2.1, echo = FALSE}
 #Use best subset selection to determine a suitable model.
 # best subset selection model
-lm_wage_sub <-  leaps::regsubsets(wage ~ age + age_sq + education, data = Wage,
-     nvmax = 9, really.big = TRUE)
+lm_wage_sub <-  leaps::regsubsets(formula_full, data = Wage,
+     nvmax = 20, really.big = TRUE)
 
 lm_wage_sub_sum <- summary(lm_wage_sub)##
 lm_wage_sub_sum
 
 plot(summary(lm_wage_sub)$rss, xlab = "Subset size", ylab = "RSS", type = "b")
 
+
+```
+Just as in Exercise 1, we obtain the best-fitting model for different levels of complexity. Next, we want to select the model that minimizes the AIC.
+
+```{r exe_2.1_continued, echo = FALSE}
 # Find the model with the lowest AIC
-data.frame(
-Adj.R2 = which.max(lm_wage_sub_sum$adjr2),
-BIC = which.min(lm_wage_sub_sum$cp),
-AIC = which.min(lm_wage_sub_sum$bic) # best is model 4
+best_model <- data.frame(
+  Adj.R2 = which.max(lm_wage_sub_sum$adjr2),
+  BIC = which.min(lm_wage_sub_sum$bic),
+  AIC = which.min(lm_wage_sub_sum$cp) # best is model 8
 )
-#choose based on AIC
-#Error in eval(predvars, data, env) : object 'education.L' not found
-#lm_wage_sub_aic <- lm(select_model(4,lm_wage_sub,"wage"), Wage)
-#lm_wage_sub_aic_sum <- summary(lm_subset_aic)
-#lm_wage_sub_aic_sum
+rownames(best_model) <- "best_model"
+best_model
+
 ```
 
-Last we assess if it makes a difference if we include the polynom of the original variable age or orthogonal polynoms constructed using poly(age, k). Direct polynomials are straightforward (linear and squared terms of age), making them somewhat easier to interpret in terms of the direct effect of aging. However, they can be collinear, especially with higher-degree polynomials. Orthogonal polynomials deal with the potential issue of multicollinearity between the polynomial terms, leading to more stable coefficient estimates. However, the coefficients of orthogonal polynomials do not directly translate to the simple linear and quadratic terms, making them a bit more challenging to interpret. For predictive accuracy, orthogonal polynomials can sometimes offer an advantage, especially in complex models. For interpretation, direct polynomials might be preferred if the primary interest is in understanding the specific nature of the relationship between age and wage. In the context of our models AIC and BIC values are the same for both models using direct polynomial terms and orthogonal polynomials for age. This suggests that both models are equally good from the standpoint of information criteria, balancing model fit and complexity in a similar manner. In such a case, the decision on which model to choose may depend on other considerations, like interpreation etc.
+Based on the AIC, we conclude that model 8 (with covariates `r names(which(lm_wage_sub_sum$which[8,-1]))`) is the best model. In contrast, the BIC would suggest model 4 (with covariates `r names(which(lm_wage_sub_sum$which[4,-1]))`). Let us now estimate and have a closer look at the chosen model.
 
-```{r Exercise 2.2, echo = FALSE}
-# Direct polynomial terms
-lm_wage_sub_direct <- lm(wage ~ age + age_sq + education, data = Wage)
-summary(lm_wage_sub_direct)
+```{r echo = FALSE}
+active_covariates <- names(which(lm_wage_sub_sum$which[best_model$AIC, -1]))
+design_matrix_full <- as.data.frame(model.matrix(lm_wage))
+design_matrix_aic <- design_matrix_full[active_covariates]
+
+temp_data <- cbind("wage" = Wage$wage, design_matrix_aic)
+
+lm_wage_sub_aic <- lm(wage  ~ ., data = temp_data)
+summary(lm_wage_sub_aic)
+```
+Since treatment contrasts are generally easier to interpret, especially in the context of model selection, we repeat the procedure above with treatment instead of polynomial contrasts. Let us first estimate the full model.
+
+```{r echo = FALSE}
+# Clear memory
+#rm(list=ls())
+
+# change to treatment contrasts
+contrasts(Wage$education) <- contr.treatment(levels(Wage$education)) # polynominal coding bc.we have ordinal variables, where the levels have a natural order
+lm_wage_dummy <- lm(formula_full, data = Wage)
+
+lm_wage_dummy_sum <- summary(lm_wage_dummy)
+lm_wage_dummy_sum
+
+
+
+```
+While residuals and fitted values of the full model are independent of our contrast choice, the interpretation of the estimated coefficients is different now. In particular, the estimated $education$ coefficients now capture the mean difference in earnings of the respective education level to the baseline of \textit{< HS Grad}.
+
+We continue with the best subset selection.
+```{r, echo = FALSE}
+#Use best subset selection to determine a suitable model.
+# best subset selection model
+lm_wage_sub_dummy <-  leaps::regsubsets(formula_full, data = Wage,
+     nvmax = 20, really.big = TRUE)
+
+lm_wage_sub_dummy_sum <- summary(lm_wage_sub_dummy)##
+lm_wage_sub_dummy_sum
+
+plot(summary(lm_wage_sub_dummy)$rss, xlab = "Subset size", ylab = "RSS", type = "b")
+
+# Find the model with the lowest AIC
+best_model_dummy <- data.frame(
+  Adj.R2 = which.max(lm_wage_sub_dummy_sum$adjr2),
+  BIC = which.min(lm_wage_sub_dummy_sum$bic),
+  AIC = which.min(lm_wage_sub_dummy_sum$cp) 
+)
+rownames(best_model_dummy) <- "best_model"
+best_model_dummy
+
+
+```
+In the model selection context we start to see some differences between polynomial and treatment contrasts. With dummy coding, the best model according to the AIC is model 9, which includes all dummy variables created from $education$ and the higher-order terms of $age$, i.e. $age^5, age^6, age^7, age^8$ and $age^9$. Let's have a look at that model:
+
+```{r echo = FALSE}
+active_covariates_dummy <- names(which(lm_wage_sub_dummy_sum$which[best_model_dummy$AIC, -1]))
+design_matrix_full_dummy <- as.data.frame(model.matrix(lm_wage_dummy))
+design_matrix_aic_dummy <- design_matrix_full_dummy[active_covariates_dummy]
+
+temp_data <- cbind("wage" = Wage$wage, design_matrix_aic_dummy)
+
+lm_wage_sub_aic_dummy <- lm(wage  ~ ., data = temp_data)
+summary(lm_wage_sub_aic_dummy)
+
+```
+If we now compare the AIC of the two selected models for polynomial and treatment contrasts, we find that the former is slightly superior.
+```{r, echo = FALSE}
+AIC_dummy <- AIC(lm_wage_sub_aic_dummy)
+AIC_polynomial <- AIC(lm_wage_sub_aic)
+
+c("AIC_poly_contr" = AIC_polynomial, 
+  "AIC_treat_contr" = AIC_dummy)
+```
+
+
+Finally, we assess if it makes a difference if we include the polynomial of the original variable $age$ or orthogonal polynomials constructed using poly(age, k). Direct polynomials are straightforward, making them somewhat easier to interpret in terms of the direct effect of aging. However, they can be collinear, especially with higher-degree polynomials. Orthogonal polynomials deal with the potential issue of multicollinearity between the polynomial terms, leading to more stable coefficient estimates. However, the coefficients of orthogonal polynomials are a bit more challenging to interpret. For predictive accuracy, orthogonal polynomials can sometimes offer an advantage, especially in complex models. For interpretation, direct polynomials might be preferred if the primary interest is in understanding the specific nature of the relationship between age and wage. 
+
+In the full model, both the orthogonal polynomial and the direct polynomial yield the same model fit, since each design matrix spans the same space. In particular,  AIC and BIC values are the same for both models using direct polynomial terms and orthogonal polynomials for age. 
+```{r, echo = FALSE}
+
+# go back to polynomial contrasts
+contrasts(Wage$education) <- contr.poly(levels(Wage$education)) # polynominal coding bc.we have ordinal variables, where the levels have a natural order
+
+# create orthogonal polynomial of 'age'
+age_poly <- poly(Wage$age, degree = 10, raw = FALSE)
+colnames(age_poly) <- paste0("age", 1:10)
+
+# add to data
+Wage_ortho <- Wage
+Wage_ortho['age'] <- age_poly[,1]
+Wage_ortho[paste0('age', 2:10)] <- age_poly[,-1]
+
+
+formula_full_ortho <- as.formula(paste0("wage ~ age + ", 
+                       paste(colnames(age_poly)[-1], collapse = " + "),
+                       " + education")) 
 
 # Orthogonal polynomials
-lm_wage_sub_ortho <- lm(wage ~ poly(age, 2) + education, data = Wage)
-summary(lm_wage_sub_ortho)
+lm_wage_ortho <- lm(formula_full_ortho, data = Wage_ortho)
+#summary(lm_wage_sub_ortho)
 
 # comparison
 # AIC and BIC for the direct polynomial model
-aic_direct_poly <- AIC(lm_wage_sub_direct)
-bic_direct_poly <- BIC(lm_wage_sub_direct)
+aic_direct_poly <- AIC(lm_wage)
+bic_direct_poly <- BIC(lm_wage)
 
 # Calculate AIC and BIC for the orthogonal polynomials model
-aic_ortho_poly <- AIC(lm_wage_sub_ortho)
-bic_ortho_poly <- BIC(lm_wage_sub_ortho)
+aic_ortho_poly <- AIC(lm_wage_ortho)
+bic_ortho_poly <- BIC(lm_wage_ortho)
 
 # Table for comparison of AIC and BIS for direct and orthogonal polynomials
 variable_data <- data.frame(
   direct = c(aic_direct_poly, bic_direct_poly),
-  ortho = c(aic_ortho_poly, bic_ortho_poly),
+  orthogonal = c(aic_ortho_poly, bic_ortho_poly),
   row.names = c("AIC", "BIC")
 )
 
 kable(variable_data)
 ```
+Let us now investigate whether there are any differences between orthogonal and direct polynomials when it comes to model selection.
+
+```{r, echo=FALSE}
+
+#Use best subset selection to determine a suitable model.
+# best subset selection model
+lm_wage_sub_ortho <-  leaps::regsubsets(formula_full_ortho, data = Wage_ortho,
+     nvmax = 20, really.big = TRUE)
+
+lm_wage_sub_sum_ortho <- summary(lm_wage_sub_ortho)##
+lm_wage_sub_sum_ortho
+
+# Find the model with the lowest AIC
+best_model_ortho <- data.frame(
+  Adj.R2 = which.max(lm_wage_sub_sum_ortho$adjr2),
+  BIC = which.min(lm_wage_sub_sum_ortho$bic),
+  AIC = which.min(lm_wage_sub_sum_ortho$cp) 
+)
+rownames(best_model_ortho) <- "best_model"
+best_model_ortho
+
+active_covariates_ortho <- names(which(lm_wage_sub_sum_ortho$which[best_model_ortho$AIC, -1]))
+design_matrix_full_ortho <- as.data.frame(model.matrix(lm_wage_ortho))
+design_matrix_aic_ortho <- design_matrix_full_ortho[active_covariates_ortho]
+
+temp_data_ortho <- cbind("wage" = Wage_ortho$wage, design_matrix_aic_ortho)
+
+lm_wage_sub_aic_ortho <- lm(wage  ~ ., data = temp_data_ortho)
+summary(lm_wage_sub_aic_ortho)
+
+
+```
+Consequently, we find that the use of orthogonal polynomials leads to different conclusions when it comes to model selection. In particular, the model selected based on the AIC is now more complex and also includes the lower-order terms of $age$. The AIC of the best model with orthogonal polynomials is slightly larger than that of the best model with the direct polynomial.
+```{r, echo = FALSE}
+c("AIC_direct" = AIC(lm_wage_sub_aic),
+  "AIC_orthogonal" = AIC(lm_wage_sub_aic_ortho))
+```
+
+
+
+
+
 
 # Exercise 3
 
