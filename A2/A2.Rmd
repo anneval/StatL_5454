@@ -32,15 +32,29 @@ library(tidyverse)
 library(readr)
 library(dplyr)
 library(knitr)
+library(Ecdat)
+#library(ElemStatLearn)
 ```
 
 <!-- EXERCISE 1 -->
 
 # Exercise 1
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- x - 2*x^2 + rnorm(100)
+```
 
 <!-- EXERCISE 2 -->
 
 # Exercise 2
+
+```{r}
+set.seed(1)
+x <- rnorm(100)
+y <- x - 2*x^2 + rnorm(100)
+```
+
 
 <!-- EXERCISE 3 -->
 
