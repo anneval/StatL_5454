@@ -1,0 +1,56 @@
+---
+title: "Statistical Learning (5454) - Assignment 2"  
+author: "Matthias Hochholzer, Lukas Pirnbacher, Anne Valder"
+date: "Due: 2024-04-22"
+output: pdf_document
+
+header-includes:
+  - \usepackage{bm}
+  - \usepackage{amsmath}
+  - \newcommand*{\defeq}{\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
+  - \newcommand*{\eqdef}{=\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}}
+---
+
+```{r setup, include=FALSE}
+# ADJUST SETUP 
+knitr::opts_chunk$set(echo = TRUE)
+# modify! 
+#knitr::opts_knit$set(root.dir = 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/A1')
+```
+
+
+```{r,include=FALSE}
+# Clear memory
+rm(list=ls())
+```
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE}
+# Import libraries
+library(tidyverse)
+library(readr)
+library(dplyr)
+library(knitr)
+```
+
+<!-- EXERCISE 1 -->
+
+# Exercise 1
+
+<!-- EXERCISE 2 -->
+
+# Exercise 2
+
+<!-- EXERCISE 3 -->
+
+# Exercise 3
+
+<!-- EXERCISE 4 -->
+
+# Exercise 4
+
+<!-- EXERCISE 5 -->
+
+
+# Exercise 5
