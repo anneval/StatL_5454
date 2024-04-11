@@ -14,10 +14,7 @@ header-includes:
 ---
 
 ```{r setup, include=FALSE}
-# ADJUST SETUP 
-knitr::opts_chunk$set(echo = TRUE)
-# modify! 
-#knitr::opts_knit$set(root.dir = 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/A1')
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 
@@ -33,38 +30,200 @@ library(readr)
 library(dplyr)
 library(knitr)
 library(Ecdat)
-#library(ElemStatLearn)
+library(glmnet)
+# change path! ElemStatLearn not directly availabe from CRAN
+if (!require("ElemStatLearn")) install.packages("C:/Users/avalder/Downloads/ElemStatLearn_2015.6.26 (1).tar.gz", repos = NULL, type = "source")
+library(ElemStatLearn)
+library(boot)
+library(caret)
 ```
 
 <!-- EXERCISE 1 -->
-
 # Exercise 1
-```{r}
+After generating the simulated data we fit four models using least squares, we calculate the AIC values and  determine the in-sample error estimates by drawing suitable test data from the data generating process using twice the negative log-likelihood as loss function. Plotting the data we see a clearly non-linear relationship. In line with this we observe that the most preferable model in terms of AIC value is the second model. In terms of negative log-likelihood the fourth model appears to be the best. However, closely followed by model 2. The linear model (model 1) performs the worst out of all models measured by AIC and the negative log-likelihood.
+
+```{r, echo=TRUE}
+#(a)
 set.seed(1)
 x <- rnorm(100)
 y <- x - 2*x^2 + rnorm(100)
+plot(x,y)
+
+#(b)
+lm1 <- lm(y ~ x) # alternative: lm1 <- glm(y ~ x, data, family = gaussian()) 
+lm2 <- lm(y ~ x +I(x^2))
+lm3 <- lm(y ~ x + I(x^2) + I(x^3))
+lm4 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4))
+```
+
+
+```{r}
+# Calculate AIC values
+aic1 <- AIC(lm1)
+aic2 <- AIC(lm2)
+aic3 <- AIC(lm3)
+aic4 <- AIC(lm4)
+
+# Print AIC values
+aic_values <- c(aic1, aic2, aic3, aic4)
+print(aic_values)
+
+#(c)
+# Generate test data from the data generating process
+x_test <- rnorm(100)
+y_test <- x_test - 2*x_test^2 + rnorm(100)
+
+# Predict and calculate twice the negative log-likelihood as loss function
+lm1_test <- lm(y_test ~ x_test)
+lm2_test <- lm(y_test ~ x_test +I(x_test^2))
+lm3_test <- lm(y_test ~ x_test + I(x_test) + I(x_test^3))
+lm4_test <- lm(y_test ~ x_test + I(x_test^2) + I(x_test^3) + I(x_test^4))
+
+lm_test <- list(lm1_test,lm2_test,lm3_test,lm4_test)
+
+error_est <- lapply(lm_test, function(x) -2*logLik(x))
+print(error_est)
 ```
 
 <!-- EXERCISE 2 -->
 
 # Exercise 2
+In exercise 2, we perform leave-one-out cross-validation (LOOCV), k-fold cross-validation (kCV) and empirical bootstrapping based on the mean squared error loss that result from fitting the four models using least squares. The simulated data and specifications are the same as in task 1. The results of task (b) across the models are shown in table 1, incidcated by "seed1" in the last column. 
 
+(c) Next, we repeat (b) using another random seed (indicated by "seed2" in table 1). For LOOCV we obtain exactly the same results for all four models regardless of the different seed. This is because in general the randomness lies in the data generation.This consistency is expected because LOOCV is deterministic in this context, not relying on random sampling. Each observation is used once as a test set while the rest are used for training, and this process is repeated for each observation in the dataset. Therefore, changing the seed does not affect LOOCV results. For kCV we observe slight differences in the errors between seed 1 and seed 2 across the models. This variation can be attributed to the random partitioning of the data into k folds. Each seed leads to a different random split, which can result in slight variations in the training and validation sets used in each fold, thus affecting the error estimates. Similar to kCV, the bootstrap error shows variations between the two seeds. Bootstrap resampling involves drawing samples with replacement from the original data set to create "new" data sets. The randomness introduced by the seed affects which observations are selected in each resample, leading to slight differences in the bootstrap error estimates between seed 1 and seed 2.
 ```{r}
+#(a)
 set.seed(1)
 x <- rnorm(100)
 y <- x - 2*x^2 + rnorm(100)
+data <- data.frame(x = x, y = y)
+
+#(b)
+# List of formulas for the models
+model_formulas <- list(
+  y ~ x,
+  y ~ x + I(x^2),
+  y ~ x + I(x^2) + I(x^3),
+  y ~ x + I(x^2) + I(x^3) + I(x^4)
+)
+
+# Function to calculate MSE
+mse <- function(actual, predicted) {
+  mean((actual - predicted)^2)
+}
+
+# LOOCV Error Calculation
+loocv_error <- function(model_formula, data) {
+  loocv_results <- sapply(1:nrow(data), function(i) {
+    train_data <- data[-i, ]
+    test_data <- data[i, ]
+    model <- lm(model_formula, data = train_data)
+    predicted <- predict(model, newdata = test_data)
+    mse(test_data$y, predicted)
+  })
+  mean(loocv_results)
+}
+
+# k-Fold CV Error Calculation
+kcv_error <- function(model_formula, data, k) {
+  train_control <- trainControl(method = "cv", number = k)
+  model <- train(model_formula, data = data, method = "lm", trControl = train_control)
+  model$results$RMSE^2 # Squaring RMSE to get MSE
+}
+
+# Updated Bootstrap Error Calculation using boot package
+bootstrap_error <- function(model_formula, data, nR) {
+  bootFunction <- function(data, indices) {
+    d <- data[indices, ] # Bootstrap sample
+    model <- lm(model_formula, data = d)
+    predicted <- predict(model, newdata = d)
+    mse(d$y, predicted)
+  }
+  
+  # Perform bootstrapping using the boot function
+  results <- boot(data = data, statistic = bootFunction, R = nR)
+  mean(results$t) # Return the mean of bootstrap MSE estimates
+}
+
+# Applying the methods
+set.seed(123) # For reproducibility across methods
+
+errors_seed1 <- lapply(model_formulas, function(formula) {
+  list(
+    LOOCV = loocv_error(formula, data),
+    kCV = kcv_error(formula, data, 10), # Example: 10-fold CV
+    Bootstrap = bootstrap_error(formula, data, 1000) # Example: 1000 bootstrap samples
+  )
+})
+
+# Display the errors for each model and method
+#errors_seed1
+
+#(c)
+set.seed(456) # change seed
+
+errors_seed2 <- lapply(model_formulas, function(formula) {
+  list(
+    LOOCV = loocv_error(formula, data),
+    kCV = kcv_error(formula, data, 10), # Example: 10-fold CV
+    Bootstrap = bootstrap_error(formula, data, 1000) # Example: 1000 bootstrap samples
+  )
+})
+
+# Display the errors for each model and method
+#errors_seed2
+
+# Convert lists to data frames with model and seed identifiers
+df1 <- do.call(rbind, lapply(seq_along(errors_seed1), function(i) {
+  cbind(data.frame(errors_seed1[[i]]), Model=paste("Model", i), Seed="Seed1")
+}))
+df2 <- do.call(rbind, lapply(seq_along(errors_seed2), function(i) {
+  cbind(data.frame(errors_seed2[[i]]), Model=paste("Model", i), Seed="Seed2")
+}))
+
+combined_df <- rbind(df1, df2)
+combined_df <- combined_df[order(combined_df$Model, combined_df$Seed), ]
+combined_df$Model <- factor(combined_df$Model)
+combined_df$Seed <- factor(combined_df$Seed)
+
+#print(combined_df)
+knitr::kable(combined_df, caption = "Comparison of LOOCV, kCV, and Bootstrap Errors", digits = 4)
+```
+
+(d) The MSEs in table 1 suggest that according to LOOCV the second model is the best. With  kCV the third model is the best and for the empirical bootstrap error it is the fourth model. Also, we see that the empirical
+bootstrap error decreases further with model complexity, reflecting potential overfitting problems of this method. Remembering the plotted data in the beginning these results are in line with our expectations since higher order regression equations fit much better to the data than the linear case.
+
+(e) Last, we have a look at the statistical significance of the coefficient estimates that result from fitting each of the models using least squares. The results here align with our previous conclusions, as the quadratic term has the lowest p-value.
+```{r}
+#(e)
+lm1 <- lm(y ~ x) # alternative: lm1 <- glm(y ~ x, data, family = gaussian()) 
+lm2 <- lm(y ~ x +I(x^2))
+lm3 <- lm(y ~ x + I(x^2) + I(x^3))
+lm4 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4))
+models <- list(lm1,lm2,lm3,lm4)
+
+knitr::kable(lapply(models,function(x) summary(x)$coefficients))
 ```
 
 
 <!-- EXERCISE 3 -->
-
 # Exercise 3
+```{r}
+data("Schooling", package = "Ecdat")
+Schooling <- Schooling
+```
+
 
 <!-- EXERCISE 4 -->
-
 # Exercise 4
+```{r}
+data("SAheart", package = "ElemStatLearn")
+
+```
 
 <!-- EXERCISE 5 -->
-
-
 # Exercise 5
+```{r}
+data("phoneme", package = "ElemStatLearn")
+
+```
