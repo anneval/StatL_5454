@@ -10,6 +10,11 @@ header-includes:
    - \titleformat*{\section}{\normalfont\Large\bfseries\flushleft}
    - \titleformat*{\subsection}{\normalfont\large\bfseries\flushleft}
    - \titleformat*{\subsubsection}{\normalfont\normalsize\bfseries\flushleft}
+   - \usepackage{amsmath}
+   - \newcommand*{\defeq}{\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
+   - \newcommand*{\eqdef}{=\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}}
 ---
 
 ```{r setup, include=FALSE}
@@ -202,16 +207,17 @@ lm3 <- lm(y ~ x + I(x^2) + I(x^3))
 lm4 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4))
 models <- list(lm1,lm2,lm3,lm4)
 
-knitr::kable(lapply(models,function(x) summary(x)$coefficients))
+print(lapply(models,function(x) summary(x)$coefficients))
 ```
 
 
 <!-- EXERCISE 3 -->
 # Exercise 3
-Here we are using the wage data set available as data object $\textit{Schooling}$ in package $\textbf{Ecda}$. First, we omit observations with missing values and the variable wage76, and mutate variable mar76 into a binary variable. Next, we fit regularized linear regression models with lwage76 as dependent variable using only linear effects for the covariates and varying the $\alpha$ parameter for the elastic from 0 to 1 in step sizes of 0.2. We do this using using cv.glmnet with 10-fold cross-validation considering the MSE for a range of penalty values of $\lambda$. The argument foldid ensures that the same data partitions are used for each model fitting, making the comparisons fair and consistent. The default plot method for cv.glmnet objects is used to visualize the cross-validation curves, which show the mean squared error (MSE) across a range of $\lambda$ values for each $\alpha$. The plot displays the $\lambda$ values on the log scale along the bottom x-axis and the corresponding MSE on the y-axis. The vertical dotted line in each plot indicates the $\lambda$ value that gives the minimum MSE. By varying $\alpha$, we essentially move between different regularization methods: $\alpha = 0$ corresponds to ridge regression (penalty on the square of coefficients),$\alpha = 1$ corresponds to lasso regression (penalty on the absolute value of coefficients). The top x-axis shows these numbers, which correspond to the model's complexity at different levels of regularization. As lambda increases, the regularization penalty becomes more severe, leading to more coefficients being shrunk to zero.The dual x-axes in the plot serve to simultaneously convey how lambda affects both the model's predictive accuracy (through the MSE shown on the y-axis) and its complexity (in terms of the number of predictors used, shown on the bottom x-axis). Looking at the different plots given each value of $\alpha$ we observe with $\alpha$ closer to 1 more pronounced changes in the number of non-zero coefficients as lambda changes, reflecting the lasso's variable selection property. For ridge regression ($\alpha = 0$ ), the coefficients are shrunk towards zero but not exactly to zero, so the model complexity in terms of the non-zero coefficient count may not reduce as dramatically as with lasso or elastic net.
+Here we are using the wage data set available as data object $\textit{Schooling}$ in package $\textbf{Ecda}$. First, we omit observations with missing values and the variable wage76, and mutate variable mar76 into a binary variable. Next, we fit regularized linear regression models with lwage76 as dependent variable using only linear effects for the covariates and varying the $\alpha$ parameter for the elastic from 0 to 1 in step sizes of 0.2. We do this using using cv.glmnet with 10-fold cross-validation considering the MSE for a range of penalty values of $\lambda$. The argument foldid ensures that the same data partitions are used for each model fitting, making the comparisons fair and consistent. The default plot method for cv.glmnet objects is used to visualize the cross-validation curves, which show the mean squared error (MSE) across a range of $\lambda$ values for each $\alpha$. The plot displays the $\lambda$ values on the log scale along the bottom x-axis and the corresponding MSE on the y-axis. The vertical dotted line in each plot indicates the $\lambda$ value that gives the minimum MSE. By varying $\alpha$, we essentially move between different regularization methods: $\alpha = 0$ corresponds to ridge regression (penalty on the square of coefficients),$\alpha = 1$ corresponds to lasso regression (penalty on the absolute value of coefficients). The top x-axis shows these numbers, which correspond to the model's complexity at different levels of regularization. As lambda increases, the regularization penalty becomes more severe, leading to more coefficients being shrunk to zero.The dual x-axes in the plot serve to simultaneously convey how lambda affects both the model's predictive accuracy (through the MSE shown on the y-axis) and its complexity (in terms of the number of predictors used, shown on the bottom x-axis). Looking at the different plots given each value of $\alpha$ we observe with $\alpha$ closer to 1 more pronounced changes in the number of non-zero coefficients as lambda changes, reflecting the lasso's variable selection property. For ridge regression ($\alpha = 0$), the coefficients are shrunk towards zero but not exactly to zero, so the model complexity in terms of the non-zero coefficient count may not reduce as dramatically as with lasso or elastic net.
 
-```{r, echo=FALSE, fig.width=8, fig.height=5, out.width='\\textwidth'}
+```{r, echo=FALSE, fig.width=8, fig.height=5}
 data("Schooling", package = "Ecdat")
+#out.width='\\textwidth'
 #(a)
 #Omit observations with missing values and the variable wage76. Mutate the variable mar76 into a binary
 ##variable which is TRUE for value "married" and FALSE otherwise. 
@@ -257,10 +263,10 @@ for (i in seq_along(cv_models)) {
 This visualization helps in choosing an optimal lambda value , typically via the 1-standard error rule or by selecting the lambda that minimizes the cross-validation error.
 
 Next, to select the best value for $\lambda$, that balances model simplicity and accuracy, for each fixed value of $\alpha$ we look at either the value that minimizes the cross-validation error (lambda.min) or the 1-SE rule (lambda.1se), and then compare the selected models. We extract these $\lambda$ values from cv.glmnet and then fit the final models on the full data set using these selected $\lambda$ value. To compare the selected models based on their complexity (number of non-zero coefficients), predicted values, and MSE, we can use the coef function to inspect the coefficients, make predictions with the predict function, and then calculate MSE for each model.
-Table 2 summarizes all that. The choice between lambda.min and lambda.1se involves a trade-off between model simplicity and predictive accuracy. lambda.1se typically leads to simpler models (with potentially slightly higher MSE). We observe that as $\alpha$ increases from 0.0 to 1.0, the number of non-zero coefficients varies. The model with $\alpha$ = 0.0 (ridge regression) maintains 10 non-zero coefficients for both lambda.min and lambda.1se. For other values of $\alpha$ (moving towards lasso regression), the number of non-zero coefficients tends to decrease, indicating sparser models. This is especially visible for $\alpha = 1.0$ with only 5 or 6 non-zero coefficients, suggesting that lasso regularization enforces the most sparsity. The least complex model is the one with  $\alpha = 0.2$  using the lambda.1se criterion, having only 5 non-zero coefficients, whereas the most complex models with respect to the number of coefficients are all those with $\alpha = 0.0$.  Regarding predicited values, the cv_mse does not vary significantly across different $\alpha$  values, indicating that the change in $\alpha$  is not drastically affecting the model's predictive ability in this case. The lowest cv_mse for lambda.min appears at $\alpha = 1.0$ , suggesting that the lasso model at its optimal lambda achieves a marginally better fit in terms of MSE. For the lambda.1se criterion, the cv_mse is slightly higher compared to the lambda.min, which is expected as the 1-SE rule tends to select a simpler and more generalizable model at the expense of a slight increase in error. In the end, the choice between lambda.min and lambda.1se would depend on whether the priority is on the lowest possible MSE or on model simplicity.
+Table 2 summarizes all that. The choice between lambda.min and lambda.1se involves a trade-off between model simplicity and predictive accuracy. lambda.1se typically leads to simpler models (with potentially slightly higher MSE). We observe that as $\alpha$ increases from 0.0 to 1.0, the number of non-zero coefficients varies. The model with $\alpha = 0.0$ (ridge regression) maintains 10 non-zero coefficients for both lambda.min and lambda.1se. For other values of $\alpha$ (moving towards lasso regression), the number of non-zero coefficients tends to decrease, indicating sparser models. This is especially visible for $\alpha = 1.0$ with only 5 or 6 non-zero coefficients, suggesting that lasso regularization enforces the most sparsity. The least complex model is the one with  $\alpha = 0.2$  using the lambda.1se criterion, having only 5 non-zero coefficients, whereas the most complex models with respect to the number of coefficients are all those with $\alpha = 0.0$.  Regarding predicited values, the cv_mse does not vary significantly across different $\alpha$  values, indicating that the change in $\alpha$ is not drastically affecting the model's predictive ability in this case. The lowest cv_mse for lambda.min appears at $\alpha = 1.0$ , suggesting that the lasso model at its optimal lambda achieves a marginally better fit in terms of MSE. For the lambda.1se criterion, the cv_mse is slightly higher compared to the lambda.min, which is expected as the 1-SE rule tends to select a simpler and more generalizable model at the expense of a slight increase in error. In the end, the choice between lambda.min and lambda.1se would depend on whether the priority is on the lowest possible MSE or on model simplicity.
 
 
-##Frage: classification performance - only if I have logistic regression and binary outcome or? 
+<!--##Frage: classification performance - only if I have logistic regression and binary outcome or? -->
 
 ```{r}
 library(glmnet)
@@ -268,32 +274,32 @@ library(glmnet)
 # Initialize lists
 chosen_lambda_min <- numeric(length(cv_models))
 chosen_lambda_1se <- numeric(length(cv_models))
-model_summary <- data.frame(alpha = numeric(), lambda = numeric(), criterion = character(), 
+model_summary <- data.frame(alpha = numeric(), lambda = numeric(), criterion = character(),
                             non_zero_coefficients = integer(), cv_mse = numeric(), stringsAsFactors = FALSE)
 
 # Loop over the models to select lambda and summarize models
 for (i in seq_along(cv_models)) {
   cv_model <- cv_models[[i]]
   alpha <- alpha_seq[i]
-  
+
   # Select lambda.min and lambda.1se
   lambda_min <- cv_model$lambda.min
   lambda_1se <- cv_model$lambda.1se
   chosen_lambda_min[i] <- lambda_min
   chosen_lambda_1se[i] <- lambda_1se
-  
+
   # Summarize the model with lambda.min
   model_min <- glmnet(X, y, alpha = alpha, lambda = lambda_min, family = "gaussian")
   cv_mse_min <- cv_model$cvm[cv_model$lambda == lambda_min]
-  model_summary <- rbind(model_summary, 
-                         data.frame(alpha = alpha, lambda = lambda_min, criterion = "min", 
+  model_summary <- rbind(model_summary,
+                         data.frame(alpha = alpha, lambda = lambda_min, criterion = "min",
                                     non_zero_coefficients = sum(coef(model_min) != 0), cv_mse = cv_mse_min))
-  
+
   # Summarize the model with lambda.1se
   model_1se <- glmnet(X, y, alpha = alpha, lambda = lambda_1se, family = "gaussian")
   cv_mse_1se <- cv_model$cvm[cv_model$lambda == lambda_1se]
-  model_summary <- rbind(model_summary, 
-                         data.frame(alpha = alpha, lambda = lambda_1se, criterion = "1se", 
+  model_summary <- rbind(model_summary,
+                         data.frame(alpha = alpha, lambda = lambda_1se, criterion = "1se",
                                     non_zero_coefficients = sum(coef(model_1se) != 0), cv_mse = cv_mse_1se))
 }
 
@@ -302,7 +308,8 @@ for (i in seq_along(cv_models)) {
 kable(model_summary)
 ```
 
-Last, we inspect the best solution for $\alpha = 1$  (lasso regression) using the 1 − SE rule. This approach tends to prefer simpler models with fewer non-zero coefficients, which can be advantageous for interpretability and generalization. To see which variables were selected (i.e., have non-zero coefficients) and their estimated coefficients, we use the coef function from the glmnet package. We observe here only 4 variables are selcted, and all have rather small coefficients ans thus little influence on the response variable 'lwage76'. To assess the goodness-of-fit, we then calculate the correlation between the predicted values from the model and the observed values. Values closer to 1 or -1 indicating a stronger linear relationship between predictions and actual outcomes. In this case the correlation lies at 0.4293. This indicates a moderate postive linear relationship between the predicted and observed values.The model has some predictive power, but it is not capturing all of the variability in the dependent variable.
+Last, we inspect the best solution for $\alpha = 1$  (lasso regression) using the 1-SE rule. This approach tends to prefer simpler models with fewer non-zero coefficients, which can be advantageous for interpretability and generalization. To see which variables were selected (i.e., have non-zero coefficients) and their estimated coefficients, we use the coef function from the glmnet package. We observe here only 4 variables are selected, and all have rather small coefficients ans thus little influence on the response variable 'lwage76'. To assess the goodness-of-fit, we then calculate the correlation between the predicted values from the model and the observed values. Values closer to 1 or -1 indicating a stronger linear relationship between predictions and actual outcomes. In this case the correlation lies at 0.4293. This indicates a moderate positive linear relationship between the predicted and observed values.The model has some predictive power, but it is not capturing all of the variability in the dependent variable.
+
 ```{r}
 #(e)
 # Identify the model for alpha = 1
@@ -317,7 +324,7 @@ print("Non-zero coefficients (including intercept):")
 print(coef_alpha_one_1se)
 
 # Predict the values using the final model
-pred_alpha_one_1se <- predict(finmod_alpha_one_1se, s = lambda_alpha_one_1se, newx = X) ### Question: seperate into train and test beginning? not in task though but slides. 
+pred_alpha_one_1se <- predict(finmod_alpha_one_1se, s = lambda_alpha_one_1se, newx = X) ### Question: seperate into train and test beginning? not in task though but slides.
 
 # Calculate and display the correlation between predicted and observed values
 cor_alpha_one_1se <- cor(pred_alpha_one_1se, y)

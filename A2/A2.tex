@@ -105,6 +105,9 @@
 \titleformat*{\section}{\normalfont\Large\bfseries\flushleft}
 \titleformat*{\subsection}{\normalfont\large\bfseries\flushleft}
 \titleformat*{\subsubsection}{\normalfont\normalsize\bfseries\flushleft}
+\usepackage{amsmath}
+\newcommand*{\defeq}{\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt \hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
+\newcommand*{\eqdef}{=\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt \hbox{\scriptsize.}\hbox{\scriptsize.}}}}
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
@@ -253,63 +256,35 @@ incidcated by ``seed1'' in the last column.
   coefficient estimates that result from fitting each of the models
   using least squares. The results here align with our previous
   conclusions, as the quadratic term has the lowest p-value.
-  \textbackslash begin\{table\}
 \end{enumerate}
 
-\centering
-\begin{tabular}[t]{l|r|r|r|r}
-\hline
-  & Estimate & Std. Error & t value & Pr(>|t|)\\
-\hline
-(Intercept) & -1.625427 & 0.2619366 & -6.205420 & 0.0000000\\
-\hline
-x & 0.692497 & 0.2909418 & 2.380191 & 0.0192385\\
-\hline
-\end{tabular}
-\centering
-\begin{tabular}[t]{l|r|r|r|r}
-\hline
-  & Estimate & Std. Error & t value & Pr(>|t|)\\
-\hline
-(Intercept) & 0.056715 & 0.1176555 & 0.482043 & 0.6308613\\
-\hline
-x & 1.017161 & 0.1079827 & 9.419666 & 0.0000000\\
-\hline
-I(x\textasciicircum{}2) & -2.118921 & 0.0847657 & -24.997388 & 0.0000000\\
-\hline
-\end{tabular}
-\centering
-\begin{tabular}[t]{l|r|r|r|r}
-\hline
-  & Estimate & Std. Error & t value & Pr(>|t|)\\
-\hline
-(Intercept) & 0.0615072 & 0.1195037 & 0.5146883 & 0.6079538\\
-\hline
-x & 0.9752803 & 0.1872815 & 5.2075636 & 0.0000011\\
-\hline
-I(x\textasciicircum{}2) & -2.1237910 & 0.0870025 & -24.4106856 & 0.0000000\\
-\hline
-I(x\textasciicircum{}3) & 0.0176386 & 0.0642904 & 0.2743580 & 0.7843990\\
-\hline
-\end{tabular}
-\centering
-\begin{tabular}[t]{l|r|r|r|r}
-\hline
-  & Estimate & Std. Error & t value & Pr(>|t|)\\
-\hline
-(Intercept) & 0.1567030 & 0.1394619 & 1.1236253 & 0.2640034\\
-\hline
-x & 1.0308256 & 0.1913365 & 5.3874999 & 0.0000005\\
-\hline
-I(x\textasciicircum{}2) & -2.4098982 & 0.2348551 & -10.2612148 & 0.0000000\\
-\hline
-I(x\textasciicircum{}3) & -0.0091329 & 0.0672288 & -0.1358481 & 0.8922288\\
-\hline
-I(x\textasciicircum{}4) & 0.0697854 & 0.0532401 & 1.3107691 & 0.1930956\\
-\hline
-\end{tabular}
-
-\textbackslash end\{table\}
+\begin{verbatim}
+## [[1]]
+##              Estimate Std. Error   t value     Pr(>|t|)
+## (Intercept) -1.625427  0.2619366 -6.205420 1.309300e-08
+## x            0.692497  0.2909418  2.380191 1.923846e-02
+## 
+## [[2]]
+##                Estimate Std. Error    t value     Pr(>|t|)
+## (Intercept)  0.05671501  0.1176555   0.482043 6.308613e-01
+## x            1.01716087  0.1079827   9.419666 2.403287e-15
+## I(x^2)      -2.11892120  0.0847657 -24.997388 4.584330e-44
+## 
+## [[3]]
+##                Estimate Std. Error     t value     Pr(>|t|)
+## (Intercept)  0.06150718 0.11950374   0.5146883 6.079538e-01
+## x            0.97528027 0.18728149   5.2075636 1.089350e-06
+## I(x^2)      -2.12379099 0.08700251 -24.4106856 5.873444e-43
+## I(x^3)       0.01763858 0.06429037   0.2743580 7.843990e-01
+## 
+## [[4]]
+##                 Estimate Std. Error     t value     Pr(>|t|)
+## (Intercept)  0.156702953 0.13946192   1.1236253 2.640034e-01
+## x            1.030825643 0.19133655   5.3874999 5.174326e-07
+## I(x^2)      -2.409898183 0.23485506 -10.2612148 4.575229e-17
+## I(x^3)      -0.009132904 0.06722881  -0.1358481 8.922288e-01
+## I(x^4)       0.069785421 0.05324006   1.3107691 1.930956e-01
+\end{verbatim}
 
 \hypertarget{exercise-3}{%
 \section{Exercise 3}\label{exercise-3}}
@@ -344,17 +319,17 @@ terms of the number of predictors used, shown on the bottom x-axis).
 Looking at the different plots given each value of \(\alpha\) we observe
 with \(\alpha\) closer to 1 more pronounced changes in the number of
 non-zero coefficients as lambda changes, reflecting the lasso's variable
-selection property. For ridge regression (\(\alpha = 0\) ), the
+selection property. For ridge regression (\(\alpha = 0\)), the
 coefficients are shrunk towards zero but not exactly to zero, so the
 model complexity in terms of the non-zero coefficient count may not
 reduce as dramatically as with lasso or elastic net.
 
-\includegraphics[width=\textwidth]{A2_files/figure-latex/unnamed-chunk-7-1}
-\includegraphics[width=\textwidth]{A2_files/figure-latex/unnamed-chunk-7-2}
-\includegraphics[width=\textwidth]{A2_files/figure-latex/unnamed-chunk-7-3}
-\includegraphics[width=\textwidth]{A2_files/figure-latex/unnamed-chunk-7-4}
-\includegraphics[width=\textwidth]{A2_files/figure-latex/unnamed-chunk-7-5}
-\includegraphics[width=\textwidth]{A2_files/figure-latex/unnamed-chunk-7-6}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-7-1.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-7-2.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-7-3.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-7-4.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-7-5.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-7-6.pdf}
 
 This visualization helps in choosing an optimal lambda value , typically
 via the 1-standard error rule or by selecting the lambda that minimizes
@@ -374,7 +349,7 @@ that. The choice between lambda.min and lambda.1se involves a trade-off
 between model simplicity and predictive accuracy. lambda.1se typically
 leads to simpler models (with potentially slightly higher MSE). We
 observe that as \(\alpha\) increases from 0.0 to 1.0, the number of
-non-zero coefficients varies. The model with \(\alpha\) = 0.0 (ridge
+non-zero coefficients varies. The model with \(\alpha = 0.0\) (ridge
 regression) maintains 10 non-zero coefficients for both lambda.min and
 lambda.1se. For other values of \(\alpha\) (moving towards lasso
 regression), the number of non-zero coefficients tends to decrease,
@@ -397,9 +372,6 @@ end, the choice between lambda.min and lambda.1se would depend on
 whether the priority is on the lowest possible MSE or on model
 simplicity.
 
-\#\#Frage: classification performance - only if I have logistic
-regression and binary outcome or?
-
 \begin{longtable}[]{@{}rrlrr@{}}
 \toprule()
 alpha & lambda & criterion & non\_zero\_coefficients & cv\_mse \\
@@ -421,18 +393,18 @@ alpha & lambda & criterion & non\_zero\_coefficients & cv\_mse \\
 \end{longtable}
 
 Last, we inspect the best solution for \(\alpha = 1\) (lasso regression)
-using the 1 − SE rule. This approach tends to prefer simpler models with
+using the 1-SE rule. This approach tends to prefer simpler models with
 fewer non-zero coefficients, which can be advantageous for
 interpretability and generalization. To see which variables were
 selected (i.e., have non-zero coefficients) and their estimated
 coefficients, we use the coef function from the glmnet package. We
-observe here only 4 variables are selcted, and all have rather small
+observe here only 4 variables are selected, and all have rather small
 coefficients ans thus little influence on the response variable
 `lwage76'. To assess the goodness-of-fit, we then calculate the
 correlation between the predicted values from the model and the observed
 values. Values closer to 1 or -1 indicating a stronger linear
 relationship between predictions and actual outcomes. In this case the
-correlation lies at 0.4293. This indicates a moderate postive linear
+correlation lies at 0.4293. This indicates a moderate positive linear
 relationship between the predicted and observed values.The model has
 some predictive power, but it is not capturing all of the variability in
 the dependent variable.
