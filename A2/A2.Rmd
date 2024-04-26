@@ -342,7 +342,273 @@ SAheart <-SAheart
 
 <!-- EXERCISE 5 -->
 # Exercise 5
+
+We load the acoustic-phonetic continuous speech corpus dataset \textit{phoneme} from the package \textit{ElemStatLearn}.
+There are five classes contained in the dataset. The covariates are log-periodograms of length 256. In the following two-group classification is performed using only the classes "aa" and "ao". Therefore, we subset the data accordingly.
+
+Afterwards, we visualize the data by plotting the covariate values on the y-axis and the index on the x-axis using line plots. "aa" is plotted in \textit{magenta} and "ao" in \textit{blue}. "aa" seems to have overall slightly higher values than "ao".
+
 ```{r}
 data("phoneme", package = "ElemStatLearn")
+set.seed = 12345
 phoneme <- phoneme
+phoneme <- subset(phoneme, g=="aa"| g=="ao") #g ... a factor with levels "aa" "ao" "dcl" "iy" and "sh"
+
+phoneme$phonclass <- ifelse(phoneme$g == "aa", 0, 1) # 0 for "aa" and 1 for "ao"
+
+phonclass <- phoneme[,259]
+phonX <- as.matrix(phoneme[,1:256])
+phondata <- as.data.frame(cbind(phonclass,phonX))
+
+matplot(1:256, t(phonX[1:1717,]), type= "l", ylab = "log-periodograms/coveriate values", xlab= "index", col = ifelse(phonclass==0, "magenta", "blue"), main="Line plot" )
+legend("bottomleft", legend = c("aa", "ao"), col=c("magenta", "blue"),lty = c("solid","solid"),title="class")
+
 ```
+
+We select 1000 samples as training data and use the remaining ones as test data.
+```{r}
+phontraini <- sample(1:nrow(phondata),1000,replace=FALSE)
+phontrain <- phondata[phontraini,]
+phonX_train <- as.matrix(phontrain[,-1])
+phonclass_train <- phontrain[,1]
+
+
+phontest <- phondata[-phontraini,]
+phonX_test <- as.matrix(phontest[,-1])
+phonclass_test <- phontest[,1]
+```
+
+We then fit a logistic regression model to the training data using all covariates and determine the misclassification rate and the average log-likelihood value on the training and test data.
+
+```{r}
+phonfit.train <- glm(phonclass ~ ., data=phontrain, family=binomial)
+
+phonprob.train <- predict(phonfit.train, type = "response")
+head(phonprob.train)
+
+phonprob.test <- predict(phonfit.train, newdata= phontest, type = "response")
+head(phonprob.test)
+
+phontrain$phonclass.pred <- ifelse(phonprob.train >0.5,1,0)
+table(phontrain$phonclass.pred )
+
+phontest$phonclass.pred <- ifelse(phonprob.test >0.5,1,0)
+table(phontest$phonclass.pred )
+
+# Averge log-likelihood
+logLik(phonfit.train)
+logLik.phontrain <- sum(phontrain$phonclass * log(phonprob.train)+(1-phontrain$phonclass)* log(1-phonprob.train))
+logLik.phontrain
+
+logLik.phontest <- sum(phontest$phonclass * log(phonprob.test)+(1-phontest$phonclass)* log(1-phonprob.test))
+logLik.phontest
+
+# Misclassifications rate
+phontrain.misclass <- nrow(phontrain[phontrain$phonclass != phontrain$phonclass.pred,]) / nrow(phontrain)
+phontrain.misclass
+
+phontest.misclass <- nrow(phontest[phontest$phonclass != phontest$phonclass.pred,]) / nrow(phontest)
+phontest.misclass
+
+```
+
+The complexity of this model can be reduced by restricting the regression coefficients to vary only smoothly
+over the covariates, i.e., regression coefficients for close covariates are similar.
+To achieve this, we use splines. 
+We create a 12-dimensional model
+matrix $X^*$ based on natural cubic splines which we use to fit the logistic regression model instead of the
+256-dimensional X.
+Specifically, we fit a logistic regression model to the training data using $X^*$ as model matrix and determine the misclassification rate and the average log-likelihood value on the training and test data.
+The likelihood function of the (multivariate) Bernoulli distribution is given by 
+$$\prod_{i=1}^n p^{x_i}(1-p)^{1-x_i}$$
+Taking the logarithm gives us the log-lieklihood.
+$$ \sum_{i=1}^n x_i \log(p)+(1-x_i)\log(1-p) $$
+
+```{r}
+library("splines")
+H <-ns(1:256, df = 12)
+phonX.star_train <- phonX_train %*% H
+phontrain.star <- as.data.frame(cbind(phonclass_train, phonX.star_train))
+
+phonX.star_test <- phonX_test %*% H
+phontest.star <- as.data.frame(cbind(phonclass_test, phonX.star_test))
+
+phonfit.train.star <- glm(phonclass_train ~ ., data=phontrain.star, family=binomial)
+
+
+phonprob.train.star <- predict(phonfit.train.star, type = "response")
+head(phonprob.train.star)
+
+phonprob.test.star <- predict(phonfit.train.star, newdata= phontest.star, type = "response")
+head(phonprob.test.star)
+
+phontrain.star$phonclass.pred <- ifelse(phonprob.train.star >0.5,1,0)
+table(phontrain.star$phonclass.pred )
+
+phontest.star$phonclass.pred <- ifelse(phonprob.test.star >0.5,1,0)
+table(phontest.star$phonclass.pred )
+
+# Averge log-likelihood
+logLik(phonfit.train.star)
+logLik.phontrain.star <- sum(phontrain.star$phonclass_train * log(phonprob.train.star)+(1-phontrain.star$phonclass_train)* log(1-phonprob.train.star))
+logLik.phontrain.star
+
+logLik.phontest.star <- sum(phontest.star$phonclass_test * log(phonprob.test.star)+(1-phontest.star$phonclass_test)* log(1-phonprob.test.star))
+logLik.phontest.star
+
+# Misclassifications rate
+phontrain.misclass.star <- nrow(phontrain.star[phontrain.star$phonclass_train != phontrain.star$phonclass.pred,]) / nrow(phontrain.star)
+phontrain.misclass.star
+
+phontest.misclass.star <- nrow(phontest.star[phontest.star$phonclass_test != phontest.star$phonclass.pred,]) / nrow(phontest.star)
+phontest.misclass.star
+
+```
+
+We vary the degrees of freedom in the spline basis expansion using 2 to the power of 1 to 8, i.e., 2,4,8,16,32,64,128 and 256.
+Again, we calculate the misclassifiation rate and the mean log-likelihood on the training and test data for each of the fitted models.
+
+```{r}
+help.func1 <- function(x){
+  H.x <- ns(1:256,df=x)
+  phonX.star_trainx <- phonX_train %*% H.x
+  phontrain.starx <- as.data.frame(cbind(phonclass_train, phonX.star_trainx))
+  phonX.star_testx <- phonX_test %*% H.x
+  phontest.starx <- as.data.frame(cbind(phonclass_test, phonX.star_testx))
+
+  phonfit.train.starx <- glm(phonclass_train ~ ., data=phontrain.starx, family=binomial)
+
+  return(phonfit.train.starx) }
+
+help.func2 <- function(x){
+  H.x <- ns(1:256,df=x)
+  phonX.star_trainx <- phonX_train %*% H.x
+  phontrain.starx <- as.data.frame(cbind(phonclass_train, phonX.star_trainx))
+
+  phonfit.train.starx <- glm(phonclass_train ~ ., data=phontrain.starx, family=binomial)
+
+
+
+  phontrain.starx$phonprob<- predict(phonfit.train.starx, type = "response")
+
+  
+  phontrain.starx$phonclass.pred <- ifelse(phontrain.starx$phonprob >0.5,1,0)
+  
+  # Averge log-likelihood
+  phontrain.starx$logLik<- sum(phontrain.starx$phonclass_train * log(phontrain.starx$phonprob)+(1-phontrain.starx$phonclass_train)* log(1-phontrain.starx$phonprob))
+  
+
+  # Misclassifications rate
+  phontrain.starx$misclass <- nrow(phontrain.starx[phontrain.starx$phonclass_train != phontrain.starx$phonclass.pred,]) / nrow(phontrain.starx)
+  
+  return(phontrain.starx)
+
+  
+  
+}
+
+help.func3 <- function(x){
+  H.x <- ns(1:256,df=x)
+  phonX.star_trainx <- phonX_train %*% H.x
+  phontrain.starx <- as.data.frame(cbind(phonclass_train, phonX.star_trainx))
+  phonX.star_testx <- phonX_test %*% H.x
+  phontest.starx <- as.data.frame(cbind(phonclass_test, phonX.star_testx))
+
+  phonfit.train.starx <- glm(phonclass_train ~ ., data=phontrain.starx, family=binomial)
+  
+  phontest.starx$phonprob <- predict(phonfit.train.starx, newdata= phontest.starx, type = "response")
+  
+  phontest.starx$phonclass.pred <- ifelse(phontest.starx$phonprob >0.5,1,0)
+  
+  # Averge log-likelihood
+  phontest.starx$logLik <- sum(phontest.starx$phonclass_test * log(phontest.starx$phonprob)+(1-phontest.starx$phonclass_test)* log(1-phontest.starx$phonprob))
+  
+  # Misclassifications rate
+  phontest.starx$misclass <- nrow(phontest.starx[phontest.starx$phonclass_test != phontest.starx$phonclass.pred,]) / nrow(phontest.starx)
+  
+  return(phontest.starx)
+}
+
+
+phonfit2 <- help.func1(2)
+phontrain2 <- help.func2(2)
+phontest2 <- help.func3(2)
+
+phonfit4 <- help.func1(4)
+phontrain4 <- help.func2(4)
+phontest4 <- help.func3(4)
+
+phonfit8 <- help.func1(8)
+phontrain8 <- help.func2(8)
+phontest8 <- help.func3(8)
+
+phonfit16 <- help.func1(16)
+phontrain16 <- help.func2(16)
+phontest16 <- help.func3(16)
+
+phonfit32 <- help.func1(32)
+phontrain32 <- help.func2(32)
+phontest32 <- help.func3(32)
+
+phonfit64 <- help.func1(64)
+phontrain64 <- help.func2(64)
+phontest64 <- help.func3(64)
+
+phonfit128 <- help.func1(128)
+phontrain128 <- help.func2(128)
+phontest128 <- help.func3(128)
+
+phonfit256 <- help.func1(256)
+phontrain256 <- help.func2(256)
+phontest256 <- help.func3(256)
+
+
+phontrainsum.misclass <- list(phontrain2$misclass[1],phontrain4$misclass[1],phontrain8$misclass[1],phontrain16$misclass[1],phontrain32$misclass[1],phontrain64$misclass[1],phontrain128$misclass[1],phontrain256$misclass[1])
+phontestsum.misclass <- list(phontest2$misclass[1],phontest4$misclass[1],phontest8$misclass[1],phontest16$misclass[1],phontest32$misclass[1],phontest64$misclass[1],phontest128$misclass[1],phontest256$misclass[1])
+
+
+phontrainsum.logLik <- list(phontrain2$logLik[1],phontrain4$logLik[1],phontrain8$logLik[1],phontrain16$logLik[1],phontrain32$logLik[1],phontrain64$logLik[1],phontrain128$logLik[1],phontrain256$logLik[1])
+phontestsum.logLik <- list(phontest2$logLik[1],phontest4$logLik[1],phontest8$logLik[1],phontest16$logLik[1],phontest32$logLik[1],phontest64$logLik[1],phontest128$logLik[1],phontest256$logLik[1])
+
+```
+
+Now we are able to compare the misclassification rates and mean log-likelihoods based on training and test data sets visually for the different degrees of freedom.
+
+
+```{r}
+phontrainmisclass.data <- as.data.frame(cbind(1:8,unlist(phontrainsum.misclass)))
+
+dfreedom <- c("2" ,"4", "8", "16", "32", "64", "128", "256")
+
+plot(phontrainmisclass.data, xlab="degrees of freedom", ylab="misclassification rate", xaxt="n", main= "Misclassification: Training data", pch=17, ylim=c(0,1),col="blue")
+grid()
+axis(1, at = 1:8, labels= dfreedom , las=2)
+
+
+phontestmisclass.data <- as.data.frame(cbind(1:8,unlist(phontestsum.misclass)))
+
+
+plot(phontestmisclass.data, xlab="degrees of freedom", ylab="misclassification rate", xaxt="n", main= "Misclassification: Test data", pch=17, ylim=c(0,1),col="magenta")
+grid()
+axis(1, at = 1:8, labels= dfreedom , las=2)
+
+
+phontrainlogLik.data <- as.data.frame(cbind(1:8,unlist(phontrainsum.logLik)))
+
+
+plot(phontrainlogLik.data, xlab="degrees of freedom", ylab="log likelihood", xaxt="n", main= "Log likelihood: Training data", pch=18, ylim=c(-900,-150),col="blue")
+grid()
+axis(1, at = 1:8, labels= dfreedom , las=2)
+
+phontestlogLik.data <- as.data.frame(cbind(1:8,unlist(phontestsum.logLik)))
+
+
+plot(phontestlogLik.data, xlab="degrees of freedom", ylab="log likelihood", xaxt="n", main= "Log likelihood: Test data", pch=18, ylim=c(-900,-150), col="magenta")
+grid()
+axis(1, at = 1:8, labels= dfreedom , las=2)
+
+
+```
+The more we restrict the regression coefficients to vary only smoothly over the covariates (lower degrees of freedom), the higher is the misclassification rate for the training data. Theoretically, higher smooth avoids overfitting to the training data. But it can also loose important information. By looking at the misclassification rate of the test data, we can see that medium levels of degrees of freedom (16-64) result in the lowest misclassification rate. Low smoot, or in other words high degrees of freedom, show the expected overfitting. Too much sommot, low degrees of freedom, seems to loose important information and hence also increases the misclassification rate on the test data.
+
+On the training data, the log-likelihood worsens with the smooth of the covariates. Looking at the log-likelihood of the test data we see that medium levels of degrees of freedom (16-64) are the best choice. They avoid overfitting and don't loose too much information. Note the very low log-likelihood due to overiftting for 256 degrees of freedom. On the other end, with high smooth the loss isn't as high.

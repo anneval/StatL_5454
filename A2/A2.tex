@@ -5,16 +5,19 @@
 \documentclass[
 ]{article}
 \usepackage{amsmath,amssymb}
-\usepackage{lmodern}
 \usepackage{iftex}
 \ifPDFTeX
   \usepackage[T1]{fontenc}
   \usepackage[utf8]{inputenc}
   \usepackage{textcomp} % provide euro and other symbols
 \else % if luatex or xetex
-  \usepackage{unicode-math}
+  \usepackage{unicode-math} % this also loads fontspec
   \defaultfontfeatures{Scale=MatchLowercase}
   \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -45,13 +48,13 @@
 \newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
 \newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
 \newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
 \newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
 \newcommand{\BuiltInTok}[1]{#1}
 \newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
 \newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
 \newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
 \newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
 \newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
 \newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
@@ -59,7 +62,7 @@
 \newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
 \newcommand{\ExtensionTok}[1]{#1}
 \newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
-\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
 \newcommand{\ImportTok}[1]{#1}
 \newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
 \newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
@@ -68,7 +71,7 @@
 \newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
 \newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
 \newcommand{\RegionMarkerTok}[1]{#1}
-\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
 \newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
 \newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
 \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
@@ -113,7 +116,7 @@
 \fi
 \IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
-\urlstyle{same} % disable monospaced font for URLs
+\urlstyle{same}
 \hypersetup{
   pdftitle={Statistical Learning (5454) - Assignment 2},
   pdfauthor={Matthias Hochholzer, Lukas Pirnbacher, Anne Valder},
@@ -220,14 +223,16 @@ incidcated by ``seed1'' in the last column.
 
 \begin{longtable}[]{@{}lrrrll@{}}
 \caption{Comparison of LOOCV, kCV, and Bootstrap Errors}\tabularnewline
-\toprule()
+\toprule\noalign{}
 & LOOCV & kCV & Bootstrap & Model & Seed \\
-\midrule()
+\midrule\noalign{}
 \endfirsthead
-\toprule()
+\toprule\noalign{}
 & LOOCV & kCV & Bootstrap & Model & Seed \\
-\midrule()
+\midrule\noalign{}
 \endhead
+\bottomrule\noalign{}
+\endlastfoot
 1 & 7.2882 & 6.1856 & 6.2931 & Model 1 & Seed1 \\
 5 & 7.2882 & 6.4165 & 6.2764 & Model 1 & Seed2 \\
 2 & 0.9374 & 0.9230 & 0.8702 & Model 2 & Seed1 \\
@@ -236,7 +241,6 @@ incidcated by ``seed1'' in the last column.
 7 & 0.9566 & 0.8854 & 0.8557 & Model 3 & Seed2 \\
 4 & 0.9539 & 0.9247 & 0.8393 & Model 4 & Seed1 \\
 8 & 0.9539 & 0.8962 & 0.8452 & Model 4 & Seed2 \\
-\bottomrule()
 \end{longtable}
 
 \begin{enumerate}
@@ -373,10 +377,12 @@ whether the priority is on the lowest possible MSE or on model
 simplicity.
 
 \begin{longtable}[]{@{}rrlrr@{}}
-\toprule()
+\toprule\noalign{}
 alpha & lambda & criterion & non\_zero\_coefficients & cv\_mse \\
-\midrule()
+\midrule\noalign{}
 \endhead
+\bottomrule\noalign{}
+\endlastfoot
 0.0 & 0.0505227 & min & 10 & 0.1416001 \\
 0.0 & 0.7502457 & 1se & 10 & 0.1468714 \\
 0.2 & 0.0241132 & min & 7 & 0.1414149 \\
@@ -389,7 +395,6 @@ alpha & lambda & criterion & non\_zero\_coefficients & cv\_mse \\
 0.8 & 0.0617014 & 1se & 5 & 0.1464145 \\
 1.0 & 0.0052928 & min & 6 & 0.1414225 \\
 1.0 & 0.0493612 & 1se & 5 & 0.1462448 \\
-\bottomrule()
 \end{longtable}
 
 Last, we inspect the best solution for \(\alpha = 1\) (lasso regression)
@@ -454,5 +459,154 @@ the dependent variable.
 
 \hypertarget{exercise-5}{%
 \section{Exercise 5}\label{exercise-5}}
+
+We load the acoustic-phonetic continuous speech corpus dataset
+\textit{phoneme} from the package \textit{ElemStatLearn}. There are five
+classes contained in the dataset. The covariates are log-periodograms of
+length 256. In the following two-group classification is performed using
+only the classes ``aa'' and ``ao''. Therefore, we subset the data
+accordingly.
+
+Afterwards, we visualize the data by plotting the covariate values on
+the y-axis and the index on the x-axis using line plots. ``aa'' is
+plotted in \textit{magenta} and ``ao'' in \textit{blue}. ``aa'' seems to
+have overall slightly higher values than ``ao''.
+
+\includegraphics{A2_files/figure-latex/unnamed-chunk-11-1.pdf}
+
+We select 1000 samples as training data and use the remaining ones as
+test data.
+
+We then fit a logistic regression model to the training data using all
+covariates and determine the misclassification rate and the average
+log-likelihood value on the training and test data.
+
+\begin{verbatim}
+##      4031       614       746      3934      1411       389 
+## 0.9991013 1.0000000 0.9999994 0.3806535 0.9996663 0.9999328
+\end{verbatim}
+
+\begin{verbatim}
+##            9           17           20           24           28           32 
+## 2.950911e-02 7.930664e-01 9.999960e-01 1.851190e-06 3.470267e-02 9.562946e-03
+\end{verbatim}
+
+\begin{verbatim}
+## 
+##   0   1 
+## 416 584
+\end{verbatim}
+
+\begin{verbatim}
+## 
+##   0   1 
+## 313 404
+\end{verbatim}
+
+\begin{verbatim}
+## 'log Lik.' -209.0755 (df=257)
+\end{verbatim}
+
+\begin{verbatim}
+## [1] -209.0755
+\end{verbatim}
+
+\begin{verbatim}
+## [1] -773.5824
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 0.081
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 0.2301255
+\end{verbatim}
+
+The complexity of this model can be reduced by restricting the
+regression coefficients to vary only smoothly over the covariates, i.e.,
+regression coefficients for close covariates are similar. To achieve
+this, we use splines. We create a 12-dimensional model matrix \(X^*\)
+based on natural cubic splines which we use to fit the logistic
+regression model instead of the 256-dimensional X. Specifically, we fit
+a logistic regression model to the training data using \(X^*\) as model
+matrix and determine the misclassification rate and the average
+log-likelihood value on the training and test data. The likelihood
+function of the (multivariate) Bernoulli distribution is given by
+\[\prod_{i=1}^n p^{x_i}(1-p)^{1-x_i}\] Taking the logarithm gives us the
+log-lieklihood. \[ \sum_{i=1}^n x_i \log(p)+(1-x_i)\log(1-p) \]
+
+\begin{verbatim}
+##      4031       614       746      3934      1411       389 
+## 0.9768718 0.9712144 0.9760902 0.8522399 0.5827366 0.9200335
+\end{verbatim}
+
+\begin{verbatim}
+##          9         17         20         24         28         32 
+## 0.69368774 0.82430451 0.94831697 0.08391863 0.85637294 0.15925690
+\end{verbatim}
+
+\begin{verbatim}
+## 
+##   0   1 
+## 415 585
+\end{verbatim}
+
+\begin{verbatim}
+## 
+##   0   1 
+## 270 447
+\end{verbatim}
+
+\begin{verbatim}
+## 'log Lik.' -404.6102 (df=13)
+\end{verbatim}
+
+\begin{verbatim}
+## [1] -404.6102
+\end{verbatim}
+
+\begin{verbatim}
+## [1] -272.9746
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 0.186
+\end{verbatim}
+
+\begin{verbatim}
+## [1] 0.1617852
+\end{verbatim}
+
+We vary the degrees of freedom in the spline basis expansion using 2 to
+the power of 1 to 8, i.e., 2,4,8,16,32,64,128 and 256. Again, we
+calculate the misclassifiation rate and the mean log-likelihood on the
+training and test data for each of the fitted models.
+
+Now we are able to compare the misclassification rates and mean
+log-likelihoods based on training and test data sets visually for the
+different degrees of freedom.
+
+\includegraphics{A2_files/figure-latex/unnamed-chunk-16-1.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-16-2.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-16-3.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-16-4.pdf} The more
+we restrict the regression coefficients to vary only smoothly over the
+covariates (lower degrees of freedom), the higher is the
+misclassification rate for the training data. Theoretically, higher
+smooth avoids overfitting to the training data. But it can also loose
+important information. By looking at the misclassification rate of the
+test data, we can see that medium levels of degrees of freedom (16-64)
+result in the lowest misclassification rate. Low smoot, or in other
+words high degrees of freedom, show the expected overfitting. Too much
+sommot, low degrees of freedom, seems to loose important information and
+hence also increases the misclassification rate on the test data.
+
+On the training data, the log-likelihood worsens with the smooth of the
+covariates. Looking at the log-likelihood of the test data we see that
+medium levels of degrees of freedom (16-64) are the best choice. They
+avoid overfitting and don't loose too much information. Note the very
+low log-likelihood due to overiftting for 256 degrees of freedom. On the
+other end, with high smooth the loss isn't as high.
 
 \end{document}
