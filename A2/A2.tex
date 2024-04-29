@@ -575,6 +575,8 @@ full data available. However, in this exercise the resulting differences
 in parameter estimates are negligible and the predicted classifications
 do not change at all.
 
+\newpage
+
 \hypertarget{exercise-5}{%
 \section{Exercise 5}\label{exercise-5}}
 
@@ -603,24 +605,24 @@ We calculate the average log-likelihood value on the training data in
 two ways. The first value is obtained by the \textit{logLik} function.
 The second value is obtained via the likelihood function of the
 (multivariate) Bernoulli distribution, which is given by
-\[\prod_{i=1}^n p^{x_i}(1-p)^{1-x_i}\] Taking the logarithm gives us the
-average log-lieklihood. \[ \sum_{i=1}^n x_i \log(p)+(1-x_i)\log(1-p) \]
+\[\prod_{i=1}^n p^{x_i}(1-p)^{1-x_i}.\] Taking the logarithm gives us
+the log-likelihood: \[ \sum_{i=1}^n x_i \log(p)+(1-x_i)\log(1-p). \]
 
 \begin{verbatim}
-## 'log Lik.' -192.7175 (df=257)
+## 'log Lik.' -0.1927175 (df=257)
 \end{verbatim}
 
 \begin{verbatim}
-## [1] -192.7175
+## [1] -0.1927175
 \end{verbatim}
 
-Of course, they are identical.
+Of course, the two approaches yield the same results.
 
 The average log-likelihood value on the test data is calculated with the
 second approach.
 
 \begin{verbatim}
-## [1] -898.5522
+## [1] -1.253211
 \end{verbatim}
 
 Higher average log-likelihood values speak for a better fit of the
@@ -657,18 +659,22 @@ The average log-likelihood value on the training data is calculated as
 before.
 
 \begin{verbatim}
-## 'log Lik.' -388.7649 (df=13)
+## 'log Lik.' -0.3887649 (df=13)
 \end{verbatim}
 
 \begin{verbatim}
-## [1] -388.7649
+## [1] -0.3887649
 \end{verbatim}
 
 The average log-likelihood value on the test data now is
 
 \begin{verbatim}
-## [1] -288.3241
+## [1] -0.4021256
 \end{verbatim}
+
+We observe that by considering splines, the gap between the average
+log-likelihood on the test and training data becomes much smaller, which
+might be an indication that in this way we avoid overfitting.
 
 For the misclassification rate of the training data we also perform the
 same steps as before.
@@ -683,17 +689,21 @@ The misclassification rate of the test data is
 ## [1] 0.181311
 \end{verbatim}
 
+Hence, we once again conclude that the use of splines in this example
+leads to a worse in-sample fit, but a better performance on the test
+data.
+
 Next, we vary the degrees of freedom in the spline basis expansion using
 2 to the power of 1 to 8, i.e., 2,4,8,16,32,64,128 and 256. Again, we
 calculate the misclassifiation rate and the average log-likelihood on
 the training and test data for each of the fitted models. We create
-helper functions that generalise the steps of the previous 12-dimesional
-model to x-dimesional models.
+helper functions that generalize the steps of the previous
+12-dimensional model to \(x\)-dimensional models.
 
-After running all the helper functions for all x-dimesions we are able
-to compare the misclassification rates and average log-likelihoods based
-on training and test data sets visually for the different degrees of
-freedom.
+After running the helper functions for all different dimensions of the
+spline basis expansion, we are able to compare the misclassification
+rates and average log-likelihoods based on training and test data sets
+visually for the different degrees of freedom.
 
 \includegraphics{A2_files/figure-latex/unnamed-chunk-33-1.pdf}
 \includegraphics{A2_files/figure-latex/unnamed-chunk-33-2.pdf}
@@ -701,21 +711,25 @@ freedom.
 \includegraphics{A2_files/figure-latex/unnamed-chunk-33-4.pdf} The more
 we restrict the regression coefficients to vary only smoothly over the
 covariates (lower degrees of freedom), the higher is the
-misclassification rate for the training data. Theoretically, higher
-smooth avoids overfitting to the training data. But it can also loose
-important information. By looking at the misclassification rate of the
+misclassification rate for the training data. Theoretically, a higher
+degree of smoothing avoids overfitting to the training data. At the same
+time, we might lose important information by restricting the
+coefficients too much. By looking at the misclassification rate on the
 test data, we can see that medium levels of degrees of freedom (16-64)
-result in the lowest misclassification rate. Low smoot, or in other
-words high degrees of freedom, show the expected overfitting. Too much
-sommot, low degrees of freedom, seems to loose important information and
-hence also increases the misclassification rate on the test data.
+result in the lowest misclassification rate. Low levels of smoothing, in
+other words high degrees of freedom, show the expected overfitting. Too
+much smoothing, i.e.~low degrees of freedom, seems to loose important
+information and hence also increases the misclassification rate on the
+test data.
 
-On the training data, the average log-likelihood worsens with the smooth
-of the covariates. Looking at the average log-likelihood of the test
-data we see that medium levels of degrees of freedom (16-64) are the
-best choice. They avoid overfitting and don't loose too much
-information. Note the very low average log-likelihood due to overiftting
-for 256 degrees of freedom. On the other end, with high smooth the loss
-isn't as high.
+On the training data, the average log-likelihood increases monotonically
+with the degrees of freedom. Hence, the in-sample fit becomes better if
+we do not restrict the coefficients to vary smoothly. Looking at the
+average log-likelihood on the test data, though, we see that medium
+levels of degrees of freedom (16-64) are the best choice. They avoid
+overfitting and don't lose too much information either. Note the very
+low average log-likelihood due to overiftting for 256 degrees of
+freedom. On the other end of the spectrum, with a high level of
+smoothing, the loss isn't as pronounced.
 
 \end{document}
