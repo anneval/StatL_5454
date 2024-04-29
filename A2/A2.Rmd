@@ -3,7 +3,7 @@ title: "Statistical Learning (5454) - Assignment 2"
 author: "Matthias Hochholzer, Lukas Pirnbacher, Anne Valder"
 date: "Due: 2024-04-22"
 output: 
-  pdf_document:
+  pdf_document: 
     keep_tex: yes
 header-includes:
    - \usepackage{titlesec}
@@ -15,6 +15,7 @@ header-includes:
                      \hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
    - \newcommand*{\eqdef}{=\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
                      \hbox{\scriptsize.}\hbox{\scriptsize.}}}}
+                     
 ---
 
 ```{r setup, include=FALSE}
@@ -42,13 +43,15 @@ library(boot)
 library(caret)
 ```
 
+
+
 <!-- EXERCISE 1 -->
 # Exercise 1
 
-After generating the simulated data we fit four models using least squares, we calculate the AIC values and  determine the in-sample error estimates by drawing suitable test data from the data generating process using twice the negative log-likelihood as loss function. 
+After generating the simulated data, we fit four models using least squares. We then calculate the AIC values and determine the in-sample error estimates by drawing suitable test data from the data generating process using twice the negative log-likelihood as loss function. 
 
-Plotting the data, we see a clearly non-linear relationship. In line with this, we observe that the most preferable model in terms of AIC value is the second model. In terms of negative log-likelihood the fourth model appears to be the best. However, closely followed by model 2. The linear model (model 1) performs the worst out of all models measured by AIC and the negative log-likelihood.
-```{r, echo=TRUE}
+
+```{r, echo = FALSE}
 #(a)
 set.seed(1)
 x <- rnorm(100)
@@ -60,10 +63,7 @@ lm1 <- lm(y ~ x) # alternative: lm1 <- glm(y ~ x, data, family = gaussian())
 lm2 <- lm(y ~ x +I(x^2))
 lm3 <- lm(y ~ x + I(x^2) + I(x^3))
 lm4 <- lm(y ~ x + I(x^2) + I(x^3) + I(x^4))
-```
 
-
-```{r}
 # Calculate AIC values
 aic1 <- AIC(lm1)
 aic2 <- AIC(lm2)
@@ -71,25 +71,45 @@ aic3 <- AIC(lm3)
 aic4 <- AIC(lm4)
 
 # Print AIC values
-aic_values <- c(aic1, aic2, aic3, aic4)
+aic_values <- c("linear" = aic1, "quadratic" = aic2, 
+                "cubed" = aic3, "fourth_power" = aic4)
+print("AIC:")
 print(aic_values)
 
-#(c)
-# Generate test data from the data generating process
-x_test <- rnorm(100)
-y_test <- x_test - 2*x_test^2 + rnorm(100)
 
-# Predict and calculate twice the negative log-likelihood as loss function
-lm1_test <- lm(y_test ~ x_test)
-lm2_test <- lm(y_test ~ x_test +I(x_test^2))
-lm3_test <- lm(y_test ~ x_test + I(x_test) + I(x_test^3))
-lm4_test <- lm(y_test ~ x_test + I(x_test^2) + I(x_test^3) + I(x_test^4))
-
-lm_test <- list(lm1_test,lm2_test,lm3_test,lm4_test)
-
-error_est <- lapply(lm_test, function(x) -2*logLik(x))
-print(error_est)
 ```
+
+
+Plotting the simulated data, we see a clearly non-linear relationship between $x$ and $y$. In line with this, we observe that the linear specification (model 1) performs worst according to the AIC. The most preferable model in terms of AIC value is the second model, closely followed by models 3 and 4. 
+
+```{r eval=FALSE, include=FALSE}
+
+
+# #(c)
+# # Generate test data from the data generating process
+# x_test <- rnorm(100)
+# y_test <- x_test - 2*x_test^2 + rnorm(100)
+# 
+# # Predict and calculate twice the negative log-likelihood as loss function
+# lm1_test <- lm(y_test ~ x_test)
+# lm2_test <- lm(y_test ~ x_test +I(x_test^2))
+# lm3_test <- lm(y_test ~ x_test + I(x_test) + I(x_test^3))
+# lm4_test <- lm(y_test ~ x_test + I(x_test^2) + I(x_test^3) + I(x_test^4))
+# 
+# lm_test <- list(lm1_test,lm2_test,lm3_test,lm4_test)
+# 
+# error_est <- lapply(lm_test, function(x) -2*logLik(x))
+# print(error_est)
+```
+
+We now want to compute estimates of the in-sample error
+$$
+\text{Err}_{\text{in}} = \frac{1}{N} \sum_{i=1}^N \mathbb{E}\left[ L\left(y,\hat{f}(x_i)\right) \Big| \mathcal{T}\right],
+$$
+where the expectation is over the distribution of $y$ given $x_i$ and twice the negative log-likelihood is used as loss function. We approximate the expectations by computing means. To do so, we sample $N_{\text{error}}=1000$ error terms for each data point and then compute the corresponding new responses $y_{i,j} = \hat{f}(x_i) + \epsilon_j, \ j = 1,\ldots, 1000$.
+
+In order to evaluate the likelihood function of $y$, we need estimates of the error variance $\sigma^2$, i.e. the conditional variance of $y$ given $x_i$. We consider both the MLE estimator of $\sigma^2$ (which is used in the R implementation of the function \textit{AIC()}) and the unbiased estimator that corrects for the degrees of freedom.
+
 ```{r, echo = FALSE}
 # (c) alternative
 # --> idea: keep x from training data; generate new errors (and hence new responses) for each training point
@@ -104,7 +124,7 @@ in_sample_error_loglik <- function(lm, N_error = 1000, sigma_mle = TRUE){
   sigma_mle <- sqrt(mean((lm$residuals^2))) # MLE of sd of error term
   sigma <- ifelse(sigma_mle, sigma_mle, summary(lm)$sigma)# sd of error term = sd of y|x_i
   
-  average_losses <- numeric(length(fitted_values)) # container for approximation of E[L(Y,\hat{f(x_i)})|\mathcal{T}] at each data point x_i
+  average_losses <- numeric(length(fitted_values)) # container for approximation of expectation at each data point x_i
   aic_aux <- numeric(length(fitted_values)) # container to manually compute AIC (as implemented in R, but rescaled by sample size)
   
   for (i in 1:length(fitted_values)) { # iterate over data points
@@ -113,6 +133,7 @@ in_sample_error_loglik <- function(lm, N_error = 1000, sigma_mle = TRUE){
     
     average_losses[i] <- -2*mean(dnorm(
       y_new, mean = fitted_values[i], sd = sigma, log = TRUE))
+    
     aic_aux[i] <- -2*dnorm(y[i], fitted_values[i], sigma_mle, log = TRUE)
   }
   
@@ -126,19 +147,20 @@ in_sample_error_loglik <- function(lm, N_error = 1000, sigma_mle = TRUE){
   
 }
 
+
 lm_list <- list("linear" = lm1, "quadratic" = lm2,
                 "cubed" = lm3, "fourth_power" = lm4)
 # use mle of sigma to compute likelihood
+print("MLE estimator of error variance:")
 lapply(lm_list, in_sample_error_loglik)
 
 # use unbiased estimator of sigma to compute likelihood
+print("Unbiased estimator of error variance:")
 lapply(lm_list, function(lm) in_sample_error_loglik(lm, sigma_mle = FALSE))
 
 
 ```
-
-
-
+We find that models 2 to 4 have very similar in-sample errors. For those models, the discrepancy between our in-sample error estimates and the AIC values are rather small. The linear specification yields by far the largest in-sample error and also the gap between the estimated in-sample error and AIC is quite pronounced, which might be due to model misspecification.
 
 
 
@@ -282,7 +304,7 @@ Here we are using the wage data set available as data object $\textit{Schooling}
 
 By varying $\alpha$, we essentially move between different regularization methods: $\alpha = 0$ corresponds to ridge regression (penalty on the square of coefficients), $\alpha = 1$ corresponds to lasso regression (penalty on the absolute value of coefficients). The top $x$-axis shows these numbers, which correspond to the model's complexity at different levels of regularization. As $\lambda$ increases, the regularization penalty becomes more severe, leading to more coefficients being shrunk to zero. The dual $x$-axes in the plot serve to simultaneously convey how $\lambda$ affects both the model's predictive accuracy (through the MSE shown on the $y$-axis) and its complexity (in terms of the number of predictors used, shown on the bottom $x$-axis). 
 
-Looking at the different plots, given each value of $\alpha$, we observe with $\alpha$ closer to 1 more pronounced changes in the number of non-zero coefficients as $\lambda$ changes, reflecting the lasso's variable selection property. For ridge regression ($\alpha = 0$), the coefficients are shrunk towards zero but not exactly to zero, so the model complexity in terms of the non-zero coefficient count may not reduce as dramatically as with lasso or elastic net.
+Looking at the different plots, given each value of $\alpha$, we observe with $\alpha$ closer to 1 more pronounced changes in the number of non-zero coefficients as $\lambda$ changes, reflecting the lasso's variable selection property. For ridge regression ($\alpha = 0$), the coefficients are shrunk towards zero but not exactly to zero, so the model complexity in terms of the non-zero coefficient count may not reduce as dramatically as with lasso or elastic net. The visualization helps in choosing an optimal $\lambda$ value, typically via the 1-standard error rule or by selecting the value of $\lambda$ that minimizes the cross-validation error.
 
 ```{r, echo=FALSE, fig.width=8, fig.height=5}
 data("Schooling", package = "Ecdat")
@@ -334,11 +356,13 @@ for (i in seq_along(cv_models)) {
 
 ```
 
-This visualization helps in choosing an optimal $\lambda$ value, typically via the 1-standard error rule or by selecting the value of $\lambda$ that minimizes the cross-validation error.
+
 
 Next, to select the best value for $\lambda$, that balances model simplicity and accuracy, for each fixed value of $\alpha$ we look at either the value that minimizes the cross-validation error (lambda.min) or the 1-SE rule (lambda.1se), and then compare the selected models. We extract these $\lambda$ values from \textit{cv.glmnet} and then fit the final models on the full data set using these selected $\lambda$ value. To compare the selected models based on their complexity (number of non-zero coefficients), predicted values and MSE, we can use the \textit{coef} function to inspect the coefficients, make predictions with the \textit{predict} function and then calculate MSE for each model.
 
-Table 2 summarizes all that. The choice between lambda.min and lambda.1se involves a trade-off between model simplicity and predictive accuracy. lambda.1se typically leads to simpler models (with potentially slightly higher MSE). We observe that as $\alpha$ increases from 0.0 to 1.0, the number of non-zero coefficients varies. The model with $\alpha = 0.0$ (ridge regression) maintains 10 non-zero coefficients for both lambda.min and lambda.1se. For other values of $\alpha$ (moving towards lasso regression), the number of non-zero coefficients tends to decrease, indicating sparser models. This is especially visible for $\alpha = 1.0$ with only 5 or 6 non-zero coefficients, suggesting that lasso regularization enforces the most sparsity. The least complex model is the one with  $\alpha = 0.2$  using the lambda.1se criterion, having only 5 non-zero coefficients, whereas the most complex models with respect to the number of non-zero coefficients are all those with $\alpha = 0.0$.  Regarding predicted values, the cv_mse does not vary significantly across different $\alpha$  values, indicating that the change in $\alpha$ is not drastically affecting the model's predictive ability in this case. The lowest cv_mse for lambda.min appears at $\alpha = 1.0$, suggesting that the lasso model at its optimal $\lambda$ achieves a marginally better fit in terms of MSE. For the lambda.1se criterion, the cv_mse is slightly higher compared to the lambda.min, which is expected as the 1-SE rule tends to select a simpler and more generalizable model at the expense of a slight increase in error. In the end, the choice between lambda.min and lambda.1se would depend on whether the priority is on the lowest possible MSE or on model simplicity.
+Table 2 summarizes all that. The choice between lambda.min and lambda.1se involves a trade-off between model simplicity and predictive accuracy. lambda.1se typically leads to simpler models (with potentially slightly higher MSE). We observe that as $\alpha$ increases from 0 to 1, the number of non-zero coefficients varies. The model with $\alpha = 0$ (ridge regression) maintains 27 non-zero coefficients for both lambda.min and lambda.1se. For other values of $\alpha$ (moving towards lasso regression), the number of non-zero coefficients tends to decrease, indicating sparser models. This is especially visible for $\alpha = 1.0$ with only 11 non-zero coefficients in case of lambda.1se, suggesting that lasso regularization enforces the most sparsity. 
+
+Regarding predicted values, the CV MSE does not vary significantly across different $\alpha$  values, indicating that the change in $\alpha$ is not drastically affecting the model's predictive ability in this case. The lowest CV MSE for lambda.min appears at $\alpha = 0$, suggesting that the ridge model at its optimal $\lambda$ achieves a marginally better fit in terms of MSE. For the lambda.1se criterion, the CV MSE is slightly higher compared to lambda.min, which is expected as the 1-SE rule tends to select a simpler and more generalizable model at the expense of a slight increase in error. In the end, the choice between lambda.min and lambda.1se would depend on whether the priority is on the lowest possible MSE or on model simplicity.
 
 
 <!--##Frage: classification performance - only if I have logistic regression and binary outcome or? -->
@@ -383,7 +407,8 @@ for (i in seq_along(cv_models)) {
 kable(model_summary)
 ```
 
-Last, we inspect the best solution for $\alpha = 1$  (lasso regression) using the 1-SE rule. This approach tends to prefer simpler models with fewer non-zero coefficients, which can be advantageous for interpretability and generalization. To see which variables were selected (i.e., have non-zero coefficients) and their estimated coefficients, we use the \textit{coef} function from the \textbf{glmnet} package. We observe here only 4 variables are selected, and all have rather small coefficients and thus little influence on the response variable 'lwage76'. To assess the goodness-of-fit, we then calculate the correlation between the predicted values from the model and the observed values. Values closer to 1 or -1 indicating a stronger linear relationship between predictions and actual outcomes. In this case the correlation lies at 0.4293. This indicates a moderate positive linear relationship between the predicted and observed values.The model has some predictive power, but it is not capturing all of the variability in the dependent variable.
+Last, we inspect the best solution for $\alpha = 1$  (lasso regression) using the 1-SE rule. This approach tends to prefer simpler models with fewer non-zero coefficients, which can be advantageous for interpretability and generalization. To see which variables were selected (i.e., have non-zero coefficients) and their estimated coefficients, we use the \textit{coef} function from the \textbf{glmnet} package. We observe that only 10 variables (plus the intercept) are selected and that all of them have rather small coefficients and thus little influence on the response variable 'lwage76'. 
+
 
 ```{r}
 #(e)
@@ -398,23 +423,27 @@ coef_alpha_one_1se <- coef(finmod_alpha_one_1se, s = lambda_alpha_one_1se)
 print("Non-zero coefficients (including intercept):")
 print(coef_alpha_one_1se)
 
+
+
+```
+
+
+To assess the goodness-of-fit, we calculate the correlation between the predicted values from the model and the observed values. Values closer to 1 or -1 indicating a stronger linear relationship between predictions and actual outcomes. In this case the correlation lies at roughly 0.5. This indicates a moderate positive linear relationship between the predicted and observed values. The model therefore has some predictive power, but it is not capturing all of the variability in the dependent variable.
+
+```{r}
 # Predict the values using the final model
 pred_alpha_one_1se <- predict(finmod_alpha_one_1se, s = lambda_alpha_one_1se, newx = X) ### Question: seperate into train and test beginning? not in task though but slides.
 
 # Calculate and display the correlation between predicted and observed values
 cor_alpha_one_1se <- cor(pred_alpha_one_1se, y)
 print(paste("Correlation between predicted and observed values for alpha = 1 (1-SE rule):", round(cor_alpha_one_1se,digits = 4)))
-
 ```
 
 
 
 
 
-
-
-
-
+\newpage
 <!-- EXERCISE 4 -->
 # Exercise 4
 
@@ -437,7 +466,7 @@ Next, we want to focus on two particular values of the penalty $\lambda$, namely
 ```{r, echo=FALSE}
 print(cv_logistic)
 ```
-We immediately see that \textit{lambda.min} yields a more complex model (with 7 non-zero coefficients) than \textit{lambda.1se} (with 5 non-zero coefficients). Looking at the coefficient estimates, we do find some notable differences between the two models, especially when it comes to the effect of \textit{famhistPresent}:
+We immediately see that lambda.min yields a more complex model (with 7 non-zero coefficients) than lambda.1se (with 5 non-zero coefficients). Looking at the coefficient estimates, we do find some notable differences between the two models, especially when it comes to the effect of 'famhistPresent':
 ```{r, echo = FALSE}
 
 coef_output <- cbind(
@@ -448,7 +477,7 @@ colnames(coef_output) <- c("lambda.min", "lambda.1se")
 print(coef_output)
 
 ```
-Using the \textit{predict} function, we can now have a look at the predicted values, i.e. the predicted probabilities of coronary heart disease. Since we have not distinguished between test and training data in this exercise, we compute predictions for the whole sample.
+Using the \textit{predict} function, we can now have a look at the predicted values of the two models, i.e. the predicted probabilities of coronary heart disease. Since we have not distinguished between test and training data in this exercise, we compute predictions for the whole sample.
 ```{r, echo = FALSE}
 pred_prob_min <- predict(cv_logistic, s = "lambda.min", newx = X,
                          type = "response")
@@ -479,9 +508,7 @@ print(miscl_rates_cv_logistic)
 
 
 ```
-We find that the more complex model corresponding to \textit{lambda.min} yields a slightly lower misclassification rate in-sample. Whether this model is indeed better or just over-fitting is hard to tell in the absence of test data. 
-
-While the overall misclassification rates of the two models are quite similar, they drastically differ with respect to their false-positive and false-negative rates:  
+We find that the two models yield the same misclassification rate in-sample. On the contrary, they quite drastically differ with respect to their false-positive and false-negative rates:  
 ```{r, echo = FALSE}
 fp_rates_cv_logistic <- apply(pred_class_cv_logistic, 2,
                               function(fitted){
@@ -502,7 +529,7 @@ positives_cv_logistic <- apply(pred_class_cv_logistic, 2,
                                function(fitted) sum(as.numeric(fitted)))
 
 ```
-Overall, we find that the false-positive rates of both models are rather low, while the false-negative rates are fairly high, especially for the simpler model corresponding to \textit{lambda.1se}. This is in line with the observation that `r round(100*sum(y)/length(y),1)`\% of the individuals in the sample suffer from coronary heart disease while our models predict a prevalence of `r round(100*sum(pred_class_min==1)/length(y),1)`\% and `rround(100*sum(pred_class_min==1)/length(y),1)`\%, respectively.
+Overall, we find that the false-positive rates of both models are rather low, while the false-negative rates are fairly high, especially for the simpler model corresponding to lambda.1se. This is in line with the observation that `r round(100*sum(y)/length(y),1)`\% of the individuals in the sample suffer from coronary heart disease while our models predict a prevalence of `r round(100*sum(pred_class_min==1)/length(y),1)`\% and `r round(100*sum(pred_class_1se==1)/length(y),1)`\%, respectively.
 
 On a final note, we have so far only considered models trained in the cross-validation procedure. In general, it seems more appropriate to re-estimate the models for the selected values of $\lambda$ using the full data available. However, in this exercise the resulting differences in parameter estimates are negligible and the predicted classifications do not change at all.
 ```{r include=FALSE}

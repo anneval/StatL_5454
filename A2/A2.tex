@@ -37,46 +37,6 @@
 \makeatother
 \usepackage{xcolor}
 \usepackage[margin=1in]{geometry}
-\usepackage{color}
-\usepackage{fancyvrb}
-\newcommand{\VerbBar}{|}
-\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
-% Add ',fontsize=\small' for more characters per line
-\usepackage{framed}
-\definecolor{shadecolor}{RGB}{248,248,248}
-\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
-\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
-\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
-\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
-\newcommand{\BuiltInTok}[1]{#1}
-\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
-\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
-\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
-\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
-\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
-\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
-\newcommand{\ExtensionTok}[1]{#1}
-\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
-\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
-\newcommand{\ImportTok}[1]{#1}
-\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
-\newcommand{\NormalTok}[1]{#1}
-\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
-\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
-\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
-\newcommand{\RegionMarkerTok}[1]{#1}
-\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
-\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
-\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
-\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
 \usepackage{longtable,booktabs,array}
 \usepackage{calc} % for calculating minipage widths
 % Correct order of tables after \paragraph or \subparagraph
@@ -133,93 +93,93 @@
 \hypertarget{exercise-1}{%
 \section{Exercise 1}\label{exercise-1}}
 
-After generating the simulated data we fit four models using least
-squares, we calculate the AIC values and determine the in-sample error
-estimates by drawing suitable test data from the data generating process
-using twice the negative log-likelihood as loss function.
-
-Plotting the data, we see a clearly non-linear relationship. In line
-with this, we observe that the most preferable model in terms of AIC
-value is the second model. In terms of negative log-likelihood the
-fourth model appears to be the best. However, closely followed by model
-2. The linear model (model 1) performs the worst out of all models
-measured by AIC and the negative log-likelihood.
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{\#(a)}
-\FunctionTok{set.seed}\NormalTok{(}\DecValTok{1}\NormalTok{)}
-\NormalTok{x }\OtherTok{\textless{}{-}} \FunctionTok{rnorm}\NormalTok{(}\DecValTok{100}\NormalTok{)}
-\NormalTok{y }\OtherTok{\textless{}{-}}\NormalTok{ x }\SpecialCharTok{{-}} \DecValTok{2}\SpecialCharTok{*}\NormalTok{x}\SpecialCharTok{\^{}}\DecValTok{2} \SpecialCharTok{+} \FunctionTok{rnorm}\NormalTok{(}\DecValTok{100}\NormalTok{)}
-\FunctionTok{plot}\NormalTok{(x,y)}
-\end{Highlighting}
-\end{Shaded}
+After generating the simulated data, we fit four models using least
+squares. We then calculate the AIC values and determine the in-sample
+error estimates by drawing suitable test data from the data generating
+process using twice the negative log-likelihood as loss function.
 
 \includegraphics{A2_files/figure-latex/unnamed-chunk-3-1.pdf}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{\#(b) model specifications:}
-\NormalTok{lm1 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x) }\CommentTok{\# alternative: lm1 \textless{}{-} glm(y \textasciitilde{} x, data, family = gaussian()) }
-\NormalTok{lm2 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x }\SpecialCharTok{+}\FunctionTok{I}\NormalTok{(x}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{))}
-\NormalTok{lm3 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x }\SpecialCharTok{+} \FunctionTok{I}\NormalTok{(x}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{) }\SpecialCharTok{+} \FunctionTok{I}\NormalTok{(x}\SpecialCharTok{\^{}}\DecValTok{3}\NormalTok{))}
-\NormalTok{lm4 }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x }\SpecialCharTok{+} \FunctionTok{I}\NormalTok{(x}\SpecialCharTok{\^{}}\DecValTok{2}\NormalTok{) }\SpecialCharTok{+} \FunctionTok{I}\NormalTok{(x}\SpecialCharTok{\^{}}\DecValTok{3}\NormalTok{) }\SpecialCharTok{+} \FunctionTok{I}\NormalTok{(x}\SpecialCharTok{\^{}}\DecValTok{4}\NormalTok{))}
-\end{Highlighting}
-\end{Shaded}
-
 \begin{verbatim}
-## [1] 478.8804 280.1670 282.0886 282.2963
+## [1] "AIC:"
 \end{verbatim}
 
 \begin{verbatim}
-## [[1]]
-## 'log Lik.' 526.7693 (df=3)
-## 
-## [[2]]
-## 'log Lik.' 279.7447 (df=4)
-## 
-## [[3]]
-## 'log Lik.' 522.8529 (df=4)
-## 
-## [[4]]
-## 'log Lik.' 278.7059 (df=6)
+##       linear    quadratic        cubed fourth_power 
+##     478.8804     280.1670     282.0886     282.2963
 \end{verbatim}
 
+Plotting the simulated data, we see a clearly non-linear relationship
+between \(x\) and \(y\). In line with this, we observe that the linear
+specification (model 1) performs worst according to the AIC. The most
+preferable model in terms of AIC value is the second model, closely
+followed by models 3 and 4.
+
+We now want to compute estimates of the in-sample error \[
+\text{Err}_{\text{in}} = \frac{1}{N} \sum_{i=1}^N \mathbb{E}\left[ L\left(y,\hat{f}(x_i)\right) \Big| \mathcal{T}\right],
+\] where the expectation is over the distribution of \(y\) given \(x_i\)
+and twice the negative log-likelihood is used as loss function. We
+approximate the expectations by computing means. To do so, we sample
+\(N_{\text{error}}=1000\) error terms for each data point and then
+compute the corresponding new responses
+\(y_{i,j} = \hat{f}(x_i) + \epsilon_j, \ j = 1,\ldots, 1000\).
+
+In order to evaluate the likelihood function of \(y\), we need estimates
+of the error variance \(\sigma^2\), i.e.~the conditional variance of
+\(y\) given \(x_i\). We consider both the MLE estimator of \(\sigma^2\)
+(which is used in the R implementation of the function \textit{AIC()})
+and the unbiased estimator that corrects for the degrees of freedom.
+
 \begin{verbatim}
-## $linear
-## in_sample_error             aic 
-##        3.880782        4.788804 
-## 
-## $quadratic
-## in_sample_error             aic 
-##        2.847959        2.801670 
-## 
-## $cubed
-## in_sample_error             aic 
-##        2.839241        2.820886 
-## 
-## $fourth_power
-## in_sample_error             aic 
-##        2.844858        2.822963
+## [1] "MLE estimator of error variance:"
 \end{verbatim}
 
 \begin{verbatim}
 ## $linear
 ## in_sample_error             aic 
-##        3.879417        4.788804 
+##        3.880820        4.788804 
 ## 
 ## $quadratic
 ## in_sample_error             aic 
-##        2.845352        2.801670 
+##        2.847452        2.801670 
 ## 
 ## $cubed
 ## in_sample_error             aic 
-##        2.841839        2.820886 
+##        2.839417        2.820886 
 ## 
 ## $fourth_power
 ## in_sample_error             aic 
-##        2.849209        2.822963
+##        2.845200        2.822963
 \end{verbatim}
+
+\begin{verbatim}
+## [1] "Unbiased estimator of error variance:"
+\end{verbatim}
+
+\begin{verbatim}
+## $linear
+## in_sample_error             aic 
+##        3.879415        4.788804 
+## 
+## $quadratic
+## in_sample_error             aic 
+##        2.845433        2.801670 
+## 
+## $cubed
+## in_sample_error             aic 
+##        2.841277        2.820886 
+## 
+## $fourth_power
+## in_sample_error             aic 
+##        2.849490        2.822963
+\end{verbatim}
+
+We find that models 2 to 4 have very similar in-sample errors. For those
+models, the discrepancy between our in-sample error estimates and the
+AIC values are rather small. The linear specification yields by far the
+largest in-sample error and also the gap between the estimated in-sample
+error and AIC is quite pronounced, which might be due to model
+misspecification.
 
 \hypertarget{exercise-2}{%
 \section{Exercise 2}\label{exercise-2}}
@@ -375,7 +335,9 @@ lasso's variable selection property. For ridge regression
 (\(\alpha = 0\)), the coefficients are shrunk towards zero but not
 exactly to zero, so the model complexity in terms of the non-zero
 coefficient count may not reduce as dramatically as with lasso or
-elastic net.
+elastic net. The visualization helps in choosing an optimal \(\lambda\)
+value, typically via the 1-standard error rule or by selecting the value
+of \(\lambda\) that minimizes the cross-validation error.
 
 \includegraphics{A2_files/figure-latex/unnamed-chunk-8-1.pdf}
 \includegraphics{A2_files/figure-latex/unnamed-chunk-8-2.pdf}
@@ -383,10 +345,6 @@ elastic net.
 \includegraphics{A2_files/figure-latex/unnamed-chunk-8-4.pdf}
 \includegraphics{A2_files/figure-latex/unnamed-chunk-8-5.pdf}
 \includegraphics{A2_files/figure-latex/unnamed-chunk-8-6.pdf}
-
-This visualization helps in choosing an optimal \(\lambda\) value,
-typically via the 1-standard error rule or by selecting the value of
-\(\lambda\) that minimizes the cross-validation error.
 
 Next, to select the best value for \(\lambda\), that balances model
 simplicity and accuracy, for each fixed value of \(\alpha\) we look at
@@ -403,24 +361,23 @@ model.
 Table 2 summarizes all that. The choice between lambda.min and
 lambda.1se involves a trade-off between model simplicity and predictive
 accuracy. lambda.1se typically leads to simpler models (with potentially
-slightly higher MSE). We observe that as \(\alpha\) increases from 0.0
-to 1.0, the number of non-zero coefficients varies. The model with
-\(\alpha = 0.0\) (ridge regression) maintains 10 non-zero coefficients
-for both lambda.min and lambda.1se. For other values of \(\alpha\)
-(moving towards lasso regression), the number of non-zero coefficients
-tends to decrease, indicating sparser models. This is especially visible
-for \(\alpha = 1.0\) with only 5 or 6 non-zero coefficients, suggesting
-that lasso regularization enforces the most sparsity. The least complex
-model is the one with \(\alpha = 0.2\) using the lambda.1se criterion,
-having only 5 non-zero coefficients, whereas the most complex models
-with respect to the number of non-zero coefficients are all those with
-\(\alpha = 0.0\). Regarding predicted values, the cv\_mse does not vary
-significantly across different \(\alpha\) values, indicating that the
-change in \(\alpha\) is not drastically affecting the model's predictive
-ability in this case. The lowest cv\_mse for lambda.min appears at
-\(\alpha = 1.0\), suggesting that the lasso model at its optimal
+slightly higher MSE). We observe that as \(\alpha\) increases from 0 to
+1, the number of non-zero coefficients varies. The model with
+\(\alpha = 0\) (ridge regression) maintains 27 non-zero coefficients for
+both lambda.min and lambda.1se. For other values of \(\alpha\) (moving
+towards lasso regression), the number of non-zero coefficients tends to
+decrease, indicating sparser models. This is especially visible for
+\(\alpha = 1.0\) with only 11 non-zero coefficients in case of
+lambda.1se, suggesting that lasso regularization enforces the most
+sparsity.
+
+Regarding predicted values, the CV MSE does not vary significantly
+across different \(\alpha\) values, indicating that the change in
+\(\alpha\) is not drastically affecting the model's predictive ability
+in this case. The lowest CV MSE for lambda.min appears at
+\(\alpha = 0\), suggesting that the ridge model at its optimal
 \(\lambda\) achieves a marginally better fit in terms of MSE. For the
-lambda.1se criterion, the cv\_mse is slightly higher compared to the
+lambda.1se criterion, the CV MSE is slightly higher compared to
 lambda.min, which is expected as the 1-SE rule tends to select a simpler
 and more generalizable model at the expense of a slight increase in
 error. In the end, the choice between lambda.min and lambda.1se would
@@ -454,16 +411,9 @@ fewer non-zero coefficients, which can be advantageous for
 interpretability and generalization. To see which variables were
 selected (i.e., have non-zero coefficients) and their estimated
 coefficients, we use the \textit{coef} function from the \textbf{glmnet}
-package. We observe here only 4 variables are selected, and all have
-rather small coefficients and thus little influence on the response
-variable `lwage76'. To assess the goodness-of-fit, we then calculate the
-correlation between the predicted values from the model and the observed
-values. Values closer to 1 or -1 indicating a stronger linear
-relationship between predictions and actual outcomes. In this case the
-correlation lies at 0.4293. This indicates a moderate positive linear
-relationship between the predicted and observed values.The model has
-some predictive power, but it is not capturing all of the variability in
-the dependent variable.
+package. We observe that only 10 variables (plus the intercept) are
+selected and that all of them have rather small coefficients and thus
+little influence on the response variable `lwage76'.
 
 \begin{verbatim}
 ## [1] "Non-zero coefficients (including intercept):"
@@ -501,9 +451,20 @@ the dependent variable.
 ## exp76        .
 \end{verbatim}
 
+To assess the goodness-of-fit, we calculate the correlation between the
+predicted values from the model and the observed values. Values closer
+to 1 or -1 indicating a stronger linear relationship between predictions
+and actual outcomes. In this case the correlation lies at roughly 0.5.
+This indicates a moderate positive linear relationship between the
+predicted and observed values. The model therefore has some predictive
+power, but it is not capturing all of the variability in the dependent
+variable.
+
 \begin{verbatim}
 ## [1] "Correlation between predicted and observed values for alpha = 1 (1-SE rule): 0.5018"
 \end{verbatim}
+
+\newpage
 
 \hypertarget{exercise-4}{%
 \section{Exercise 4}\label{exercise-4}}
@@ -516,7 +477,7 @@ consider the deviance loss function, which is the default in the
 \textit{cv.glmnet} function of the \textbf{glmnet} package. Once again,
 we visualize the results using the default plot method.
 
-\includegraphics{A2_files/figure-latex/unnamed-chunk-11-1.pdf} Next, we
+\includegraphics{A2_files/figure-latex/unnamed-chunk-12-1.pdf} Next, we
 want to focus on two particular values of the penalty \(\lambda\),
 namely the one that minimizes the CV deviance loss and the one based on
 the 1-SE rule. These are given by
@@ -532,11 +493,11 @@ the 1-SE rule. These are given by
 ## 1se 0.04005    17   1.090 0.02480       5
 \end{verbatim}
 
-We immediately see that \textit{lambda.min} yields a more complex model
-(with 7 non-zero coefficients) than \textit{lambda.1se} (with 5 non-zero
-coefficients). Looking at the coefficient estimates, we do find some
-notable differences between the two models, especially when it comes to
-the effect of \textit{famhistPresent}:
+We immediately see that lambda.min yields a more complex model (with 7
+non-zero coefficients) than lambda.1se (with 5 non-zero coefficients).
+Looking at the coefficient estimates, we do find some notable
+differences between the two models, especially when it comes to the
+effect of `famhistPresent':
 
 \begin{verbatim}
 ## 10 x 2 sparse Matrix of class "dgCMatrix"
@@ -554,9 +515,10 @@ the effect of \textit{famhistPresent}:
 \end{verbatim}
 
 Using the \textit{predict} function, we can now have a look at the
-predicted values, i.e.~the predicted probabilities of coronary heart
-disease. Since we have not distinguished between test and training data
-in this exercise, we compute predictions for the whole sample.
+predicted values of the two models, i.e.~the predicted probabilities of
+coronary heart disease. Since we have not distinguished between test and
+training data in this exercise, we compute predictions for the whole
+sample.
 
 We can summarize the predictive performance of the two models by
 comparing the MSE for the whole sample:
@@ -577,14 +539,9 @@ models.
 ##  0.2532468  0.2532468
 \end{verbatim}
 
-We find that the more complex model corresponding to \textit{lambda.min}
-yields a slightly lower misclassification rate in-sample. Whether this
-model is indeed better or just over-fitting is hard to tell in the
-absence of test data.
-
-While the overall misclassification rates of the two models are quite
-similar, they drastically differ with respect to their false-positive
-and false-negative rates:
+We find that the two models yield the same misclassification rate
+in-sample. On the contrary, they quite drastically differ with respect
+to their false-positive and false-negative rates:
 
 \begin{verbatim}
 ## [1] "False-positive rates:"
@@ -606,11 +563,10 @@ and false-negative rates:
 
 Overall, we find that the false-positive rates of both models are rather
 low, while the false-negative rates are fairly high, especially for the
-simpler model corresponding to \textit{lambda.1se}. This is in line with
-the observation that 34.6\% of the individuals in the sample suffer from
+simpler model corresponding to lambda.1se. This is in line with the
+observation that 34.6\% of the individuals in the sample suffer from
 coronary heart disease while our models predict a prevalence of 27.1\%
-and \texttt{rround(100*sum(pred\_class\_min==1)/length(y),1)}\%,
-respectively.
+and 19.7\%, respectively.
 
 On a final note, we have so far only considered models trained in the
 cross-validation procedure. In general, it seems more appropriate to
@@ -634,7 +590,7 @@ the y-axis and the index on the x-axis using line plots. ``aa'' is
 plotted in \textit{magenta} and ``ao'' in \textit{blue}. ``aa'' seems to
 have overall slightly higher values than ``ao''.
 
-\includegraphics{A2_files/figure-latex/unnamed-chunk-19-1.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-20-1.pdf}
 
 We select 1000 samples as training data and use the remaining ones as
 test data.
@@ -749,10 +705,10 @@ Now we are able to compare the misclassification rates and mean
 log-likelihoods based on training and test data sets visually for the
 different degrees of freedom.
 
-\includegraphics{A2_files/figure-latex/unnamed-chunk-24-1.pdf}
-\includegraphics{A2_files/figure-latex/unnamed-chunk-24-2.pdf}
-\includegraphics{A2_files/figure-latex/unnamed-chunk-24-3.pdf}
-\includegraphics{A2_files/figure-latex/unnamed-chunk-24-4.pdf} The more
+\includegraphics{A2_files/figure-latex/unnamed-chunk-25-1.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-25-2.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-25-3.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-25-4.pdf} The more
 we restrict the regression coefficients to vary only smoothly over the
 covariates (lower degrees of freedom), the higher is the
 misclassification rate for the training data. Theoretically, higher
