@@ -599,47 +599,49 @@ We then fit a logistic regression model to the training data using all
 covariates and determine the misclassification rate and the average
 log-likelihood value on the training and test data.
 
+We calculate the average log-likelihood value on the training data in
+two ways. The first value is obtained by the \textit{logLik} function.
+The second value is obtained via the likelihood function of the
+(multivariate) Bernoulli distribution, which is given by
+\[\prod_{i=1}^n p^{x_i}(1-p)^{1-x_i}\] Taking the logarithm gives us the
+average log-lieklihood. \[ \sum_{i=1}^n x_i \log(p)+(1-x_i)\log(1-p) \]
+
 \begin{verbatim}
-##      2613      1678      1929      4051       664      1369 
-## 0.7890774 0.7872822 0.7666042 0.9905557 0.8772004 0.9584585
+## 'log Lik.' -192.7175 (df=257)
 \end{verbatim}
 
 \begin{verbatim}
-##           7          17          20          29          32          37 
-## 0.011710309 0.977713419 0.999999775 0.972453610 0.008824222 0.999858847
+## [1] -192.7175
 \end{verbatim}
 
-\begin{verbatim}
-## 
-##   0   1 
-## 394 606
-\end{verbatim}
+Of course, they are identical.
+
+The average log-likelihood value on the test data is calculated with the
+second approach.
 
 \begin{verbatim}
-## 
-##   0   1 
-## 304 413
+## [1] -898.5522
 \end{verbatim}
 
-\begin{verbatim}
-## 'log Lik.' -205.4046 (df=257)
-\end{verbatim}
+Higher average log-likelihood values speak for a better fit of the
+model. Therefore, we also see a lower value for the test data.
+
+To calculate the misclassifications rate we turn the predicted
+probabilities into binary outcomes (1 if \(>0.5\), 0 otherwise).
+Comparing the prediction to the actual class gives us the
+misclassification rate for the training data.
 
 \begin{verbatim}
-## [1] -205.4046
+## [1] 0.068
 \end{verbatim}
 
-\begin{verbatim}
-## [1] -784.7576
-\end{verbatim}
+As well as for the test data.
 
 \begin{verbatim}
-## [1] 0.081
+## [1] 0.2622036
 \end{verbatim}
 
-\begin{verbatim}
-## [1] 0.2538354
-\end{verbatim}
+As expected, the misclassification rate is higher for the test data.
 
 The complexity of this model can be reduced by restricting the
 regression coefficients to vary only smoothly over the covariates, i.e.,
@@ -649,66 +651,54 @@ based on natural cubic splines which we use to fit the logistic
 regression model instead of the 256-dimensional X. Specifically, we fit
 a logistic regression model to the training data using \(X^*\) as model
 matrix and determine the misclassification rate and the average
-log-likelihood value on the training and test data. The likelihood
-function of the (multivariate) Bernoulli distribution is given by
-\[\prod_{i=1}^n p^{x_i}(1-p)^{1-x_i}\] Taking the logarithm gives us the
-log-lieklihood. \[ \sum_{i=1}^n x_i \log(p)+(1-x_i)\log(1-p) \]
+log-likelihood value on the training and test data.
+
+The average log-likelihood value on the training data is calculated as
+before.
 
 \begin{verbatim}
-##      2613      1678      1929      4051       664      1369 
-## 0.4505464 0.6646359 0.7403148 0.9347068 0.4867466 0.9834415
+## 'log Lik.' -388.7649 (df=13)
 \end{verbatim}
 
 \begin{verbatim}
-##         7        17        20        29        32        37 
-## 0.5750164 0.8453260 0.9546407 0.9299374 0.1447402 0.9743832
+## [1] -388.7649
 \end{verbatim}
+
+The average log-likelihood value on the test data now is
 
 \begin{verbatim}
-## 
-##   0   1 
-## 379 621
+## [1] -288.3241
 \end{verbatim}
+
+For the misclassification rate of the training data we also perform the
+same steps as before.
 
 \begin{verbatim}
-## 
-##   0   1 
-## 283 434
+## [1] 0.164
 \end{verbatim}
+
+The misclassification rate of the test data is
 
 \begin{verbatim}
-## 'log Lik.' -398.7008 (df=13)
+## [1] 0.181311
 \end{verbatim}
 
-\begin{verbatim}
-## [1] -398.7008
-\end{verbatim}
+Next, we vary the degrees of freedom in the spline basis expansion using
+2 to the power of 1 to 8, i.e., 2,4,8,16,32,64,128 and 256. Again, we
+calculate the misclassifiation rate and the average log-likelihood on
+the training and test data for each of the fitted models. We create
+helper functions that generalise the steps of the previous 12-dimesional
+model to x-dimesional models.
 
-\begin{verbatim}
-## [1] -281.076
-\end{verbatim}
+After running all the helper functions for all x-dimesions we are able
+to compare the misclassification rates and average log-likelihoods based
+on training and test data sets visually for the different degrees of
+freedom.
 
-\begin{verbatim}
-## [1] 0.178
-\end{verbatim}
-
-\begin{verbatim}
-## [1] 0.1659693
-\end{verbatim}
-
-We vary the degrees of freedom in the spline basis expansion using 2 to
-the power of 1 to 8, i.e., 2,4,8,16,32,64,128 and 256. Again, we
-calculate the misclassifiation rate and the mean log-likelihood on the
-training and test data for each of the fitted models.
-
-Now we are able to compare the misclassification rates and mean
-log-likelihoods based on training and test data sets visually for the
-different degrees of freedom.
-
-\includegraphics{A2_files/figure-latex/unnamed-chunk-25-1.pdf}
-\includegraphics{A2_files/figure-latex/unnamed-chunk-25-2.pdf}
-\includegraphics{A2_files/figure-latex/unnamed-chunk-25-3.pdf}
-\includegraphics{A2_files/figure-latex/unnamed-chunk-25-4.pdf} The more
+\includegraphics{A2_files/figure-latex/unnamed-chunk-33-1.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-33-2.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-33-3.pdf}
+\includegraphics{A2_files/figure-latex/unnamed-chunk-33-4.pdf} The more
 we restrict the regression coefficients to vary only smoothly over the
 covariates (lower degrees of freedom), the higher is the
 misclassification rate for the training data. Theoretically, higher
@@ -720,11 +710,12 @@ words high degrees of freedom, show the expected overfitting. Too much
 sommot, low degrees of freedom, seems to loose important information and
 hence also increases the misclassification rate on the test data.
 
-On the training data, the log-likelihood worsens with the smooth of the
-covariates. Looking at the log-likelihood of the test data we see that
-medium levels of degrees of freedom (16-64) are the best choice. They
-avoid overfitting and don't loose too much information. Note the very
-low log-likelihood due to overiftting for 256 degrees of freedom. On the
-other end, with high smooth the loss isn't as high.
+On the training data, the average log-likelihood worsens with the smooth
+of the covariates. Looking at the average log-likelihood of the test
+data we see that medium levels of degrees of freedom (16-64) are the
+best choice. They avoid overfitting and don't loose too much
+information. Note the very low average log-likelihood due to overiftting
+for 256 degrees of freedom. On the other end, with high smooth the loss
+isn't as high.
 
 \end{document}
