@@ -1,0 +1,52 @@
+---
+title: "Statistical Learning (5454) - Assignment 3"  
+author: "Matthias Hochholzer, Lukas Pirnbacher, Anne Valder"
+date: "Due: 2024-05-20"
+output: 
+  pdf_document: 
+    keep_tex: yes
+header-includes:
+   - \usepackage{titlesec}
+   - \titleformat*{\section}{\normalfont\Large\bfseries\flushleft}
+   - \titleformat*{\subsection}{\normalfont\large\bfseries\flushleft}
+   - \titleformat*{\subsubsection}{\normalfont\normalsize\bfseries\flushleft}
+   - \usepackage{amsmath}
+   - \newcommand*{\defeq}{\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
+   - \newcommand*{\eqdef}{=\mathrel{\vcenter{\baselineskip0.5ex \lineskiplimit0pt
+                     \hbox{\scriptsize.}\hbox{\scriptsize.}}}}
+                     
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+```
+
+
+```{r,include=FALSE}
+# Clear memory
+rm(list=ls())
+```
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE}
+
+```
+
+
+
+<!-- EXERCISE 1 -->
+# Exercise 1
+
+<!-- EXERCISE 2 -->
+
+# Exercise 2
+
+<!-- EXERCISE 3 -->
+# Exercise 3
+
+<!-- EXERCISE 4 -->
+# Exercise 4
+
+<!-- EXERCISE 5 -->
+# Exercise 5
+
