@@ -30,19 +30,229 @@ rm(list=ls())
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE}
 
+
 ```
 
 
 
 <!-- EXERCISE 1 -->
 # Exercise 1
+We load the data set \textit{Carseats} from package \textit{ISLR2}. We then split the data set into a training set and a test set.
+```{r}
+data("Carseats", package = "ISLR2")
+
+set.seed(123) # set the seed
+
+train_index <- sample(seq_len(nrow(Carseats)), size = 100)
+train <- Carseats[train_index,]
+test <- Carseats[-train_index,]
+
+X_train <- as.matrix(train[,-1]) # covariates of sample
+y_train <- train[,1] # dependent variable of sample
+X_test <- as.matrix(test[,-1]) # covariates of test
+y_test <- test[,1] # dependent variable of test
+
+```
+
+We fit a regression tree to the training set. 
+```{r}
+library("rpart")
+
+tree <- rpart(Sales ~ ., data =train, 
+  method = "anova", parms = list(split = "gini"), # regression tree
+  control = list(cp = 0.0001))
+options(digits = 4, width= 60)
+printcp(tree)
+
+```
+The plot of the tree is seen below.
+```{r}
+# plotcp(tree)
+
+library("partykit")
+tree_party <- partykit::as.party(tree)
+plot(tree_party)
+
+```
+
+The test MSE is
+```{r}
+tree_fit <- predict(tree, newdata = test)
+
+MSE <- function(y_hat){
+error <- mean((y_hat-y_test)^2)
+return(error)
+}
+
+MSE(tree_fit)
+```
+
+```{r}
+imin <- which.min(tree$cptable[, "xerror"])
+select <- which(
+  tree$cptable[, "xerror"] < 
+    sum(tree$cptable[imin, c("xerror", "xstd")]))[1]
+ptree <- prune(tree, cp = tree$cptable[select, "CP"])
+
+# plotcp(ptree)
+
+ptree_party <- partykit::as.party(tree)
+plot(ptree_party)
+
+```
+
+The test MSE with pruning is
+```{r}
+ptree_fit <- predict(ptree, newdata = test)
+
+MSE(ptree_fit)
+```
 
 <!-- EXERCISE 2 -->
 
 # Exercise 2
+We draw 100 observations from fourindependentvariables $X_1$, ... ,$X_4$ where
+\begin{itemize}
+  \item $X_1$ follows a uniform distribution,
+  \item $X_2$ follows a standard normal distribution,
+  \item $X_3$ follows a Bernoulli distribution with success probability $\pi$ = 0.5,
+  \item $X_4$ follows a Bernoulli distribution with success probability $\pi$ = 0.1.
+\end{itemize}
+
+```{r}
+rm(list=ls())
+set.seed(123) # set the seed
+
+n <- 100
+X1 <- runif(n)
+X2 <- rnorm(n)
+X3 <- rbinom(n,1,0.5)
+X4 <- rbinom(n,1,0.1)
+X <- cbind(X1,X2,X3,X4)
+
+
+```
+
+
+We repeat 1000 times the following:
+\begin{itemize}
+  \item Draw a dependent variable y from a standard normal distribution which is independent of the four independent variables.
+  \item Fit a tree stump, i.e., a tree which contains only one split.
+  \item Determine which variable was used for splitting.
+\end{itemize}
+
+Create the table of relative frequencies how often each of the variables was selected for splitting. Given that
+all independent variables are not associated with the dependent variable, is the probability of including them
+as a split variable the same? If not, why would they differ?
+
+```{r}
+
+helpf <- function(x){
+y <- rnorm(100)
+data <- data.frame(cbind(y,x))
+tree <- rpart(y ~ ., data = data, method = "anova",
+control = list(maxdepth = 1, cp =-1))
+variable <- names(which.max(tree$variable.importance))
+return(variable)
+}
+reps <- replicate(1000, helpf(X))
+
+
+rel_freq <- table(factor(reps,levels=c("X1","X2","X3","X4")))/length(reps)
+rel_freq
+barplot(rel_freq)
+```
+
 
 <!-- EXERCISE 3 -->
 # Exercise 3
+
+Let's assume the following data generating process
+$$ Y = X + \epsilon, $$
+with $X \sim N(0,1)$ and $\epsilon \sim N(0,1)$ independent.
+In addition 20 covariates $Z_1, ... ,Z_{20}$ are given with
+$$Z_i \sim \sqrt{0.9}X + \epsilon Z_i ,$$
+where $\epsilon Z_i \sim N(0, 0.1).$
+
+
+We draw a training data with 30 observations and a test data with 10,000 observations from the data generating
+process including the additional covariates \textbf{Z}.
+
+```{r}
+rm(list=ls())
+set.seed(123) # set the seed
+
+X_train <- rnorm(30,0,1)
+eps <- rnorm(30,0,1)
+
+help_cov <- function(Z){
+X <- rnorm(20)
+for(i in 1:20){
+  Z[i] <- sqrt(0.9) * X[i] + rnorm(1, 0, 0.1)
+}
+return(Z)
+}
+
+Z_train <- as.data.frame(t(replicate(30, help_cov(20))))
+Y_train <- X_train + Z_train + eps
+train <- as.data.frame(cbind(Y_train, X_train))
+
+
+
+X_test <- rnorm(10000,0,1)
+Z_test <- as.data.frame(t(replicate(1000, help_cov(20))))
+Y_test <- X_test + Z_test + eps
+test <- as.data.frame(cbind(Y_test, X_test))
+```
+
+We sample 100 bootstrap samples of size 30 from the training data of the previous example by drawing with
+replacement.
+
+```{r}
+
+
+bsample <- list()
+
+
+for(i in 1:100) {
+  index <- sample(1:nrow(train), size = 30, replace = TRUE)
+  
+  bootstrap <- train[index, ]
+
+  bsample[[i]] <- bootstrap
+}
+
+```
+
+Fit to each bootstrap sample: 
+\begin{enumerate}
+\item a regression tree,
+\item the null model with predicted value equal to the observed empirical mean of Y ,
+\item a linear model including linear effects for X and all Z variables and
+\item a linear model potentially including linear effects for X and all Z variables, but using model selection
+with the AIC to select a suitable model starting from the null model.
+\end{enumerate}
+
+```{r}
+
+```
+
+
+Determine the predicted values on the test data for the bagged model estimator by calculating the average
+predictions over the 100 trees fitted to the bootstrap samples, the 100 null models, the 100 linear models
+including all linear effects and the 100 linear models based on model selection.
+
+```{r}
+
+```
+
+Determine the mean squared error of the four bagged model estimators on the test sample of size 10,000.
+
+```{r}
+
+```
+
+
 
 <!-- EXERCISE 4 -->
 # Exercise 4
