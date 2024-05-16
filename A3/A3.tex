@@ -82,9 +82,10 @@
 
 \section{Exercise 1}\label{exercise-1}
 
-We load the data set \textit{Carseats} from package \textit{ISLR2}. We
-then select 200 samples (50:50 split) as training data and use the
-remaining ones as test data.
+We load the data set \textit{Carseats} from package \textit{ISLR2}. It
+is a simulated data set containing sales of child car seats at 400
+different stores. We then select 200 samples (50:50 split) as training
+data and use the remaining ones as test data.
 
 We fit a regression tree to the training set. The stopping criterion is
 set to \(cp = 10^{-4}\)
@@ -122,13 +123,18 @@ set to \(cp = 10^{-4}\)
 ## 16 0.0001     15      0.32   0.68 0.076
 \end{verbatim}
 
-The plot of the tree is seen below.
-\includegraphics{A3_files/figure-latex/unnamed-chunk-5-1.pdf}
-\includegraphics{A3_files/figure-latex/unnamed-chunk-5-2.pdf}
+The complexity parameter table and the plot of the tree is seen below.
+
+\begin{center}\includegraphics{A3_files/figure-latex/unnamed-chunk-5-1} \end{center}
+
+\includegraphics{A3_files/figure-latex/unnamed-chunk-6-1.pdf}
 
 The tree has 16 terminal nods (15 splits). With the loose stopping
 criterion we are facing the risk of overiftting. In order to solve this
-problem we prune the tree later on.
+problem we prune the tree later on. As he \textit{xerrror} doesn't
+increase for high \text{cp}, I would already guess that overfitting
+isn't a big problem. Since the tree is rather long we do further
+interpretations with the pruned tree.
 
 For now, we calculate the test MSE, which is
 
@@ -140,10 +146,18 @@ Let's use cross-validation in order to determine the optimal level of
 tree complexity. To do this, we use the first entry where the
 \textit{xerror} is smaller than the minimum error plus one standard
 deviation as complexity parameter.
-\includegraphics{A3_files/figure-latex/unnamed-chunk-7-1.pdf}
-\includegraphics{A3_files/figure-latex/unnamed-chunk-7-2.pdf}
+\includegraphics{A3_files/figure-latex/unnamed-chunk-8-1.pdf}
+\includegraphics{A3_files/figure-latex/unnamed-chunk-8-2.pdf}
 
-With pruning, the tree has 6 terminal nods (5 splits).
+The pruned tree has 6 terminal nods (5 splits). The fist split is done
+according to the quality of the shelving location for the car seats. It
+splits into \textit{Bad \& Medium} and \textit{Good}. The second split
+is the car seat price after a \textit{Bad \& Medium} shelving location.
+In the third it's again split by the shelving location. This time
+between \textit{Bad} and \textit{Medium}. The next is after a Medium
+shelving location according to the average age of the local population.
+And lastly by Price after a \textit{Good} shelving location. Looking at
+the boxplots, it seems that even the last split was still important.
 
 The test MSE with pruning is
 
@@ -151,12 +165,14 @@ The test MSE with pruning is
 ## [1] 4.669
 \end{verbatim}
 
-The MSE with pruning is therefore higher than without.
+The test MSE with pruning is higher than without. Therefore pruning the
+tree doesn't improve the test MSE. Hence, overfitting was acutally not
+too much of a problem.
 
 \section{Exercise 2}\label{exercise-2}
 
-We draw 100 observations from fourindependentvariables \(X_1\), \ldots{}
-,\(X_4\) where
+We draw 100 observations from four independent variables \(X_1\),
+\ldots{} ,\(X_4\) where
 
 \begin{itemize}
   \item $X_1$ follows a uniform distribution,
@@ -173,10 +189,8 @@ We repeat 1000 times the following:
   \item Determine which variable was used for splitting.
 \end{itemize}
 
-Create the table of relative frequencies how often each of the variables
-was selected for splitting. Given that all independent variables are not
-associated with the dependent variable, is the probability of including
-them as a split variable the same? If not, why would they differ?
+Below is the table of relative frequencies, how often each of the
+variables was selected for splitting. We also provide a barplot.
 
 \begin{verbatim}
 ## 
@@ -184,7 +198,18 @@ them as a split variable the same? If not, why would they differ?
 ## 0.460 0.471 0.037 0.032
 \end{verbatim}
 
-\includegraphics{A3_files/figure-latex/unnamed-chunk-10-1.pdf}
+\includegraphics{A3_files/figure-latex/unnamed-chunk-11-1.pdf}
+
+The probability of including a particular independent variable is not
+the same. \(X_2\) has the highest probability, closely followed by
+\(X_1\). The inclusion probabilities for \(X_3\) and \(X_4\) are much
+lower. The different probabilities are a result of the distributions of
+the independent variables. It is no great surprise that the highest
+inclusion probability occurs for \(X_2\) with its standard normal
+distribution when the dependent variable is also standard normally
+distributed. The uniform distribution also covers it quite well. The
+Bernoulli distribution bears little resemblance to the standard normal
+distribution. Therefore, the low inclusion probabilities.
 
 \section{Exercise 3}\label{exercise-3}
 
@@ -199,10 +224,10 @@ We draw a training data with 30 observations and a test data with 10,000
 observations from the data generating process including the additional
 covariates \textbf{Z}.
 
-We sample 100 bootstrap samples of size 30 from the training data of the
-previous example by drawing with replacement.
+We then sample 100 bootstrap samples of size 30 from the training data
+by drawing with replacement.
 
-Fit to each bootstrap sample:
+To each bootstrap sample we fit:
 
 \begin{enumerate}
 \item a regression tree,
@@ -212,30 +237,26 @@ Fit to each bootstrap sample:
 with the AIC to select a suitable model starting from the null model.
 \end{enumerate}
 
-Determine the predicted values on the test data for the bagged model
+We determine the predicted values on the test data for the bagged model
 estimator by calculating the average predictions over the 100 trees
 fitted to the bootstrap samples, the 100 null models, the 100 linear
 models including all linear effects and the 100 linear models based on
 model selection.
 
-\begin{verbatim}
-##   Model   Mean
-## 1  Tree 0.1912
-## 2  Null 0.1847
-## 3    LM 4.2230
-## 4   AIC 0.3806
-\end{verbatim}
-
-Last, we determine the mean squared error of the four bagged model
+Last, we determine the mean squared error (MSE) of the four bagged model
 estimators on the test sample of size 10,000.
 
 \begin{verbatim}
-##   Model    MSE
-## 1  Tree  2.073
-## 2  Null  2.070
-## 3    LM 20.002
-## 4   AIC  2.187
+##   Model     MSE
+## 1  Tree   2.098
+## 2  Null   2.114
+## 3    LM 377.018
+## 4   AIC   2.680
 \end{verbatim}
+
+The lowest MSE is achieved by the regression tree, flowed by the null
+model and the model selected by AIC. The highest MSE results for the
+linear model including X and all Z.
 
 \section{Exercise 4}\label{exercise-4}
 

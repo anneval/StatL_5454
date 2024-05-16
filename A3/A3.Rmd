@@ -65,14 +65,14 @@ options(digits = 4, width= 60)
 printcp(tree)
 
 ```
-The plot of the tree is seen below.
-```{r}
+The complexity parameter table and the plot of the tree is seen below.
+```{r, fig.align="center"}
 plotcp(tree)
-
+```
+```{r}
 tree_party <- partykit::as.party(tree)
 
 plot(tree_party, gp = gpar(fontsize = 3))
-
 ```
 
 The tree has 16 terminal nods (15 splits). With the loose stopping criterion we are facing the risk of overiftting. In order to solve this problem we prune the tree later on. As he \textit{xerrror} doesn't increase for high \text{cp}, I would already guess that overfitting isn't a big problem. Since the tree is rather long we do further interpretations with the pruned tree.
@@ -175,7 +175,7 @@ barplot(rel_freq,
 ```
 
 The probability of including a particular independent variable is not the same. $X_2$ has the highest probability, closely followed by $X_1$. The inclusion probabilities for $X_3$ and $X_4$ are much lower. The different probabilities are a result of the distributions of the independent variables.
-It is no great surprise that the highest inclusion probability occurs for $X_2$ with its standard normal distribution when the dependent variable is also standard normally distributed. The uniform distribution also covers it quite well. The 0-1 Bernoulli distribution
+It is no great surprise that the highest inclusion probability occurs for $X_2$ with its standard normal distribution when the dependent variable is also standard normally distributed. The uniform distribution also covers it quite well. The Bernoulli distribution bears little resemblance to the standard normal distribution. Therefore, the low inclusion probabilities.
 
 <!-- EXERCISE 3 -->
 # Exercise 3
@@ -308,7 +308,7 @@ MSEs
 
 ```
 
-The lowest MSE is achieved by the regression tree, flowed by the null model and the model selected by AIC. The highest MSE results for the linear model including X and Z.
+The lowest MSE is achieved by the regression tree, flowed by the null model and the model selected by AIC. The highest MSE results for the linear model including X and all Z.
 
 <!-- EXERCISE 4 -->
 # Exercise 4
