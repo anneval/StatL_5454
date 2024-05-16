@@ -29,21 +29,23 @@ rm(list=ls())
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE}
-
-
+library(rpart)
+library(partykit)
+library(MASS)
+library(randomForest)
 ```
 
 
 
 <!-- EXERCISE 1 -->
 # Exercise 1
-We load the data set \textit{Carseats} from package \textit{ISLR2}. We then select 100 samples as training data and use the remaining ones as test data.
+We load the data set \textit{Carseats} from package \textit{ISLR2}. It is a simulated data set containing sales of child car seats at 400 different stores. We then select 200 samples (50:50 split) as training data and use the remaining ones as test data.
 ```{r}
-data("Carseats", package = "ISLR2")
+data("Carseats", package = "ISLR2") # Load data
 
 set.seed(123) # set the seed
 
-train_index <- sample(seq_len(nrow(Carseats)), size = 100)
+train_index <- sample(seq_len(nrow(Carseats)), size = 200)
 train <- Carseats[train_index,]
 test <- Carseats[-train_index,]
 
@@ -54,10 +56,8 @@ y_test <- test[,1] # dependent variable of test
 
 ```
 
-We fit a regression tree to the training set. 
+We fit a regression tree to the training set. The stopping criterion is set to $cp = 10^{-4}$ 
 ```{r}
-library(rpart)
-
 tree <- rpart(Sales ~ ., data =train, 
   method = "anova", parms = list(split = "gini"), # regression tree
   control = list(cp = 0.0001))
@@ -69,14 +69,15 @@ The plot of the tree is seen below.
 ```{r}
 plotcp(tree)
 
-library("partykit")
 tree_party <- partykit::as.party(tree)
 
-plot(tree_party, gp = gpar(fontsize = 6))
+plot(tree_party, gp = gpar(fontsize = 3))
 
 ```
 
-The test MSE is
+The tree has 16 terminal nods (15 splits). With the loose stopping criterion we are facing the risk of overiftting. In order to solve this problem we prune the tree later on. As he \textit{xerrror} doesn't increase for high \text{cp}, I would already guess that overfitting isn't a big problem. Since the tree is rather long we do further interpretations with the pruned tree.
+
+For now, we calculate the test MSE, which is
 ```{r}
 tree_fit <- predict(tree, newdata = test)
 
@@ -87,7 +88,7 @@ return(error)
 
 MSE(tree_fit)
 ```
-Let's use cross-validation in order to determine the optimal level of tree complexity.
+Let's use cross-validation in order to determine the optimal level of tree complexity. To do this, we use the first entry where the \textit{xerror} is smaller than the minimum error plus one standard deviation as complexity parameter.
 ```{r}
 imin <- which.min(tree$cptable[, "xerror"])
 select <- which(
@@ -99,9 +100,11 @@ plotcp(ptree)
 
 
 ptree_party <- partykit::as.party(ptree)
-plot(ptree_party, gp = gpar(fontsize = 10))
+plot(ptree_party, gp = gpar(fontsize = 8))
 
 ```
+
+The pruned tree has 6 terminal nods (5 splits). The fist split is done according to the quality of the shelving location for the car seats. It splits into \textit{Bad \& Medium} and \textit{Good}. The second split is the car seat price after a \textit{Bad \& Medium} shelving location. In the third it's again split by the shelving location. This time between \textit{Bad} and \textit{Medium}. The next is after a Medium shelving location according to the average age of the local population. And lastly by Price after a \textit{Good} shelving location. Looking at the boxplots, it seems that even the last split was still important.
 
 The test MSE with pruning is
 ```{r}
@@ -109,11 +112,12 @@ ptree_fit <- predict(ptree, newdata = test)
 
 MSE(ptree_fit)
 ```
+The test MSE with pruning is higher than without. Therefore pruning the tree doesn't improve the test MSE. Hence, overfitting was acutally not too much of a problem.
 
 <!-- EXERCISE 2 -->
 
 # Exercise 2
-We draw 100 observations from fourindependentvariables $X_1$, ... ,$X_4$ where
+We draw 100 observations from four independent variables $X_1$, ... ,$X_4$ where
 \begin{itemize}
   \item $X_1$ follows a uniform distribution,
   \item $X_2$ follows a standard normal distribution,
@@ -131,8 +135,6 @@ X2 <- rnorm(n)
 X3 <- rbinom(n,1,0.5)
 X4 <- rbinom(n,1,0.1)
 X <- cbind(X1,X2,X3,X4)
-
-
 ```
 
 
@@ -143,28 +145,37 @@ We repeat 1000 times the following:
   \item Determine which variable was used for splitting.
 \end{itemize}
 
-Create the table of relative frequencies how often each of the variables was selected for splitting. Given that
-all independent variables are not associated with the dependent variable, is the probability of including them
-as a split variable the same? If not, why would they differ?
+Below is the table of relative frequencies, how often each of the variables was selected for splitting. We also provide a barplot.
 
 ```{r}
-
-helpf <- function(x){
-y <- rnorm(100)
-data <- data.frame(cbind(y,x))
-tree <- rpart(y ~ ., data = data, method = "anova",
-control = list(maxdepth = 1, cp =-1))
-variable <- names(which.max(tree$variable.importance))
-return(variable)
+helpf_stump <- function(x){
+  y <- rnorm(100)
+  data <- data.frame(cbind(y,x))
+  tree <- rpart(y ~ ., data = data, method = "anova",
+  control = list(maxdepth = 1, cp =-1))
+  variable <- names(which.max(tree$variable.importance))
+  return(variable)
 }
-reps <- replicate(1000, helpf(X))
+reps <- replicate(1000, helpf_stump(X))
 
 
 rel_freq <- table(factor(reps,levels=c("X1","X2","X3","X4")))/length(reps)
 rel_freq
-barplot(rel_freq)
+
+colors <- rainbow(length(rel_freq))
+
+# Create the barplot
+barplot(rel_freq, 
+        main = "Barplot", 
+        xlab = "Category", 
+        ylab = "Relative frequency", 
+        col = colors, 
+        border = "black")
+
 ```
 
+The probability of including a particular independent variable is not the same. $X_2$ has the highest probability, closely followed by $X_1$. The inclusion probabilities for $X_3$ and $X_4$ are much lower. The different probabilities are a result of the distributions of the independent variables.
+It is no great surprise that the highest inclusion probability occurs for $X_2$ with its standard normal distribution when the dependent variable is also standard normally distributed. The uniform distribution also covers it quite well. The 0-1 Bernoulli distribution
 
 <!-- EXERCISE 3 -->
 # Exercise 3
@@ -177,8 +188,7 @@ $$Z_i \sim \sqrt{0.9}X + \epsilon Z_i ,$$
 where $\epsilon Z_i \sim N(0, 0.1).$
 
 
-We draw a training data with 30 observations and a test data with 10,000 observations from the data generating
-process including the additional covariates \textbf{Z}.
+We draw a training data with 30 observations and a test data with 10,000 observations from the data generating process including the additional covariates \textbf{Z}.
 
 ```{r}
 rm(list=ls())
@@ -191,7 +201,7 @@ Y_train <- X_train + eps_train
 help_cov <- function(Z){
 X <- rnorm(20)
 for(i in 1:20){
-  Z[i] <- sqrt(0.9) * X[i] + rnorm(1, 0, 0.1)
+  Z[i] <- sqrt(0.9) * X[i] + rnorm(1, 0, sqrt(0.1))
 }
 return(Z)
 }
@@ -210,11 +220,9 @@ test <- as.data.frame(cbind(Y_test, X_test, Z_test))
 colnames(test) <- c("Y", "X", paste("Z_",1:20))
 ```
 
-We sample 100 bootstrap samples of size 30 from the training data of the previous example by drawing with
-replacement.
+We then sample 100 bootstrap samples of size 30 from the training data by drawing with replacement.
 
 ```{r}
-
 
 bsample <- list()
 
@@ -222,14 +230,12 @@ bsample <- list()
 for(i in 1:100) {
   index <- sample(1:nrow(train), size = 30, replace = TRUE)
   
-  bootstrap <- train[index, ]
-
-  bsample[[i]] <- bootstrap
+  bsample[[i]] <- train[index, ]
 }
 
 ```
 
-Fit to each bootstrap sample: 
+To each bootstrap sample we fit: 
 \begin{enumerate}
 \item a regression tree,
 \item the null model with predicted value equal to the observed empirical mean of Y ,
@@ -239,8 +245,6 @@ with the AIC to select a suitable model starting from the null model.
 \end{enumerate}
 
 ```{r include=FALSE}
-library(rpart)
-library(MASS)
 
 btree <- list() # Creating empty vectors for the results
 bnull <- list()
@@ -260,9 +264,7 @@ for(i in 1:100) {
 ```
 
 
-Determine the predicted values on the test data for the bagged model estimator by calculating the average
-predictions over the 100 trees fitted to the bootstrap samples, the 100 null models, the 100 linear models
-including all linear effects and the 100 linear models based on model selection.
+We determine the predicted values on the test data for the bagged model estimator by calculating the average predictions over the 100 trees fitted to the bootstrap samples, the 100 null models, the 100 linear models including all linear effects and the 100 linear models based on model selection.
 
 ```{r warning=FALSE, include=FALSE}
 
@@ -278,23 +280,13 @@ for(i in 1:100) {
   fit_AIC[[i]] <- predict(bAIC[[i]], newdata = test)
 }
 
+mean_tree <- unlist(lapply(fit_tree, mean))
+mean_null <- unlist(lapply(fit_null, mean ))
+mean_lm <- unlist(lapply(fit_lm, mean ))
+mean_AIC <- unlist(lapply(fit_AIC, mean ))
 ```
 
-```{r}
-mean_tree <- mean(unlist(fit_tree))
-mean_null <- mean(unlist(fit_null))
-mean_lm <- mean(unlist(fit_lm))
-mean_AIC <- mean(unlist(fit_AIC))
-
-means <- data.frame(
-  Model = c("Tree", "Null", "LM", "AIC"),
-  Mean = c(mean_tree, mean_null, mean_lm, mean_AIC)
-)
-means
-```
-
-
-Last, we determine the mean squared error of the four bagged model estimators on the test sample of size 10,000.
+Last, we determine the mean squared error (MSE) of the four bagged model estimators on the test sample of size 10,000.
 
 ```{r}
 
@@ -316,7 +308,7 @@ MSEs
 
 ```
 
-
+The lowest MSE is achieved by the regression tree, flowed by the null model and the model selected by AIC. The highest MSE results for the linear model including X and Z.
 
 <!-- EXERCISE 4 -->
 # Exercise 4
@@ -372,7 +364,6 @@ decrease Gini and mean decrease accuracy values for each of the predictor variab
 ```{r}
 rm(list=ls())
 set.seed(123)
-library(randomForest)
 ```
 
 Let's suitably visualize the results and interpret them.
