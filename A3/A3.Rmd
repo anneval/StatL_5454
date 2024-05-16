@@ -37,7 +37,7 @@ rm(list=ls())
 
 <!-- EXERCISE 1 -->
 # Exercise 1
-We load the data set \textit{Carseats} from package \textit{ISLR2}. We then split the data set into a training set and a test set.
+We load the data set \textit{Carseats} from package \textit{ISLR2}. We then select 100 samples as training data and use the remaining ones as test data.
 ```{r}
 data("Carseats", package = "ISLR2")
 
@@ -67,11 +67,12 @@ printcp(tree)
 ```
 The plot of the tree is seen below.
 ```{r}
-# plotcp(tree)
+plotcp(tree)
 
 library("partykit")
 tree_party <- partykit::as.party(tree)
-plot(tree_party)
+
+plot(tree_party, gp = gpar(fontsize = 6))
 
 ```
 
@@ -86,7 +87,7 @@ return(error)
 
 MSE(tree_fit)
 ```
-
+Let's use cross-validation in order to determine the optimal level of tree complexity.
 ```{r}
 imin <- which.min(tree$cptable[, "xerror"])
 select <- which(
@@ -94,10 +95,11 @@ select <- which(
     sum(tree$cptable[imin, c("xerror", "xstd")]))[1]
 ptree <- prune(tree, cp = tree$cptable[select, "CP"])
 
-# plotcp(ptree)
+plotcp(ptree)
 
-ptree_party <- partykit::as.party(tree)
-plot(ptree_party)
+
+ptree_party <- partykit::as.party(ptree)
+plot(ptree_party, gp = gpar(fontsize = 10))
 
 ```
 

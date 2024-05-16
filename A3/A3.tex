@@ -83,7 +83,8 @@
 \section{Exercise 1}\label{exercise-1}
 
 We load the data set \textit{Carseats} from package \textit{ISLR2}. We
-then split the data set into a training set and a test set.
+then select 50 samples as training data and use the remaining ones as
+test data.
 
 We fit a regression tree to the training set.
 
@@ -126,6 +127,7 @@ The plot of the tree is seen below.
 \end{verbatim}
 
 \includegraphics{A3_files/figure-latex/unnamed-chunk-5-1.pdf}
+\includegraphics{A3_files/figure-latex/unnamed-chunk-5-2.pdf}
 
 The test MSE is
 
@@ -133,7 +135,10 @@ The test MSE is
 ## [1] 5.76
 \end{verbatim}
 
+Let's use cross-validation in order to determine the optimal level of
+tree complexity.
 \includegraphics{A3_files/figure-latex/unnamed-chunk-7-1.pdf}
+\includegraphics{A3_files/figure-latex/unnamed-chunk-7-2.pdf}
 
 The test MSE with pruning is
 
