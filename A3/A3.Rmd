@@ -56,7 +56,7 @@ y_test <- test[,1] # dependent variable of test
 
 We fit a regression tree to the training set. 
 ```{r}
-library("rpart")
+library(rpart)
 
 tree <- rpart(Sales ~ ., data =train, 
   method = "anova", parms = list(split = "gini"), # regression tree
@@ -183,7 +183,8 @@ rm(list=ls())
 set.seed(123) # set the seed
 
 X_train <- rnorm(30,0,1)
-eps <- rnorm(30,0,1)
+eps_train <- rnorm(30,0,1)
+Y_train <- X_train + eps_train
 
 help_cov <- function(Z){
 X <- rnorm(20)
@@ -194,15 +195,17 @@ return(Z)
 }
 
 Z_train <- as.data.frame(t(replicate(30, help_cov(20))))
-Y_train <- X_train + Z_train + eps
-train <- as.data.frame(cbind(Y_train, X_train))
+train <- as.data.frame(cbind(Y_train, X_train, Z_train))
+colnames(train) <- c("Y", "X", paste("Z_",1:20))
 
 
 
 X_test <- rnorm(10000,0,1)
+eps_test <- rnorm(10000,0,1)
+Y_test <- X_test + eps_test
 Z_test <- as.data.frame(t(replicate(1000, help_cov(20))))
-Y_test <- X_test + Z_test + eps
-test <- as.data.frame(cbind(Y_test, X_test))
+test <- as.data.frame(cbind(Y_test, X_test, Z_test))
+colnames(test) <- c("Y", "X", paste("Z_",1:20))
 ```
 
 We sample 100 bootstrap samples of size 30 from the training data of the previous example by drawing with
@@ -233,7 +236,24 @@ Fit to each bootstrap sample:
 with the AIC to select a suitable model starting from the null model.
 \end{enumerate}
 
-```{r}
+```{r include=FALSE}
+library(rpart)
+library(MASS)
+
+btree <- list() # Creating empty vectors for the results
+bnull <- list()
+blm <- list()
+bAIC <- list()
+
+for(i in 1:100) {
+  btree[[i]] <- rpart(Y ~ ., data = bsample[[i]],
+                method = "anova", control = list(cp = 0.0001))
+  bnull[[i]] <- lm(Y ~ 1, data = bsample[[i]])
+  blm[[i]] <- lm(Y ~ ., data = bsample[[i]])
+  bAIC[[i]] <- stepAIC(bnull[[i]], direction = "both",
+                scope = list(upper = blm[[i]],
+                lower = bnull[[i]], k = 2, trace = FALSE))
+}
 
 ```
 
@@ -242,13 +262,55 @@ Determine the predicted values on the test data for the bagged model estimator b
 predictions over the 100 trees fitted to the bootstrap samples, the 100 null models, the 100 linear models
 including all linear effects and the 100 linear models based on model selection.
 
-```{r}
+```{r warning=FALSE, include=FALSE}
+
+fit_tree <- list()
+fit_null <- list()
+fit_lm <- list()
+fit_AIC <- list()
+
+for(i in 1:100) {
+  fit_tree[[i]] <- predict(btree[[i]], newdata = test)
+  fit_null[[i]] <- predict(bnull[[i]], newdata = test)
+  fit_lm[[i]] <- predict(blm[[i]], newdata = test)
+  fit_AIC[[i]] <- predict(bAIC[[i]], newdata = test)
+}
 
 ```
 
-Determine the mean squared error of the four bagged model estimators on the test sample of size 10,000.
+```{r}
+mean_tree <- mean(unlist(fit_tree))
+mean_null <- mean(unlist(fit_null))
+mean_lm <- mean(unlist(fit_lm))
+mean_AIC <- mean(unlist(fit_AIC))
+
+means <- data.frame(
+  Model = c("Tree", "Null", "LM", "AIC"),
+  Mean = c(mean_tree, mean_null, mean_lm, mean_AIC)
+)
+means
+```
+
+
+Last, we determine the mean squared error of the four bagged model estimators on the test sample of size 10,000.
 
 ```{r}
+
+MSE <- function(Y_hat){
+error <- mean((Y_hat-Y_test)^2)
+return(error)
+}
+
+MSE_tree <- MSE(mean_tree)
+MSE_null <- MSE(mean_null)
+MSE_lm <- MSE(mean_lm)
+MSE_AIC <- MSE(mean_AIC)
+
+MSEs <- data.frame(
+  Model = c("Tree", "Null", "LM", "AIC"),
+  MSE = c(MSE_tree, MSE_null, MSE_lm, MSE_AIC)
+)
+MSEs
 
 ```
 
@@ -257,6 +319,63 @@ Determine the mean squared error of the four bagged model estimators on the test
 <!-- EXERCISE 4 -->
 # Exercise 4
 
+We load the dataset icu in package \textbf{aplore3} which contains information on patients who were admitted to an adult intensive care
+unit (ICU). We develop a predictive model for the probability of survival to hospital discharge of these
+patients. To fit a predictive model to the data we use random forests.
+
+```{r}
+rm(list=ls())
+set.seed(123)
+data("icu", package = "aplore3")
+```
+We select a suitable number of bootstrap iterations.
+
+```{r}
+
+```
+
+Assess the influence of varying the hyperparameter m on the out-of-bag error obtained and select a suitable
+value.
+```{r}
+
+```
+
+Inspect the variable importance measures. Compare the mean decrease Gini and the mean decrease accuracy
+measures and assess if the observed differences in relative importance assigned might be related to the
+predictor variable being numeric or not.
+
+```{r}
+
+```
+
+
 <!-- EXERCISE 5 -->
 # Exercise 5
+
+Assume that there are four predictor variables which have the following distributions:
+
+\begin{align}
+X_1 \sim N(0, 1),&& &X_2 \sim U(0, 1), \\
+X_3 \sim M(1, (0.5, 0.5)),&& &X_4 \sim M(1, (0.2, 0.2, 0.2, 0.2, 0.2)).
+\end{align} 
+
+This means we have two continuous variables which follow either a standard normal or a standard uniform
+distribution ($U(0, 1)$ and two categorical variables with balanced categories with either 2 or 5 categories, i.e.,
+$M(N, \pi)$ is the multinomial distribution for N trials and success probability vector $\pi$.
+The dependent variable y is assumed to be a binary categorical variable with equal-sized classes.The sample size is set to N = 200.
+
+
+We generate 100 datasets for each setting and fit a random forest to each dataset and determine the mean
+decrease Gini and mean decrease accuracy values for each of the predictor variables.
+```{r}
+rm(list=ls())
+set.seed(123)
+library(randomForest)
+```
+
+Let's suitably visualize the results and interpret them.
+
+```{r}
+
+```
 
