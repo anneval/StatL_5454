@@ -39,72 +39,71 @@ library(randomForest)
 
 <!-- EXERCISE 1 -->
 # Exercise 1
-We load the data set \textit{Carseats} from package \textit{ISLR2}. It is a simulated data set containing sales of child car seats at 400 different stores. We then select 200 samples (50:50 split) as training data and use the remaining ones as test data.
+
+We load the data set `Carseats` from package \textbf{ISLR2}. It is a simulated data set containing sales of child car seats at 400 different stores. We then randomly select 280 observations as training data and use the remaining ones as test data (70:30 split).
 ```{r}
 data("Carseats", package = "ISLR2") # Load data
 
 set.seed(123) # set the seed
 
-train_index <- sample(seq_len(nrow(Carseats)), size = 200)
-train <- Carseats[train_index,]
-test <- Carseats[-train_index,]
+train_index <- sample(seq_len(nrow(Carseats)), size = 280) # draw indices for training data
 
-X_train <- as.matrix(train[,-1]) # covariates of sample
-y_train <- train[,1] # dependent variable of sample
-X_test <- as.matrix(test[,-1]) # covariates of test
-y_test <- test[,1] # dependent variable of test
+train <- Carseats[train_index,] # training data
+test <- Carseats[-train_index,] # test data
+
+y_test <- test[,1] # dependent variable in test data
 
 ```
 
-We fit a regression tree to the training set. The stopping criterion is set to $cp = 10^{-4}$ 
+Next, we fit a regression tree to the training set. We set the complexity parameter to $cp = 10^{-4}$ in order to initially grow a rather large tree, which we intend to prune later on. 
 ```{r}
-tree <- rpart(Sales ~ ., data =train, 
-  method = "anova", parms = list(split = "gini"), # regression tree
-  control = list(cp = 0.0001))
+tree <- rpart(Sales ~ ., data = train,
+              method = "anova", # regression tree
+              control = list(cp = 0.0001))
+
 options(digits = 4, width= 60)
 printcp(tree)
 
 ```
-The complexity parameter table and the plot of the tree is seen below.
+A plot of the complexity parameter table and the plot of the tree can be seen below.
 ```{r, fig.align="center"}
 plotcp(tree)
 ```
 ```{r}
 tree_party <- partykit::as.party(tree)
-
-plot(tree_party, gp = gpar(fontsize = 3))
+plot(tree_party, gp = gpar(fontsize = 2))
 ```
 
-The tree has 16 terminal nods (15 splits). With the loose stopping criterion we are facing the risk of overiftting. In order to solve this problem we prune the tree later on. As he \textit{xerrror} doesn't increase for high \text{cp}, I would already guess that overfitting isn't a big problem. Since the tree is rather long we do further interpretations with the pruned tree.
+The fitted tree has 26 terminal nodes (25 splits). Overall, 5 of the 10 available predictors are used in the construction of the tree (shelf location, price, price of competitor, average age of the local population, advertising budget). Since the tree is rather long we do further interpretations with the pruned tree. 
 
-For now, we calculate the test MSE, which is
+Given the loose stopping criterion we chose, we are in principle facing the risk of overiftting. In order to solve this problem, we prune the tree later on. However, as the cross-validated errors (`xerror`) are not increasing for smaller values of `cp`, we believe that overfitting may not be a problem. For now, we calculate the test MSE for the full tree, which is given by
 ```{r}
-tree_fit <- predict(tree, newdata = test)
-
 MSE <- function(y_hat){
 error <- mean((y_hat-y_test)^2)
 return(error)
 }
 
+tree_fit <- predict(tree, newdata = test)
 MSE(tree_fit)
 ```
-Let's use cross-validation in order to determine the optimal level of tree complexity. To do this, we use the first entry where the \textit{xerror} is smaller than the minimum error plus one standard deviation as complexity parameter.
+We now use 10-fold cross-validation (which is the default in `rpart()`) in order to determine the optimal level of tree complexity. We do so by applying the 1-SE rule, i.e. we choose the largest complexity parameter such that the corresponding cross-validated error is smaller than the minimum error plus one standard deviation.
 ```{r}
 imin <- which.min(tree$cptable[, "xerror"])
 select <- which(
-  tree$cptable[, "xerror"] < 
-    sum(tree$cptable[imin, c("xerror", "xstd")]))[1]
-ptree <- prune(tree, cp = tree$cptable[select, "CP"])
+  tree$cptable[, "xerror"] < sum(tree$cptable[imin, c("xerror", "xstd")]))[1]
 
+ptree <- prune(tree, cp = tree$cptable[select, "CP"])
+printcp(ptree)
 plotcp(ptree)
 
-
 ptree_party <- partykit::as.party(ptree)
-plot(ptree_party, gp = gpar(fontsize = 8))
+plot(ptree_party, gp = gpar(fontsize = 5))
 
 ```
 
-The pruned tree has 6 terminal nods (5 splits). The fist split is done according to the quality of the shelving location for the car seats. It splits into \textit{Bad \& Medium} and \textit{Good}. The second split is the car seat price after a \textit{Bad \& Medium} shelving location. In the third it's again split by the shelving location. This time between \textit{Bad} and \textit{Medium}. The next is after a Medium shelving location according to the average age of the local population. And lastly by Price after a \textit{Good} shelving location. Looking at the boxplots, it seems that even the last split was still important.
+The pruned tree has 8 terminal nodes (7 splits). In contrast to the full tree, the advertising budget as well as the average age of the local population are no longer used to construct the tree. The first split is made according to the quality of the shelving location for the car seats. It splits into \textit{Bad \& Medium} and \textit{Good}. The second split is based on the car seat price for a \textit{Bad \& Medium} shelving location. The third split distinguishes between \textit{Bad} and \textit{Medium} shelving location for products with higher prices. For the medium shelving location there is another split based on the price of the competitor. For low-price products with \textit{Bad \& Medium} location there are two more splits based on the competitor's and the own price. Finally, for products with \textit{Good} shelving location, a split is made based upon the price. Looking at the boxplots at each terminal node, it seems that even the last split was still important. 
+
+Overall, the pruned tree displays quite intuitive patterns: Sales increase with the quality of the shelving location, increase for higher prices of the competitors and decrease as the price of the car seats increases. It is interesting, though, that the price of competitors is a relevant explanatory factor only for car seats in bad or medium shelving locations. 
 
 The test MSE with pruning is
 ```{r}
@@ -112,17 +111,26 @@ ptree_fit <- predict(ptree, newdata = test)
 
 MSE(ptree_fit)
 ```
-The test MSE with pruning is higher than without. Therefore pruning the tree doesn't improve the test MSE. Hence, overfitting was acutally not too much of a problem.
+and therefore higher than for the initial tree. Hence, pruning the tree does not improve the test MSE, which indicates that overfitting was actually not too much of a problem. However, while pruning has not improved the predictive performance of the tree, it has significantly simplified the interpretation.
 
+
+
+
+
+
+
+
+\newpage
 <!-- EXERCISE 2 -->
 
 # Exercise 2
-We draw 100 observations from four independent variables $X_1$, ... ,$X_4$ where
+
+We draw 100 observations from four independent variables $X_1,\ldots,X_4$, where
 \begin{itemize}
-  \item $X_1$ follows a uniform distribution,
+  \item $X_1$ follows a standard uniform distribution,
   \item $X_2$ follows a standard normal distribution,
-  \item $X_3$ follows a Bernoulli distribution with success probability $\pi$ = 0.5,
-  \item $X_4$ follows a Bernoulli distribution with success probability $\pi$ = 0.1.
+  \item $X_3$ follows a Bernoulli distribution with success probability $\pi = 0.5$,
+  \item $X_4$ follows a Bernoulli distribution with success probability $\pi = 0.1$.
 \end{itemize}
 
 ```{r}
@@ -138,99 +146,93 @@ X <- cbind(X1,X2,X3,X4)
 ```
 
 
-We repeat 1000 times the following:
+We now repeat the following 1000 times:
 \begin{itemize}
-  \item Draw a dependent variable y from a standard normal distribution which is independent of the four independent variables.
-  \item Fit a tree stump, i.e., a tree which contains only one split.
+  \item Draw a dependent variable $y$ from a standard normal distribution, which is independent of the four independent variables.
+  \item Fit a tree stump, i.e. a tree which contains only one split.
   \item Determine which variable was used for splitting.
 \end{itemize}
 
-Below is the table of relative frequencies, how often each of the variables was selected for splitting. We also provide a barplot.
+Below is the table of relative frequencies, displaying how often each of the variables was selected for splitting. We also provide a barplot to visualize the findings.
 
 ```{r}
 helpf_stump <- function(x){
   y <- rnorm(100)
   data <- data.frame(cbind(y,x))
+  
   tree <- rpart(y ~ ., data = data, method = "anova",
-  control = list(maxdepth = 1, cp =-1))
+                control = list(maxdepth = 1))
+  
   variable <- names(which.max(tree$variable.importance))
   return(variable)
 }
-reps <- replicate(1000, helpf_stump(X))
 
+reps <- replicate(1000, helpf_stump(X))
 
 rel_freq <- table(factor(reps,levels=c("X1","X2","X3","X4")))/length(reps)
 rel_freq
 
-colors <- rainbow(length(rel_freq))
-
 # Create the barplot
+colors <- rainbow(length(rel_freq))
 barplot(rel_freq, 
         main = "Barplot", 
-        xlab = "Category", 
+        xlab = "Predictors", 
         ylab = "Relative frequency", 
         col = colors, 
         border = "black")
 
 ```
 
-The probability of including a particular independent variable is not the same. $X_2$ has the highest probability, closely followed by $X_1$. The inclusion probabilities for $X_3$ and $X_4$ are much lower. The different probabilities are a result of the distributions of the independent variables.
-It is no great surprise that the highest inclusion probability occurs for $X_2$ with its standard normal distribution when the dependent variable is also standard normally distributed. The uniform distribution also covers it quite well. The Bernoulli distribution bears little resemblance to the standard normal distribution. Therefore, the low inclusion probabilities.
+The probability of including a particular independent variable is not the same. $X_2$ has the highest probability, closely followed by $X_1$. The inclusion probabilities for $X_3$ and $X_4$ are much lower. Hence, while all predictors are independent of $y$, the two continuous variables ($X_1, X_2$) are much more likely to be selected as splitting variable. This should not come as a surprise, as a continuous split variable allows for more flexibility in partitioning the $X$-space. By choosing different split points, one can define a wide variety of different pairs of half-planes. For a binary split variable, in contrast, there is only a single possible partition, with all observations where the split variable is equal to 1 being part of one region and the remaining observations being part of the other region. Thus, the probability of finding a partition of $X$-space such that the sum of squared residuals is (by chance) small, is much higher for continuous split variables.
+
+
+
 
 <!-- EXERCISE 3 -->
 # Exercise 3
 
-Let's assume the following data generating process
+We assume the following data generating process
 $$ Y = X + \epsilon, $$
-with $X \sim N(0,1)$ and $\epsilon \sim N(0,1)$ independent.
-In addition 20 covariates $Z_1, ... ,Z_{20}$ are given with
-$$Z_i \sim \sqrt{0.9}X + \epsilon Z_i ,$$
-where $\epsilon Z_i \sim N(0, 0.1).$
+with $X \sim N(0,1)$ and $\epsilon \sim N(0,1)$ independent. In addition, 20 covariates $Z_1,\ldots,Z_{20}$ are given with
+$$Z_i \sim \sqrt{0.9}X + \epsilon_{Z_i},$$
+where $\epsilon_{Z_i} \sim N(0, 0.1)$.
 
-
-We draw a training data with 30 observations and a test data with 10,000 observations from the data generating process including the additional covariates \textbf{Z}.
+We draw training data with 30 observations and test data with 10,000 observations from the data generating process, including the additional covariates $\mathbf{Z}$.
 
 ```{r}
+
 rm(list=ls())
 set.seed(123) # set the seed
 
-X_train <- rnorm(30,0,1)
-eps_train <- rnorm(30,0,1)
-Y_train <- X_train + eps_train
-
-help_cov <- function(Z){
-X <- rnorm(20)
-for(i in 1:20){
-  Z[i] <- sqrt(0.9) * X[i] + rnorm(1, 0, sqrt(0.1))
+generate_data <- function(N){
+  X <- rnorm(N) # draw X
+  epsilon <- rnorm(N) # draw \epsilon
+  epsilon_Z <- matrix(rnorm(20*N, mean = 0, sd = sqrt(0.1)),
+                      nrow = N, ncol = 20) # draw (\epsilon_Z1,..., \epsilon_Z20)
+  
+  Y <- X + epsilon # generate y
+  Z <- sqrt(0.9)*X + epsilon_Z # generate Z
+  
+  data <- as.data.frame(cbind(Y,X,Z)) # create dataframe
+  colnames(data) <- c("Y","X", paste("Z_",1:20))
+  
+  return(data)
 }
-return(Z)
-}
 
-Z_train <- as.data.frame(t(replicate(30, help_cov(20))))
-train <- as.data.frame(cbind(Y_train, X_train, Z_train))
-colnames(train) <- c("Y", "X", paste("Z_",1:20))
+train <- generate_data(30)
+test <- generate_data(10000)
 
-
-
-X_test <- rnorm(10000,0,1)
-eps_test <- rnorm(10000,0,1)
-Y_test <- X_test + eps_test
-Z_test <- as.data.frame(t(replicate(1000, help_cov(20))))
-test <- as.data.frame(cbind(Y_test, X_test, Z_test))
-colnames(test) <- c("Y", "X", paste("Z_",1:20))
 ```
 
-We then sample 100 bootstrap samples of size 30 from the training data by drawing with replacement.
+We then create 100 bootstrap samples of size 30 from the training data by drawing with replacement.
 
 ```{r}
 
 bsample <- list()
 
-
 for(i in 1:100) {
   index <- sample(1:nrow(train), size = 30, replace = TRUE)
-  
-  bsample[[i]] <- train[index, ]
+  bsample[[i]] <- train[index, ] 
 }
 
 ```
@@ -238,27 +240,28 @@ for(i in 1:100) {
 To each bootstrap sample we fit: 
 \begin{enumerate}
 \item a regression tree,
-\item the null model with predicted value equal to the observed empirical mean of Y ,
-\item a linear model including linear effects for X and all Z variables and
-\item a linear model potentially including linear effects for X and all Z variables, but using model selection
+\item the null model with predicted value equal to the observed empirical mean of $Y$,
+\item a linear model including linear effects for $X$ and all $Z$ variables and
+\item a linear model potentially including linear effects for $X$ and all $Z$ variables, but using model selection
 with the AIC to select a suitable model starting from the null model.
 \end{enumerate}
 
 ```{r include=FALSE}
-
-btree <- list() # Creating empty vectors for the results
+# create empty lists as containers for the results
+btree <- list() 
 bnull <- list()
 blm <- list()
 bAIC <- list()
 
+# fit the models
 for(i in 1:100) {
-  btree[[i]] <- rpart(Y ~ ., data = bsample[[i]],
-                method = "anova", control = list(cp = 0.0001))
-  bnull[[i]] <- lm(Y ~ 1, data = bsample[[i]])
-  blm[[i]] <- lm(Y ~ ., data = bsample[[i]])
-  bAIC[[i]] <- stepAIC(bnull[[i]], direction = "both",
-                scope = list(upper = blm[[i]],
-                lower = bnull[[i]], k = 2, trace = FALSE))
+  btree[[i]] <- rpart(Y ~ ., data = bsample[[i]], method = "anova") # use default settings
+  bnull[[i]] <- lm(Y ~ 1, data = bsample[[i]]) # null model
+  blm[[i]] <- lm(Y ~ ., data = bsample[[i]]) # linear model with all covariates
+  bAIC[[i]] <- stepAIC(bnull[[i]], # start from null model
+                       direction = "both", # forward and backwards search
+                       scope = list(upper = blm[[i]], lower = bnull[[i]]), # go from null to full model
+                       trace = FALSE) 
 }
 
 ```
@@ -268,11 +271,13 @@ We determine the predicted values on the test data for the bagged model estimato
 
 ```{r warning=FALSE, include=FALSE}
 
+# containers for predictions across bootstrap samples
 fit_tree <- list()
 fit_null <- list()
 fit_lm <- list()
 fit_AIC <- list()
 
+# make predictions
 for(i in 1:100) {
   fit_tree[[i]] <- predict(btree[[i]], newdata = test)
   fit_null[[i]] <- predict(bnull[[i]], newdata = test)
@@ -280,19 +285,20 @@ for(i in 1:100) {
   fit_AIC[[i]] <- predict(bAIC[[i]], newdata = test)
 }
 
-mean_tree <- unlist(lapply(fit_tree, mean))
-mean_null <- unlist(lapply(fit_null, mean ))
-mean_lm <- unlist(lapply(fit_lm, mean ))
-mean_AIC <- unlist(lapply(fit_AIC, mean ))
+# compute averages across the bootstrap samples
+mean_tree <- rowMeans(sapply(fit_tree, unlist))
+mean_null <- rowMeans(sapply(fit_null, unlist))
+mean_lm <- rowMeans(sapply(fit_lm, unlist))
+mean_AIC <- rowMeans(sapply(fit_AIC, unlist))
 ```
 
-Last, we determine the mean squared error (MSE) of the four bagged model estimators on the test sample of size 10,000.
+Finally, we determine the mean squared error (MSE) of the four bagged model estimators on the test sample of size 10,000.
 
 ```{r}
 
 MSE <- function(Y_hat){
-error <- mean((Y_hat-Y_test)^2)
-return(error)
+  error <- mean((Y_hat-test$Y)^2)
+  return(error)
 }
 
 MSE_tree <- MSE(mean_tree)
@@ -308,67 +314,158 @@ MSEs
 
 ```
 
-The lowest MSE is achieved by the regression tree, flowed by the null model and the model selected by AIC. The highest MSE results for the linear model including X and all Z.
+The lowest MSE is achieved by the regression tree, followed by the model selected by AIC and the null model. The highest MSE is obtained in case of the linear model including $X$ and all $Z$ variables, which ultimately suffers from high multicollinearity.
 
+\newpage
 <!-- EXERCISE 4 -->
 # Exercise 4
 
-We load the dataset icu in package \textbf{aplore3} which contains information on patients who were admitted to an adult intensive care
-unit (ICU). We develop a predictive model for the probability of survival to hospital discharge of these
-patients. To fit a predictive model to the data we use random forests.
+We load the dataset `icu` in package \textbf{aplore3}, which contains information on patients who were admitted to an adult intensive care unit (ICU). We drop the variable `id`, which is just an ID number of the patients, and use the variable `sta` as dependent variable in order to develop a predictive model of the patients' survival.
 
 ```{r}
 rm(list=ls())
 set.seed(123)
 data("icu", package = "aplore3")
+icu <- icu[,-1]
 ```
-We select a suitable number of bootstrap iterations.
+We first fit a random forest using the default settings of `randomForest()` for the number of bootstrap iterations ($ntree = 500$) and the number of candidate variables at each split ($m = \sqrt{p}$, where $p$ is the number of predictors).
 
 ```{r}
 
+rf <- randomForest(sta ~ ., data = icu, importance = TRUE)
+rf
+
 ```
 
-Assess the influence of varying the hyperparameter m on the out-of-bag error obtained and select a suitable
-value.
+We now want to evaluate whether the default value of 500 bootstrap iterations is sufficiently large. In order to do so, we look at the evolution of the OOB error rate for increasing number of trees. 
 ```{r}
 
-```
+plot(rf, main = "")
+legend("topright", colnames(rf$err.rate),
+  col = 1:3, lty = 1:3)
 
-Inspect the variable importance measures. Compare the mean decrease Gini and the mean decrease accuracy
-measures and assess if the observed differences in relative importance assigned might be related to the
-predictor variable being numeric or not.
+
+```
+The plot shows that the error rates stabilize rather quickly and that 150 to 200 bootstrap iterations seem to be enough. However, since computational costs are limited in this exercise we continue our analysis with $ntree = 500$.
+
+Next, we want to tune the hyperparameter $m$ and assess its influence on the OOB error. Since the dataset is rather small, we consider all possible values $m = 1,\ldots 19$.
+
+```{r}
+rf_list <- list()
+oob_errors <- numeric(19)
+names(oob_errors) <- paste("m =", 1:19)
+
+for(m in 1:19){
+  rf_list[[m]] <- randomForest(sta ~ ., data = icu, importance = TRUE, mtry = m)
+  oob_errors[m] <- rf_list[[m]]$err.rate[500, "OOB"]
+}
+
+options(digits = 4)
+oob_errors
+
+best_m <- which.min(oob_errors)
+best_rf <- rf_list[[best_m]]
+```
+We find that the OOB error rate is quite insensitive to the choice of $m$ and that even a choice of $m=1$ does not drastically increase the OOB error. The OOB error rate is minimized for $m=5$ and we choose this value for the final task of this exercise, where we want to inspect the variable importance measures.
+
 
 ```{r}
 
+MDG <- importance(best_rf)[, "MeanDecreaseGini"]
+MDA <- importance(best_rf, scale = FALSE)[, "MeanDecreaseAccuracy"]
+
+par(mfrow = c(1, 2))
+barplot(MDG[order(MDG)], horiz = TRUE, las = 1,
+  xlab = "mean decrease Gini",cex.names = 0.5)
+barplot(MDA[order(MDA)], horiz = TRUE, las = 1,
+  xlab = "mean decrease accuracy", cex.names = 0.5)
+
+top5_mda <- names(MDA[order(MDA, decreasing = TRUE)][1:5])
+top5_mdg <- names(MDG[order(MDG, decreasing = TRUE)][1:5])
 ```
+
+By far the most important variable according to mean decrease accuracy (MDA) is the level of consciousness at ICU admission (`loc`), followed by systolic blood pressure, type of admission (elective or emergency), age and the type of service (medical or surgery). Based on mean decrease Gini (MDG) as importance measure, four explanatory variables stand out: Systolic blood pressure is the most important predictor, followed by age, the level of consciousness and the heart rate at ICU admission.
+
+Looking at the `class` of the five most important variables according to each measure, we find that the MDG favors numeric predictors:
+```{r}
+print("Top 5 - MDA:")
+print(sapply(icu[top5_mda], class))
+print("Top 5 - MDG:")
+print(sapply(icu[top5_mdg], class))
+```
+While only 2 out of 5 most important predictors according to MDA are numeric, 3 out of the 4 variables with significantly higher MDG are numeric. 
 
 
 <!-- EXERCISE 5 -->
 # Exercise 5
 
-Assume that there are four predictor variables which have the following distributions:
+We consider four predictor variables, which have the following distributions:
 
 \begin{align}
 X_1 \sim N(0, 1),&& &X_2 \sim U(0, 1), \\
 X_3 \sim M(1, (0.5, 0.5)),&& &X_4 \sim M(1, (0.2, 0.2, 0.2, 0.2, 0.2)).
 \end{align} 
 
-This means we have two continuous variables which follow either a standard normal or a standard uniform
-distribution ($U(0, 1)$ and two categorical variables with balanced categories with either 2 or 5 categories, i.e.,
-$M(N, \pi)$ is the multinomial distribution for N trials and success probability vector $\pi$.
-The dependent variable y is assumed to be a binary categorical variable with equal-sized classes.The sample size is set to N = 200.
+This means that we have two continuous variables, which follow either a standard normal or a standard uniform
+distribution, and two categorical variables with balanced categories with either 2 or 5 categories. The dependent variable $y$ is assumed to be a binary categorical variable with equal-sized classes. 
 
 
-We generate 100 datasets for each setting and fit a random forest to each dataset and determine the mean
+We generate 100 datasets of sample size $N = 200$ and then fit a random forest to each dataset and determine the mean
 decrease Gini and mean decrease accuracy values for each of the predictor variables.
 ```{r}
 rm(list=ls())
 set.seed(123)
+
+N <- 200 # sample size
+n_rep <- 100 # number of datasets
+n_pred <- 4 # number of predictors
+
+# container for mean decrease accuracy and mean decrease gini
+MDG <- matrix(nrow = n_rep, ncol = n_pred)
+MDA <- matrix(nrow = n_rep, ncol = n_pred)
+
+for(i in 1:n_rep){
+  
+  # generate predictors
+  X1 <- rnorm(N) # standard normal
+  X2 <- runif(N) # standard uniform
+  X3 <- sample(1:2, size = N, replace = TRUE, prob = c(0.5,0.5)) # cat. variable with 2 levels
+  X4 <- sample(1:5, size = N, replace = TRUE, prob = rep(0.2,5)) # cat. variable with 5 levels
+  
+  # generate dependent variable (binary)
+  Y <- sample(0:1, size = N, replace = TRUE, prob = c(0.5, 0.5))
+  
+  # create data
+  data <- as.data.frame(cbind(Y,X1,X2,X3,X4))
+  cat_vars <- c("Y", "X3", "X4")
+  data[cat_vars] <- lapply(data[cat_vars], as.factor) 
+  
+  # estimate random forest
+  rf <- randomForest(Y ~ ., data = data, importance = TRUE)
+  
+  # look at importance measures
+  MDA[i,] <- importance(rf, scale = FALSE)[,"MeanDecreaseAccuracy"] # don't scale
+  MDG[i,] <- importance(rf)[,"MeanDecreaseGini"]
+}
+
+
+
+
+
 ```
 
-Let's suitably visualize the results and interpret them.
+Let us first have a look at the distribution of mean decrease accuracy (MDA) across the different samples for each predictor:
 
 ```{r}
 
-```
+boxplot(MDA, main = "MDA", names = c("X1", "X2", "X3", "X4"))
 
+```
+On average, each predictor performs equally well (or rather bad) in terms of MDA. However, in case of the binary predictor ($X_3$), the distribution of MDA across samples is not as dispersed. Looking at mean decrease Gini (MDG), we come to a very different conclusion:
+
+```{r}
+
+boxplot(MDG, main = "MDG", names = c("X1", "X2", "X3", "X4"))
+
+```
+While the performance of the two continuous predictors is very similar, MDG suggests that the two categorical variables are of much smaller importance, in particular the binary variable $X_3$. We conclude that MDG is sensitive to the scale of a variable and favors numeric variables compared to categorical ones, especially if the number of levels of a categorical variable is small.
