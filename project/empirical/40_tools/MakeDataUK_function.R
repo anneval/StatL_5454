@@ -1,73 +1,106 @@
-MakeDataUS <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, versionName="current", frequency, download=TRUE, EM_algorithm=T,
+MakeDataUK <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, versionName="current", frequency, download=TRUE, EM_algorithm=T,
                        EM_last_date=NA,target_new_tcode) {
   
-  #print(target_tcode)
   library(pracma)
   library(stringr)
   
+  
+ path = paste0(path,paths$dat,"/")
+ targetName = OOS_params$targetName[var]
+ h = hor
+    nFac = OOS_params$nFac
+    lag_y = OOS_params$lagY
+    lag_f = OOS_params$lagX
+    lag_marx = OOS_params$lagMARX
+    
+   versionName = "current"
+
+   download = F
+   EM_algorithm=F
+   EM_last_date=NA
+
+   frequency = 1
+
+   target_new_tcode=OOS_params$target_tcode[var]
+  
+  
   # Download FRED-QD if needed
   if(substr(path,nchar(path),nchar(path)) != "/") {path <- paste0(path,"/")}
-  
-  if(download == TRUE) {
-    if(frequency==1) {
-      url <- paste0("https://files.stlouisfed.org/files/htdocs/fred-md/monthly/",versionName,".csv")
-      download.file(url,
-                    destfile = paste(path,paste0(versionName,"_monthly.csv"),sep='/'),
-                    mode = "wb")
-    }else if(frequency==2) {
-      url <- paste0("https://files.stlouisfed.org/files/htdocs/fred-md/quarterly/",versionName,".csv")
-      download.file(url,
-                    destfile = paste(path,paste0(versionName,"_quarterly.csv"),sep='/'),
-                    mode = "wb")
-    }
 
-  }
-  
-  
-  
-  
+  # if(download == TRUE) {
+  #   if(frequency==1) {
+  #     url <- paste0("https://files.stlouisfed.org/files/htdocs/fred-md/monthly/",versionName,".csv")
+  #     download.file(url,
+  #                   destfile = paste(path,paste0(versionName,"_monthly.csv"),sep='/'),
+  #                   mode = "wb")
+  #   }else if(frequency==2) {
+  #     url <- paste0("https://files.stlouisfed.org/files/htdocs/fred-md/quarterly/",versionName,".csv")
+  #     download.file(url,
+  #                   destfile = paste(path,paste0(versionName,"_quarterly.csv"),sep='/'),
+  #                   mode = "wb")
+  #   }
+  # 
+  # else {
+  #   local_path <- "C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical/10_data/UKMD_April_2024"
+  #   if (frequency == 1) {
+  #     data <- read.csv(file.path(local_path, paste0("raw_uk_md.csv")))
+  #   }
+  #   return(data)
+  # }}
+
+
   output <- vector("list", length = length(targetName))
+ numOfTarget <-1
   
   for (numOfTarget in 1:length(output)) {
     
-    ## TRANSFORM DATA ---------------------------------------------------------------
-    if(frequency==1){
-      data <- transformFRED(file = paste0(path,versionName,"_monthly.csv"),date_start = NULL, date_end = NULL,
-                            transform = TRUE, frequency, targetName[numOfTarget], target_new_tcode[numOfTarget], h)
-    } else if(frequency==2){
-      data <- transformFRED(file = paste0(path,versionName,"_quarterly.csv"), date_start = NULL, date_end = NULL,
-                            transform = TRUE, frequency, targetName[numOfTarget], target_new_tcode[numOfTarget], h)
+    # ## TRANSFORM DATA ---------------------------------------------------------------
+    # if(frequency==1){
+    #   data <- transformFRED(file = paste0(path,"raw_uk_md.csv"),date_start =as.Date("1998-01-01"), date_end = NULL,
+    #                         transform = TRUE, frequency, targetName[numOfTarget], target_new_tcode[numOfTarget], h)
+    # } else if(frequency==2){
+    #   data <- transformFRED(file = paste0(path,versionName,"_quarterly.csv"), date_start = NULL, date_end = NULL,
+    #                         transform = TRUE, frequency, targetName[numOfTarget], target_new_tcode[numOfTarget], h)
+    # }
+    
+    local_path <- "C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical/10_data/UKMD_April_2024"
+    if (frequency == 1) {
+      data <- read.csv(file.path(local_path, paste0("balanced_uk_md.csv")))
     }
+    # 
+  
     
-    targetedSerie <- data[[3]]
-    rawdata <- data[[2]]
-    all_tcodes <- data[[4]]
-    data <- data[[1]]
-    transdata <- data
-    
+     targetedSerie <- data[[targetName]]
+       # rawdata <- data[[2]]
+    # all_tcodes <- data[[4]]
+    # data <- data[[1]]
+    # transdata <- data
+    # 
     # Change variables names
-    colnames(data)[grep(" ", colnames(data))] <- sub(" ",".",grep(" ", colnames(data), value = TRUE))
-    colnames(data)[grep(" ", colnames(data))] <- sub(" ",".",grep(" ", colnames(data), value = TRUE))
-    colnames(data)[grep("&", colnames(data))] <- sub("&",".",grep("&", colnames(data), value = TRUE))
-    colnames(data)[grep(":", colnames(data))] <- sub(":","",grep(":", colnames(data), value = TRUE))
+    # colnames(data)[grep(" ", colnames(data))] <- sub(" ",".",grep(" ", colnames(data), value = TRUE))
+    # colnames(data)[grep(" ", colnames(data))] <- sub(" ",".",grep(" ", colnames(data), value = TRUE))
+    # colnames(data)[grep("&", colnames(data))] <- sub("&",".",grep("&", colnames(data), value = TRUE))
+    # colnames(data)[grep(":", colnames(data))] <- sub(":","",grep(":", colnames(data), value = TRUE))
+    # 
+    # 
+    data <- data[,-1]
     
     date <- as.character(data[,1])
     if(length(targetedSerie)>1) {
       names(targetedSerie) <- date
     }
-    data <- data[,-1]
     
     # Use EM Algorithm
-    if(EM_algorithm == TRUE) {
-      
-      if(!is.na(EM_last_date)) {
-        toUse <- 1:which(date == EM_last_date)
-        part <- EM_sw(data=data[toUse,], n=8, it_max=1000)$data
-        data <- rbind(part,as.matrix(data[-toUse,]))
-      }else{
-        data <- EM_sw(data=data[,], n=8, it_max=1000)$data
-      }
-    }
+    # if(EM_algorithm == TRUE) {
+    #   
+    #   if(!is.na(EM_last_date)) {
+    #     toUse <- 1:which(date == EM_last_date)
+    #     part <- EM_sw(data=data[toUse,], n=8, it_max=1000)$data
+    #     data <- rbind(part,as.matrix(data[-toUse,]))
+    #   }else{
+    #     data <- EM_sw(data=data[,], n=8, it_max=1000)$data
+    #   }
+    # }
     
     # Get the target
     rownames(data) <- date
@@ -78,15 +111,57 @@ MakeDataUS <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, version
     data <- data[,-which(colnames(data)==targetName[numOfTarget])]
     varNames <- colnames(data)
     
-    ## MAKE FACTORS (if needed) -----------------------------------------------------
+    data <- data[1:313,-1] # drop 2024 because of NAs 
+    target <- target[1:313]
+    targetedSerie <- targetedSerie[1:313]
+    #### LIBOR imputation
     
+    na_id <- which(is.na(data$LIBOR_3mth))
+    good_id <- sapply(na_id, function(x) x + -3:3)
+    imputation <- apply(good_id, 2, function(x) mean(data[x,"LIBOR_3mth"], na.rm = TRUE))
+    
+    data[na_id,"LIBOR_3mth"] <- imputation
+    # 
+    # data_m <- as.numeric(as.matrix(data))
+    # which(is.na(data_m))
+    ###### 
+
+    # 
+    # X <- standard(as.matrix(data))
+    #  r <- nFac
+    #  bign <- dim(X)[2]
+    #  bigt <- dim(X)[1]
+    #  #X <- as.matrix(data)
+    # #  t(data_m)%*%data_m
+    #  
+    # # data_m <- as.matrix()
+    #  test_xx <- t(X)%*%X
+     
+   #  svd <- svd(test_xx)
+    # lambda <- svd$u[,1:r]*sqrt(bign) # r th column times r th biggest eigenvalue
+    # f_hat <- X%*%lambda/bign         # factors
+    # e_hat <- X - f_hat%*%t(lambda)   # errors
+    # mse <- sum(e_hat^2)/(bign*bigt)
+    # 
+    # results <- list(factors = f_hat, lambda = lambda, mse = mse)
+    # 
+    ## MAKE FACTORS (if needed) -----------------------------------------------------
+     # 
+     # data_s <- standard(data)
+     # 
+     # 
+     data_m <- as.matrix(data)
+     # 
     if(nFac > 0) {
-      facs <- factorize(standard(data)$Y, n_fac = nFac)$factor
+      facs <- factorize(standard((data_m))$Y, n_fac = nFac)$factor
       colnames(facs) <- paste0("F_US",1:nFac)
       data = cbind(facs,data)
     }else{
       facs = NA
     }
+    
+
+   # factorize(as.matrix(test),n_fac=5) 
     
     ## MAKE LAGS --------------------------------------------------------------------
     maxLag <- max(lag_y, lag_f)
@@ -163,16 +238,16 @@ MakeDataUS <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, version
       frequencyString = "Quarterly"
     }
     
-    returns <- list(trans_data=transdata,
-                    raw_data=rawdata,
+    returns <- list(#trans_data=transdata,
+                    #raw_data=rawdata,
                     lagged_data=newtrain,
                     factors=facs,
                     targetName=targetName[numOfTarget],
-                    versionName=versionName,
+                  #  versionName=versionName,
                     horizon=h,
                     frequency=frequencyString,
-                    varNames=c(varNames),
-                    tcodes=all_tcodes)
+                    varNames=c(varNames))
+                   # tcodes=all_tcodes)
     
     output[[numOfTarget]] <- returns
     
@@ -342,6 +417,15 @@ standard <- function(Y){
   return(list(Y=Y0, mean=mean_y, std=sd_y))
 }
 
+
+
+
+# data <- transformFRED(file = paste0(path,"raw_uk_md.csv"),date_start =as.Date("1998-01-01"), date_end = NULL,
+#                       transform = TRUE, frequency, targetName[numOfTarget], target_new_tcode[numOfTarget], h)
+
+#targetNames <- targetName[numOfTarget]
+#target_tcode <- target_new_tcode[numOfTarget]
+  
 transformFRED <- function (file = "", date_start = NULL, date_end = NULL, transform = TRUE, frequency, targetNames, target_tcode, h) 
 {
 
