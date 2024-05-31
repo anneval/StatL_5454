@@ -71,10 +71,10 @@ OOS_params <- list()
 # OOS_params$targetName <- c("CPIAUCSL","UNRATE",  
 #                            "HOUST", "PAYEMS",
 #                            "GDPC1")  
-OOS_params$targetName <- c("IOP_PROD","UNEMP_RATE","CPI_ALL")[3]
+OOS_params$targetName <- c("CPI_ALL")
 
 # Change the transformation code of the target, "NA" to keep FRED's code
-OOS_params$target_tcode <- c(5,2,NA) # not really needed here since we use the balanced UK data set 
+OOS_params$target_tcode <- c(NA) # not really needed here since we use the balanced UK data set 
 
 # Forecasting horizons (in quarter), month here 
 OOS_params$horizon <- c(3,12)
@@ -100,12 +100,12 @@ OOS_params$lagMARX <- NA
 OOS_params$nfolds <- 5
 
 # How many quarters between hyperparameters CV (in quarters)
-OOS_params$reEstimate <- 20 # each 5 years 
+OOS_params$reEstimate <- 60 # each 5 years 
 
 # Which models to used ? Possible choice c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","ELASTIC-NET","RF","GBM","NN,"AR-RF")
 #OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
 
-OOS_params$model_list <- c("AR, BIC","AR-RF")
+OOS_params$model_list <- c("AR, BIC","AR-RF","RF-MAF","FA-ARRF") #RF_MAF, RF, FA-ARRF
 
 # Folder name in 50_results
 OOS_params$save_path = "demo"
@@ -114,22 +114,30 @@ OOS_params$save_path = "demo"
 
 
 # Elastic - Net hyperparameters (CV)
-OOS_params$EN_hyps <- list(alpha_range = round(seq(0.01,0.99, length = 100),4))
+#OOS_params$EN_hyps <- list(alpha_range = round(seq(0.01,0.99, length = 100),4))
 
 
 # Boosting hyperparameters (CV)
-OOS_params$Boosting_hyps <- list(man_grid = expand.grid(n.trees = c(seq(25, 700, by = 100)),
-                                                        interaction.depth = c(3,5),
-                                                        shrinkage = c(0.01),
-                                                        n.minobsinnode = c(10)),
-                                 fitControl = trainControl(method = "cv",
-                                                           number = OOS_params$nfolds,
-                                                           search = "grid"))
+# OOS_params$Boosting_hyps <- list(man_grid = expand.grid(n.trees = c(seq(25, 700, by = 100)),
+#                                                         interaction.depth = c(3,5),
+#                                                         shrinkage = c(0.01),
+#                                                         n.minobsinnode = c(10)),
+#                                  fitControl = trainControl(method = "cv",
+#                                                            number = OOS_params$nfolds,
+#                                                            search = "grid"))
 
-# Random Forest hyperparameters
+# Random Forest a) hyperparameters
 OOS_params$RF_hyps <- list(num.trees = 500,
                            min.node.size = 3,
                            mtry = 1/3)
+
+
+
+# Random Forest b) hyperparameters
+OOS_params$RF_MAF_hyps <- list(num.trees = 500,
+                           min.node.size = 3,
+                           mtry = 1/3)
+
 
 # Macro Random Forest hyperparamaters
 OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
@@ -138,19 +146,26 @@ OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7), #### für den ARRF & mon
                                 minsize = 15,
                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
 
+# Macro Random Forest hyperparamaters
+OOS_params$FA_MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7,26,27), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
+                                B = 20,
+                                mtry_frac = 0.15,
+                                minsize = 15,
+                                block_size = 24) # block size is 24 in monthly i.e. 2 years
+
 # Neural network hyperparameters
-OOS_params$nn_hyps <- list(n_features=NA,
-                           nodes=rep(100,5),      # same number of nodes in every layers
-                           patience=10,           # Return the best model
-                           epochs=100,
-                           lr=0.001,
-                           tol=0.01,
-                           show_train=3,          # 1=show each bootstrap loss, 2=progress bar, 3+=show nothing
-                           num_average=5,
-                           dropout_rate=0.2,
-                           sampling_rate = 0.75,
-                           batch_size = 32,
-                           num_batches = NA)
+# OOS_params$nn_hyps <- list(n_features=NA,
+#                            nodes=rep(100,5),      # same number of nodes in every layers
+#                            patience=10,           # Return the best model
+#                            epochs=100,
+#                            lr=0.001,
+#                            tol=0.01,
+#                            show_train=3,          # 1=show each bootstrap loss, 2=progress bar, 3+=show nothing
+#                            num_average=5,
+#                            dropout_rate=0.2,
+#                            sampling_rate = 0.75,
+#                            batch_size = 32,
+#                            num_batches = NA)
 
 # ===========================================================================================================
 # 2. PARALLEL ESTIMATION
@@ -215,12 +230,12 @@ pred_plot_h4 <- list()
 for(var in 1:dim(results$mse_table)[3]) {
   
   # MSE
-  mse_barplot_h1[[var]] <- quick_barplot(results, hor = 1, var = var)
-  mse_barplot_h4[[var]] <- quick_barplot(results, hor = 4, var = var)
+  mse_barplot_h1[[var]] <- quick_barplot(results, hor = 3, var = var)
+  mse_barplot_h4[[var]] <- quick_barplot(results, hor = 12, var = var)
   
   # Predictions
-  pred_plot_h1[[var]] <- quick_plot(results, hor = 1, var = var)
-  pred_plot_h4[[var]] <- quick_plot(results, hor = 4, var = var)
+  pred_plot_h1[[var]] <- quick_plot(results, hor = 3, var = var)
+  pred_plot_h4[[var]] <- quick_plot(results, hor = 12, var = var)
   
   # Put the 2 graphs together
   p <- arrangeGrob(pred_plot_h1[[var]],mse_barplot_h1[[var]],
@@ -237,7 +252,7 @@ for(var in 1:dim(results$mse_table)[3]) {
 
 # Quick view, you need to choose the position of the target you want to see
 # targets order : (1) "CPIAUCSL", (2) "UNRATE", (3) "HOUST", (4) "PAYEMS", (5) "GDPC1"
-mse_barplot_h1[[3]]
-pred_plot_h1[[3]]
-mse_barplot_h1[[3]]
+mse_barplot_h1[[1]]
+pred_plot_h1[[1]]
+mse_barplot_h1[[2]]
 pred_plot_h1[[3]]

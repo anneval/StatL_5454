@@ -81,19 +81,27 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   ## Hyperparamters ----------------------------------------------------------------
   
   # Elastic - Net hyperparameters (CV)
-  EN_hyps <<- OOS_params$EN_hyps
+ # EN_hyps <<- OOS_params$EN_hyps
   
-  # Random Forest hyperparameters
+  # Random Forest a) hyperparameters
   RF_hyps <<- OOS_params$RF_hyps
   
+  # Random Forest b) hyperparameters
+  RF_MAF_hyps <<- OOS_params$RF_MAF_hyps
+  
+  
   # GBM hyperparameters (CV)
-  Boosting_hyps <<- OOS_params$Boosting_hyps
+#  Boosting_hyps <<- OOS_params$Boosting_hyps
   
   # Neural network hyperparameters 
-  nn_hyps <<- OOS_params$nn_hyps
+  #nn_hyps <<- OOS_params$nn_hyps
   
   # Macro Random Forest hyperparameters
   MacroRF_hyps <<- OOS_params$MacroRF_hyps
+  
+  
+  # Macro Random Forest hyperparameters
+  FA_MacroRF_hyps <<- OOS_params$FA_MacroRF_hyps
   
   ## Storage -----------------------------------------------------------------------
   
@@ -154,120 +162,125 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
         
         ### 2) ARDI, BIC -----
         
-        if("ARDI, BIC" %in% model_list) {
-          
-          if(((pos-1) %% reEstimate) == 0) {
-            bic <- Inf
-            for(K in 1:nfac) {
-              for(P in 0:(lagY-1)) {
-                for (M in 0:(lagX-1)) {
-                  
-                  facName <- unlist(lapply(1:K, function(x) paste0("L",0:M,"_F_US",x)))
-                  posfac <- which(colnames(train_data) %in% facName)
-                  
-                  lmdata <- train_data[,c(1:(P+1),posfac)]
-                  rownames(lmdata) <- c()
-                  
-                  ARDI <- lm(y~., data = as.data.frame(lmdata[train_pos,]))
-                  
-                  if(BIC(ARDI)< bic) {
-                    P_min <- P
-                    M_min <- M
-                    K_min <- K
-                    bic <- BIC(ARDI)
-                  }
-                }
-              }
-            }
-          }
-          
-          facName <- unlist(lapply(1:K_min, function(x) paste0("L",0:M_min,"_F_US",x)))
-          posfac <- which(colnames(train_data) %in% facName)
-          lmdata <- data[,c(1:(P_min+1),posfac)]
-          rownames(lmdata) <- c()
-          
-          ARDI <- lm(y~., data = as.data.frame(lmdata[train_pos,]))
-          pred <- predict.lm(ARDI,newdata = as.data.frame(lmdata))[oos_pos]
-          
-          m <- which(model_list == "ARDI, BIC")
-          err_oos[pos,v,h,m] <- train_data[oos_pos,1] - pred
-          prediction_oos[pos,v,h,m] <- pred
-        }
-        
-        
+        # if("ARDI, BIC" %in% model_list) {
+        #   
+        #   if(((pos-1) %% reEstimate) == 0) {
+        #     bic <- Inf
+        #     for(K in 1:nfac) {
+        #       for(P in 0:(lagY-1)) {
+        #         for (M in 0:(lagX-1)) {
+        #           
+        #           facName <- unlist(lapply(1:K, function(x) paste0("L",0:M,"_F_UK",x)))
+        #           posfac <- which(colnames(train_data) %in% facName)
+        #           
+        #           lmdata <- train_data[,c(1:(P+1),posfac)]
+        #           rownames(lmdata) <- c()
+        #           
+        #           ARDI <- lm(y~., data = as.data.frame(lmdata[train_pos,]))
+        #           
+        #           if(BIC(ARDI)< bic) {
+        #             P_min <- P
+        #             M_min <- M
+        #             K_min <- K
+        #             bic <- BIC(ARDI)
+        #           }
+        #         }
+        #       }
+        #     }
+        #   }
+        #   
+        #   facName <- unlist(lapply(1:K_min, function(x) paste0("L",0:M_min,"_F_UK",x)))
+        #   posfac <- which(colnames(train_data) %in% facName)
+        #   lmdata <- data[,c(1:(P_min+1),posfac)]
+        #   rownames(lmdata) <- c()
+        #   
+        #   ARDI <- lm(y~., data = as.data.frame(lmdata[train_pos,]))
+        #   pred <- predict.lm(ARDI,newdata = as.data.frame(lmdata))[oos_pos]
+        #   
+        #   m <- which(model_list == "ARDI, BIC")
+        #   err_oos[pos,v,h,m] <- train_data[oos_pos,1] - pred
+        #   prediction_oos[pos,v,h,m] <- pred
+        # }
+        # 
+        # 
         
         ### 3) LASSO ------
         
-        if("LASSO" %in% model_list) {
-          
-          newtrain <- train_data
-          
-          if(((pos-1) %% reEstimate) == 0) {
-            lambda_lasso=cv.glmnet(y = newtrain[train_pos,1], x = newtrain[train_pos,-1], alpha = 1, nfolds = nfolds)$lambda.min
-          }
-          lasso=glmnet(y=newtrain[train_pos,1], x = newtrain[train_pos,-1],
-                       lambda = lambda_lasso, alpha = 1)
-          pred=predict(lasso, newx = newtrain[,-1])[oos_pos]
-          
-          m <- which(model_list == "LASSO")          
-          err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
-          prediction_oos[pos,v,h,m] <- pred
-        }
+        # if("LASSO" %in% model_list) {
+        #   
+        #   newtrain <- train_data
+        #   
+        #   if(((pos-1) %% reEstimate) == 0) {
+        #     lambda_lasso=cv.glmnet(y = newtrain[train_pos,1], x = newtrain[train_pos,-1], alpha = 1, nfolds = nfolds)$lambda.min
+        #   }
+        #   lasso=glmnet(y=newtrain[train_pos,1], x = newtrain[train_pos,-1],
+        #                lambda = lambda_lasso, alpha = 1)
+        #   pred=predict(lasso, newx = newtrain[,-1])[oos_pos]
+        #   
+        #   m <- which(model_list == "LASSO")          
+        #   err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
+        #   prediction_oos[pos,v,h,m] <- pred
+        # }
+        # 
+        # ### 4) RIDGE -------
+        # 
+        # if("RIDGE" %in% model_list) {
+        #   
+        #   newtrain <- train_data
+        #   
+        #   if(((pos-1) %% reEstimate) == 0) {
+        #     lambda_ridge=cv.glmnet(y = newtrain[train_pos,1], x = newtrain[train_pos,-1],
+        #                            alpha = 0, nfolds = nfolds)$lambda.min
+        #   }
+        #   lasso=glmnet(y=newtrain[train_pos,1], x = newtrain[train_pos,-1], lambda = lambda_ridge, alpha = 0)
+        #   pred=predict(lasso, newx = newtrain[,-1])[oos_pos]
+        #   
+        #   m <- which(model_list == "RIDGE")
+        #   err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
+        #   prediction_oos[pos,v,h,m] <- pred
+        # }
+        # 
+        # ### 5) Elastic-Net -------
+        # 
+        # if("ELASTIC-NET" %in% model_list) {
+        #   
+        #   newtrain <- train_data
+        #   
+        #   alpha_range <- EN_hyps$alpha_range
+        #   if(((pos-1) %% reEstimate) == 0) {
+        #     perf_mat <- matrix(NA, 3, length(alpha_range))
+        #     for (i in 1:length(alpha_range)){
+        #       fit_cv <- cv.glmnet(y = newtrain[train_pos,1], x = newtrain[train_pos,-1], alpha=alpha_range[i], nfolds=nfolds)
+        #       min_cv <- min(fit_cv$cvm)
+        #       lambda_min <- fit_cv$lambda[which.min(fit_cv$cvm)]
+        #       perf_mat[1,i] <- alpha_range[i]
+        #       perf_mat[2,i] <- lambda_min
+        #       perf_mat[3,i] <- min_cv
+        #     }
+        #     best_alpha_en <- perf_mat[1,][which.min(perf_mat[3,])]
+        #     lambda_en <- perf_mat[2,][which.min(perf_mat[3,])]
+        #   }
+        #   
+        #   lasso=glmnet(y=newtrain[train_pos,1], x = newtrain[train_pos,-1], lambda = lambda_en, alpha = best_alpha_en)
+        #   pred=predict(lasso, newx = newtrain[,-1])[oos_pos]
+        #   
+        #   m <- which(model_list == "ELASTIC-NET")
+        #   err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
+        #   prediction_oos[pos,v,h,m] <- pred
+        # }
         
-        ### 4) RIDGE -------
-        
-        if("RIDGE" %in% model_list) {
-          
-          newtrain <- train_data
-          
-          if(((pos-1) %% reEstimate) == 0) {
-            lambda_ridge=cv.glmnet(y = newtrain[train_pos,1], x = newtrain[train_pos,-1],
-                                   alpha = 0, nfolds = nfolds)$lambda.min
-          }
-          lasso=glmnet(y=newtrain[train_pos,1], x = newtrain[train_pos,-1], lambda = lambda_ridge, alpha = 0)
-          pred=predict(lasso, newx = newtrain[,-1])[oos_pos]
-          
-          m <- which(model_list == "RIDGE")
-          err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
-          prediction_oos[pos,v,h,m] <- pred
-        }
-        
-        ### 5) Elastic-Net -------
-        
-        if("ELASTIC-NET" %in% model_list) {
-          
-          newtrain <- train_data
-          
-          alpha_range <- EN_hyps$alpha_range
-          if(((pos-1) %% reEstimate) == 0) {
-            perf_mat <- matrix(NA, 3, length(alpha_range))
-            for (i in 1:length(alpha_range)){
-              fit_cv <- cv.glmnet(y = newtrain[train_pos,1], x = newtrain[train_pos,-1], alpha=alpha_range[i], nfolds=nfolds)
-              min_cv <- min(fit_cv$cvm)
-              lambda_min <- fit_cv$lambda[which.min(fit_cv$cvm)]
-              perf_mat[1,i] <- alpha_range[i]
-              perf_mat[2,i] <- lambda_min
-              perf_mat[3,i] <- min_cv
-            }
-            best_alpha_en <- perf_mat[1,][which.min(perf_mat[3,])]
-            lambda_en <- perf_mat[2,][which.min(perf_mat[3,])]
-          }
-          
-          lasso=glmnet(y=newtrain[train_pos,1], x = newtrain[train_pos,-1], lambda = lambda_en, alpha = best_alpha_en)
-          pred=predict(lasso, newx = newtrain[,-1])[oos_pos]
-          
-          m <- which(model_list == "ELASTIC-NET")
-          err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
-          prediction_oos[pos,v,h,m] <- pred
-        }
-        
-        ### 6) Random Forest -------
+        ### 6a) Plain Random Forest (no linear part and Raw data (this means 8 lags of FRED-QD, after usual transformations for stationarity have been applied)-------
+        # we need 24 lags 
         
         if("RF" %in% model_list) {
-          
+
           newtrain <- train_data
           
-          RF=ranger(y~., data = as.data.frame(newtrain[train_pos,]), mtry = (ncol(newtrain[,-1])*RF_hyps$mtry),
+          col_names <- colnames(newtrain)
+          cols_to_keep <- !grepl('_F_UK|trend', col_names)
+          
+      
+          RF=ranger(y~., data = as.data.frame(newtrain[train_pos,cols_to_keep]), mtry = (ncol(newtrain[,-1])*RF_hyps$mtry),
                     num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
           pred=predict(RF, data = as.data.frame(newtrain[,]))$predictions[oos_pos]
           
@@ -276,106 +289,122 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           prediction_oos[pos,v,h,m] <- pred
         }
         
-        ### 7) Boosting -------
+        ### 6b) Plain Random Forest but using S_t -------
         
-        if("GBM" %in% model_list) {
+        if("RF-MAF" %in% model_list) {
           
           newtrain <- train_data
-          oosX = newtrain[oos_pos,-1]
-          dim(oosX) <- c(1,length(oosX))
           
-          if(((pos-1) %% reEstimate) == 0) {
-            tuned_gbm <- caret::train(y ~., data = as.matrix(newtrain[train_pos,]),
-                                      method = "gbm",
-                                      metric = "RMSE",
-                                      trControl = Boosting_hyps$fitControl,
-                                      tuneGrid = Boosting_hyps$man_grid,
-                                      verbose=FALSE
-            )
-            mod <- tuned_gbm$finalModel
-          } else{
-            good_hyps <- Boosting_hyps
-            good_hyps$fitControl$method <- "none"
-            GBM <- caret::train(y ~., data = as.matrix(newtrain[train_pos,]),
-                                method = "gbm",
-                                metric = "RMSE",
-                                trControl = good_hyps$fitControl,
-                                tuneGrid = tuned_gbm$bestTune,
-                                verbose=FALSE
-            )
-            mod <- GBM$finalModel
-          }
+          # Find indices for columns 2 to 258
+          cols_2_714 <- 1:714
+          col_names <- colnames(newtrain)
           
-          pred <- predict(mod, oosX, n.trees = mod$n.trees)
+          # Find indices for columns containing '_F_UK'
+          cols_F_UK <- grep("_F_UK","trend", col_names)
           
-          m <- which(model_list == "GBM")
+          # Combine the indices
+          selected_cols <- unique(c(cols_2_714, cols_F_UK))
+          selected_cols_1 <- selected_cols[-1]
+          RF=ranger(y~., data = as.data.frame(newtrain[train_pos,selected_cols]), mtry = (ncol(newtrain[,selected_cols_1])*RF_hyps$mtry),
+                    num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
+          pred=predict(RF, data = as.data.frame(newtrain[,]))$predictions[oos_pos]
+          
+          m <- which(model_list == "RF_MAF")
           err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
           prediction_oos[pos,v,h,m] <- pred
         }
         
+        ### 7) Boosting -------
+        
+        # if("GBM" %in% model_list) {
+        #   
+        #   newtrain <- train_data
+        #   oosX = newtrain[oos_pos,-1]
+        #   dim(oosX) <- c(1,length(oosX))
+        #   
+        #   if(((pos-1) %% reEstimate) == 0) {
+        #     tuned_gbm <- caret::train(y ~., data = as.matrix(newtrain[train_pos,]),
+        #                               method = "gbm",
+        #                               metric = "RMSE",
+        #                               trControl = Boosting_hyps$fitControl,
+        #                               tuneGrid = Boosting_hyps$man_grid,
+        #                               verbose=FALSE
+        #     )
+        #     mod <- tuned_gbm$finalModel
+        #   } else{
+        #     good_hyps <- Boosting_hyps
+        #     good_hyps$fitControl$method <- "none"
+        #     GBM <- caret::train(y ~., data = as.matrix(newtrain[train_pos,]),
+        #                         method = "gbm",
+        #                         metric = "RMSE",
+        #                         trControl = good_hyps$fitControl,
+        #                         tuneGrid = tuned_gbm$bestTune,
+        #                         verbose=FALSE
+        #     )
+        #     mod <- GBM$finalModel
+        #   }
+        #   
+        #   pred <- predict(mod, oosX, n.trees = mod$n.trees)
+        #   
+        #   m <- which(model_list == "GBM")
+        #   err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
+        #   prediction_oos[pos,v,h,m] <- pred
+        # }
+        # 
         
         
         ### 8) NN -------
         
-        if("NN" %in% model_list) {
-          
-          newtrain <- train_data
-          rownames(newtrain) <- c()
-          nn_hyps$n_features <<- ncol(newtrain[,-1])
-          
-          if(((pos-1) %% reEstimate) == 0) {
-            
-            mlp <- MLP(X = newtrain[-oos_pos,-1], Y = newtrain[-oos_pos,1],
-                       Xtest = newtrain[oos_pos,-1], Ytest = newtrain[oos_pos,1],
-                       nn_hyps = nn_hyps,
-                       standardize=T,seed=1234)
-            
-          }
-          
-          pred <- mean(predict_nn(mlp, newtrain[oos_pos,-1], nn_hyps))
-          
-          m <- which(model_list == "NN")
-          err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
-          prediction_oos[pos,v,h,m] <- pred
-        }
+        # if("NN" %in% model_list) {
+        #   
+        #   newtrain <- train_data
+        #   rownames(newtrain) <- c()
+        #   nn_hyps$n_features <<- ncol(newtrain[,-1])
+        #   
+        #   if(((pos-1) %% reEstimate) == 0) {
+        #     
+        #     mlp <- MLP(X = newtrain[-oos_pos,-1], Y = newtrain[-oos_pos,1],
+        #                Xtest = newtrain[oos_pos,-1], Ytest = newtrain[oos_pos,1],
+        #                nn_hyps = nn_hyps,
+        #                standardize=T,seed=1234)
+        #     
+        #   }
+        #   
+        #   pred <- mean(predict_nn(mlp, newtrain[oos_pos,-1], nn_hyps))
+        #   
+        #   m <- which(model_list == "NN")
+        #   err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
+        #   prediction_oos[pos,v,h,m] <- pred
+        # }
+        # 
         
-        
-        ### 9) Macro AR-RF -------
+        ### 9a) Macro AR-RF -------
         
 
         if("AR-RF" %in% model_list) {
-          
           newtrain <- train_data
+
           newtrain <- as.matrix(newtrain[c(train_pos,oos_pos),])
           rownames(newtrain) <- c()
           
-          # newtrain_df <- as.data.frame(newtrain)
-          # S.pos_df <- newtrain_df %>%
-          #   select(2:258, contains("_F_UK"))
-          # 
-      
+    
+          # Find indices for columns 2 to 258
+          cols_2_714 <- 2:714
           col_names <- colnames(newtrain)
           
-          # Find indices for columns 2 to 258
-          cols_2_258 <- 2:258
-          
           # Find indices for columns containing '_F_UK'
-          cols_F_UK <- grep("_F_UK", col_names)
+          cols_F_UK <- grep("_F_UK","trend", col_names)
           
           # Combine the indices
-          selected_cols <- c(cols_2_258, cols_F_UK)
-          
-          # Select the columns from the matrix
-          
-          Spos = newtrain[, selected_cols]
+          selected_cols <- unique(c(cols_2_714, cols_F_UK))
           
           
           if(((pos-1) %% reEstimate) == 0) {
             
+            
             mrf <- MRF(data=newtrain[train_pos,],
                        y.pos=1,
-                       S.pos = Spos,
-                       #+2:ncol(newtrain),
+                       S.pos=selected_cols,                      
                        x.pos=MacroRF_hyps$x_pos,
                        oos.pos=c(),
                        minsize=MacroRF_hyps$minsize,
@@ -409,6 +438,72 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           prediction_oos[pos,v,h,m] <- pred[length(pred)]
         }
         
+        
+        ### 9b) Macro Factor-Augmented Autoregressive RF (FA-ARRF) -------
+        
+        
+        if("FA-ARRF" %in% model_list) {
+          newtrain <- train_data
+          
+          newtrain <- as.matrix(newtrain[c(train_pos,oos_pos),])
+          rownames(newtrain) <- c()
+          
+          #  newtrain_df <- as.data.frame(newtrain)
+          #  S.pos_df <- newtrain_df %>%
+          #    select(2:258, contains("_F_UK"))
+          # # 
+          
+          
+          # Find indices for columns 2 to 258
+          cols_2_714 <- 2:714
+          col_names <- colnames(newtrain)
+          
+          # Find indices for columns containing '_F_UK'
+          cols_F_UK <- grep("_F_UK","trend", col_names)
+          
+          # Combine the indices
+          selected_cols <- unique(c(cols_2_714, cols_F_UK))
+   
+          
+          
+          if(((pos-1) %% reEstimate) == 0) {
+            
+            
+            mrf <- MRF(data=newtrain[train_pos,],
+                       y.pos=1,
+                       S.pos=selected_cols,                      
+                       x.pos=MacroRF_hyps$x_pos,
+                       oos.pos=c(),
+                       minsize=MacroRF_hyps$minsize,
+                       mtry.frac=MacroRF_hyps$mtry_frac,
+                       min.leaf.frac.of.x=1.5,
+                       VI=FALSE,
+                       ERT=FALSE,
+                       quantile.rate=0.33,
+                       S.priority.vec=NULL,
+                       random.x = FALSE,
+                       howmany.random.x=1,
+                       howmany.keep.best.VI=20,
+                       cheap.look.at.GTVPs=FALSE,
+                       prior.var=1/c(0.01,0.25,rep(1,length(MacroRF_hyps$x_pos)-1)),
+                       prior.mean=coef(lm(as.matrix(newtrain[train_pos,1])~as.matrix(newtrain[train_pos,MacroRF_hyps$x_pos]))),
+                       subsampling.rate=0.70,
+                       rw.regul=0.95,
+                       keep.forest=TRUE,
+                       block.size=MacroRF_hyps$block_size,
+                       trend.pos=ncol(newtrain),
+                       trend.push=4,
+                       fast.rw=TRUE,
+                       ridge.lambda=0.5,HRW=0,B=MacroRF_hyps$B,resampling.opt=2,printb=FALSE)
+          }
+          
+          rf_test <- as.data.frame(newtrain[,-1])
+          pred <- pred.given.mrf(mrf, newdata = rf_test)
+          
+          m <- which(model_list == "FA-ARRF")
+          err_oos[pos,v,h,m] <- train_data[oos_pos,1] - pred[length(pred)]
+          prediction_oos[pos,v,h,m] <- pred[length(pred)]
+        }
         
         end_estim <- Sys.time()
         print(end_estim-start_estim)
