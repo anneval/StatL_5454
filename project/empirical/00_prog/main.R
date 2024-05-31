@@ -7,7 +7,7 @@ rm(list = ls())
 set.seed(1234)
 
 # Set paths
-path <- '~/Dropbox/GCS_SIDEsummerschool_codes/GouletCoulombe/Couture_OOS/'
+path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical/'
 setwd(path)
 
 paths <- list(pro = "00_prog",
@@ -43,7 +43,7 @@ library(foreach)    # Parallel estimation
 # install_torch()
 
 # Load US data retreiver
-source(paste(paths$too, 'MakeDataUS_function.R', sep='/'))
+source(paste(paths$too, 'MakeDataUK_function.R', sep='/'))
 
 # Factor analysis (PCA) 
 source(paste(paths$too, 'EM_sw.R', sep='/'))                                                       
@@ -68,27 +68,30 @@ torch_set_num_threads(1)
 OOS_params <- list()
 
 # Target names from FRED DB
-OOS_params$targetName <- c("CPIAUCSL","UNRATE",  
-                           "HOUST", "PAYEMS",
-                           "GDPC1")  
+# OOS_params$targetName <- c("CPIAUCSL","UNRATE",  
+#                            "HOUST", "PAYEMS",
+#                            "GDPC1")  
+OOS_params$targetName <- c("IOP_PROD","UNEMP_RATE","CPI_ALL")[3]
 
 # Change the transformation code of the target, "NA" to keep FRED's code
-OOS_params$target_tcode <- c(5,2,5,NA,NA) 
+OOS_params$target_tcode <- c(5,2,NA) # not really needed here since we use the balanced UK data set 
 
-# Forecasting horizons (in quarter)
-OOS_params$horizon <- c(1,4)
+# Forecasting horizons (in quarter), month here 
+OOS_params$horizon <- c(3,12)
+#OOS_params$horizon <- c(1,3,12)
+
 
 # Out-of-sample starting date
-OOS_params$OOS_starting_date <- "3/1/2015"
+OOS_params$OOS_starting_date <- "2008-01-01"
 
 # Number of FRED's factors
-OOS_params$nFac <- 5 
+OOS_params$nFac <- 5
 
 # Number of target lags
-OOS_params$lagY <- 2                          
+OOS_params$lagY <- 24                          
 
 # Number of regressors lags (factors included)
-OOS_params$lagX <- 1                         
+OOS_params$lagX <- 24                         
 
 # Create MARX
 OOS_params$lagMARX <- NA    
@@ -100,7 +103,9 @@ OOS_params$nfolds <- 5
 OOS_params$reEstimate <- 20 # each 5 years 
 
 # Which models to used ? Possible choice c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","ELASTIC-NET","RF","GBM","NN,"AR-RF")
-OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
+#OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
+
+OOS_params$model_list <- c("AR, BIC","AR-RF")
 
 # Folder name in 50_results
 OOS_params$save_path = "demo"
@@ -127,11 +132,11 @@ OOS_params$RF_hyps <- list(num.trees = 500,
                            mtry = 1/3)
 
 # Macro Random Forest hyperparamaters
-OOS_params$MacroRF_hyps <- list(x_pos = c(2,3),
+OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
                                 B = 20,
                                 mtry_frac = 0.15,
                                 minsize = 15,
-                                block_size = 8)
+                                block_size = 24) # block size is 24 in monthly i.e. 2 years
 
 # Neural network hyperparameters
 OOS_params$nn_hyps <- list(n_features=NA,

@@ -162,6 +162,7 @@ hor <- 4
 
 # Variable and Horizon to forecast #############################################################
 # ==============================================================================================
+#UKdata <- MakeDataUK(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,
 
 # Get the data
 UKdata <- MakeDataUK(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,

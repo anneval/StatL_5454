@@ -5,24 +5,24 @@ MakeDataUK <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, version
   library(stringr)
   
   
- path = paste0(path,paths$dat,"/")
- targetName = OOS_params$targetName[var]
- h = hor
-    nFac = OOS_params$nFac
-    lag_y = OOS_params$lagY
-    lag_f = OOS_params$lagX
-    lag_marx = OOS_params$lagMARX
-    
-   versionName = "current"
-
-   download = F
-   EM_algorithm=F
-   EM_last_date=NA
-
-   frequency = 1
-
-   target_new_tcode=OOS_params$target_tcode[var]
-  
+ # path = paste0(path,paths$dat,"/")
+ # targetName = OOS_params$targetName[var]
+ # h = hor
+ #    nFac = OOS_params$nFac
+ #    lag_y = OOS_params$lagY
+ #    lag_f = OOS_params$lagX
+ #    lag_marx = OOS_params$lagMARX
+ #    
+ #   versionName = "current"
+ # 
+ #   download = F
+ #   EM_algorithm=F
+ #   EM_last_date=NA
+ # 
+ #   frequency = 1
+ # 
+ #   target_new_tcode=OOS_params$target_tcode[var]
+ #  
   
   # Download FRED-QD if needed
   if(substr(path,nchar(path),nchar(path)) != "/") {path <- paste0(path,"/")}
@@ -50,7 +50,7 @@ MakeDataUK <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, version
 
 
   output <- vector("list", length = length(targetName))
- numOfTarget <-1
+ #numOfTarget <-1
   
   for (numOfTarget in 1:length(output)) {
     
@@ -156,7 +156,7 @@ MakeDataUK <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, version
      # 
     if(nFac > 0) {
       facs <- factorize(standard((data_m))$Y, n_fac = nFac)$factor
-      colnames(facs) <- paste0("F_US",1:nFac)
+      colnames(facs) <- paste0("F_UK",1:nFac)
       data = cbind(facs,data)
     }else{
       facs = NA
