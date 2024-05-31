@@ -36,7 +36,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   library(foreach)    # Parallel estimation
   
   # Load US data retreiver -----------------------------
-  source(paste(paths$too, 'MakeDataUK_function.R', sep='/'))
+  source(paste(paths$too, 'MakeDataUS_function.R', sep='/'))
   
   # Factor analysis (PCA) ------------------------------
   source(paste(paths$too, 'EM_sw.R', sep='/'))                                                       
@@ -49,17 +49,17 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   
   # Variable and Horizon to forecast #############################################################
   # ==============================================================================================
-  it_pos = 1
+  
   var <- all_options$var[it_pos]
   hor <- all_options$hor[it_pos]
   
   # Get the data
-  UKdata <- MakeDataUK(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,
+  USdata <- MakeDataUS(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,
                        nFac = OOS_params$nFac, lag_y = OOS_params$lagY, lag_f = OOS_params$lagX, lag_marx = OOS_params$lagMARX,
                        versionName = "current",
-                       download = F, EM_algorithm=F, EM_last_date=NA,
-                       frequency = 1, target_new_tcode=OOS_params$target_tcode[var])
-  data <- UKdata[[1]]$lagged_data
+                       download = F, EM_algorithm=T, EM_last_date=NA,
+                       frequency = 2, target_new_tcode=OOS_params$target_tcode[var])
+  data <- USdata[[1]]$lagged_data
   
   # Estimation parameters ########################################################################
   # ==============================================================================================
@@ -342,40 +342,17 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
         
         ### 9) Macro AR-RF -------
         
-
         if("AR-RF" %in% model_list) {
           
           newtrain <- train_data
           newtrain <- as.matrix(newtrain[c(train_pos,oos_pos),])
           rownames(newtrain) <- c()
           
-          # newtrain_df <- as.data.frame(newtrain)
-          # S.pos_df <- newtrain_df %>%
-          #   select(2:258, contains("_F_UK"))
-          # 
-      
-          col_names <- colnames(newtrain)
-          
-          # Find indices for columns 2 to 258
-          cols_2_258 <- 2:258
-          
-          # Find indices for columns containing '_F_UK'
-          cols_F_UK <- grep("_F_UK", col_names)
-          
-          # Combine the indices
-          selected_cols <- c(cols_2_258, cols_F_UK)
-          
-          # Select the columns from the matrix
-          
-          Spos = newtrain[, selected_cols]
-          
-          
           if(((pos-1) %% reEstimate) == 0) {
             
             mrf <- MRF(data=newtrain[train_pos,],
                        y.pos=1,
-                       S.pos = Spos,
-                       #+2:ncol(newtrain),
+                       S.pos=2:ncol(newtrain),
                        x.pos=MacroRF_hyps$x_pos,
                        oos.pos=c(),
                        minsize=MacroRF_hyps$minsize,
@@ -493,7 +470,7 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
       
       tryCatch(
         {
-         load(file)
+          load(file)
           predictions[,var,hor,] <- prediction_oos[,which(dimnames(prediction_oos)[[2]] %in% OOS_params$targetName[var]),hor,]
           errors[,var,hor,] <- err_oos[,which(dimnames(err_oos)[[2]] %in% OOS_params$targetName[var]),hor,] 
           targets[hor:nrow(targets),var,hor] <- data[,1]
@@ -520,7 +497,7 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
   dimnames(mse_table)[[3]] <- dimnames(predictions)[[2]]
   
   # Until 2019
-  end <- which(dimnames(predictions)[[1]]=="2019-12-01")
+  end <- which(dimnames(predictions)[[1]]=="12/1/2019")
   mse_table_2019 <- array(data = NA, c(dim(predictions)[3],
                                        dim(predictions)[4],
                                        dim(predictions)[2]))
@@ -528,10 +505,9 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
   dimnames(mse_table_2019)[[2]] <- dimnames(predictions)[[4]]
   dimnames(mse_table_2019)[[3]] <- dimnames(predictions)[[2]]
   
-  for (var in 1:dim(predictions)[2]) { #1:dim(predictions)[2]
-   for(hor in 1:dim(predictions)[3]) {
-    #for(hor in H) {
-  
+  for (var in 1:dim(predictions)[2]) {
+    for(hor in 1:dim(predictions)[3]) {
+      
       bench <- which(dimnames(predictions)[[4]] == benchmark)
       
       mse <- apply(errors[,var,hor,]^2,2,mean, na.rm=TRUE)
@@ -616,10 +592,7 @@ quick_plot <- function(results, hor, var) {
   target = results$targets[((nrow(results$targets)-nrow(results$predictions))+1):nrow(results$targets),var,hor]
   pred <- cbind(results$predictions[,var,hor,], "Target" = target)
   pred_long <- reshape2::melt(pred)
- # pred_long$Var1 =  as.Date(as.character(pred_long$Var1), format = c("%m/%d/%Y"))
-  # pred_long$Var1 =  as.Date(as.character(pred_long$Var1), format = c("%m/%d/%Y"))
-  pred_long$Var1 <- as.character(pred_long$Var1)
-  pred_long$Var1 <- as.Date(pred_long$Var1, format = "%Y-%m-%d")
+  pred_long$Var1 =  as.Date(as.character(pred_long$Var1), format = c("%m/%d/%Y"))
   
   # Graph parameters
   target_pos <- which(unique(pred_long$Var2) == "Target")

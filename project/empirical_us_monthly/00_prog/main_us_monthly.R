@@ -7,7 +7,8 @@ rm(list = ls())
 set.seed(1234)
 
 # Set paths
-path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical/'
+#path <- '~/Dropbox/GCS_SIDEsummerschool_codes/GouletCoulombe/Couture_OOS/'
+path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly/'
 setwd(path)
 
 paths <- list(pro = "00_prog",
@@ -43,7 +44,7 @@ library(foreach)    # Parallel estimation
 # install_torch()
 
 # Load US data retreiver
-source(paste(paths$too, 'MakeDataUK_function.R', sep='/'))
+source(paste(paths$too, 'MakeDataUS_function.R', sep='/'))
 
 # Factor analysis (PCA) 
 source(paste(paths$too, 'EM_sw.R', sep='/'))                                                       
@@ -57,7 +58,7 @@ source(paste(paths$too, 'MLP_function_v6b.R', sep='/'))
 source(paste(paths$pro, 'OOS_models.R', sep='/'))
 
 # Number of CPU for the estimation (if you don't want to use the parallel setting : ncores <- NA)
-ncores <- 4
+ncores <- NA
 torch_set_num_threads(1)
 
 # ===========================================================================================================
@@ -68,30 +69,25 @@ torch_set_num_threads(1)
 OOS_params <- list()
 
 # Target names from FRED DB
-# OOS_params$targetName <- c("CPIAUCSL","UNRATE",  
-#                            "HOUST", "PAYEMS",
-#                            "GDPC1")  
-OOS_params$targetName <- c("IOP_PROD","UNEMP_RATE","CPI_ALL")[3]
+OOS_params$targetName <- c("CPIAUCSL")  
 
 # Change the transformation code of the target, "NA" to keep FRED's code
-OOS_params$target_tcode <- c(5,2,NA) # not really needed here since we use the balanced UK data set 
+OOS_params$target_tcode <- c(5) 
 
-# Forecasting horizons (in quarter), month here 
-OOS_params$horizon <- c(3,12)
-#OOS_params$horizon <- c(1,3,12)
-
+# Forecasting horizons (in months)
+OOS_params$horizon <- c(3, 12)
 
 # Out-of-sample starting date
-OOS_params$OOS_starting_date <- "2008-01-01"
+OOS_params$OOS_starting_date <- "3/1/2015" # change appropriately
 
 # Number of FRED's factors
-OOS_params$nFac <- 5
+OOS_params$nFac <- 5 
 
 # Number of target lags
-OOS_params$lagY <- 24                          
+OOS_params$lagY <- 2                          
 
 # Number of regressors lags (factors included)
-OOS_params$lagX <- 24                         
+OOS_params$lagX <-                          
 
 # Create MARX
 OOS_params$lagMARX <- NA    
@@ -103,9 +99,7 @@ OOS_params$nfolds <- 5
 OOS_params$reEstimate <- 20 # each 5 years 
 
 # Which models to used ? Possible choice c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","ELASTIC-NET","RF","GBM","NN,"AR-RF")
-#OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
-
-OOS_params$model_list <- c("AR, BIC","AR-RF")
+OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
 
 # Folder name in 50_results
 OOS_params$save_path = "demo"
@@ -132,11 +126,11 @@ OOS_params$RF_hyps <- list(num.trees = 500,
                            mtry = 1/3)
 
 # Macro Random Forest hyperparamaters
-OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
+OOS_params$MacroRF_hyps <- list(x_pos = c(2,3),
                                 B = 20,
                                 mtry_frac = 0.15,
                                 minsize = 15,
-                                block_size = 24) # block size is 24 in monthly i.e. 2 years
+                                block_size = 8)
 
 # Neural network hyperparameters
 OOS_params$nn_hyps <- list(n_features=NA,
@@ -208,19 +202,19 @@ round(results$mse_table_2019,3)
 
 # MSE ratio barplots and predictions plots (the plots are saved in 20_Figures)
 mse_barplot_h1 <- list()
-mse_barplot_h4 <- list()
+#mse_barplot_h4 <- list()
 pred_plot_h1 <- list()
-pred_plot_h4 <- list()
+#pred_plot_h4 <- list()
 
 for(var in 1:dim(results$mse_table)[3]) {
   
   # MSE
   mse_barplot_h1[[var]] <- quick_barplot(results, hor = 1, var = var)
-  mse_barplot_h4[[var]] <- quick_barplot(results, hor = 4, var = var)
+  #mse_barplot_h4[[var]] <- quick_barplot(results, hor = 4, var = var)
   
   # Predictions
   pred_plot_h1[[var]] <- quick_plot(results, hor = 1, var = var)
-  pred_plot_h4[[var]] <- quick_plot(results, hor = 4, var = var)
+ # pred_plot_h4[[var]] <- quick_plot(results, hor = 4, var = var)
   
   # Put the 2 graphs together
   p <- arrangeGrob(pred_plot_h1[[var]],mse_barplot_h1[[var]],
@@ -228,16 +222,16 @@ for(var in 1:dim(results$mse_table)[3]) {
   ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",1,".png")
   ggsave(ptitle, plot = p, dpi=72, dev='png', height=600, width=450, units="mm")
   
-  p <- arrangeGrob(pred_plot_h4[[var]],mse_barplot_h4[[var]],
-                   nrow = 2, ncol = 1)
-  ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",4,".png")
-  ggsave(ptitle, plot = p, dpi=72, dev='png', height=600, width=450, units="mm")
+  #p <- arrangeGrob(pred_plot_h4[[var]],mse_barplot_h4[[var]],
+                   #nrow = 2, ncol = 1)
+  #ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",4,".png")
+  #ggsave(ptitle, plot = p, dpi=72, dev='png', height=600, width=450, units="mm")
   
 }
 
 # Quick view, you need to choose the position of the target you want to see
 # targets order : (1) "CPIAUCSL", (2) "UNRATE", (3) "HOUST", (4) "PAYEMS", (5) "GDPC1"
-mse_barplot_h1[[3]]
-pred_plot_h1[[3]]
+mse_barplot_h1[[1]]
+pred_plot_h1[[1]]
 mse_barplot_h1[[3]]
 pred_plot_h1[[3]]

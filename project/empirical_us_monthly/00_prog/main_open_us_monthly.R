@@ -7,7 +7,8 @@ rm(list = ls())
 set.seed(1234)
 
 # Set paths
-path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical/'
+#path <- '~/Dropbox/GCS_SIDEsummerschool_codes/GouletCoulombe/Couture_OOS/'
+path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly/'
 setwd(path)
 
 paths <- list(pro = "00_prog",
@@ -43,7 +44,7 @@ library(foreach)    # Parallel estimation
 # install_torch()
 
 # Load US data retreiver
-source(paste(paths$too, 'MakeDataUK_function.R', sep='/'))
+source(paste(paths$too, 'MakeDataUS_function.R', sep='/'))
 
 # Factor analysis (PCA) 
 source(paste(paths$too, 'EM_sw.R', sep='/'))                                                       
@@ -68,16 +69,16 @@ torch_set_num_threads(1)
 OOS_params <- list()
 
 # Target names from FRED DB
-OOS_params$targetName <- c("IOP_PROD","UNEMP_RATE","CPI_ALL")[1]
+OOS_params$targetName <- c("CPIAUCSL")
 
 # Change the transformation code of the target, "NA" to keep FRED's code
-OOS_params$target_tcode <- c(5,5) 
+OOS_params$target_tcode <- c(5) 
 
-# Forecasting horizons (in quarter)
-OOS_params$horizon <- c(1,4)
+# Forecasting horizons (in months)
+OOS_params$horizon <- c(3,12)
 
 # Out-of-sample starting date
-OOS_params$OOS_starting_date <- "2015-03-01"
+OOS_params$OOS_starting_date <- "3/1/2015"
 
 # Number of FRED's factors
 OOS_params$nFac <- 5 
@@ -96,9 +97,10 @@ OOS_params$nfolds <- 5
 
 # How many quarters between hyperparameters CV (in quarters)
 OOS_params$reEstimate <- 20 # each 5 years 
+#OOS_params$reEstimate <- 20 # each 5 years 
 
 # Which models to used ? Possible choice c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","ELASTIC-NET","RF","GBM","NN,"AR-RF")
-OOS_params$model_list <- c("AR, BIC","AR-RF") #"ARDI, BIC","LASSO","RIDGE","RF","GBM","NN"
+OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
 
 # Folder name in 50_results
 OOS_params$save_path = "demo_v2"
@@ -156,25 +158,25 @@ all_options <- expand.grid(combn)
 all_options <- all_options[order(all_options$var,all_options$hor, decreasing = F),]
 rownames(all_options) <- c()
 
+# NOTE: loop over
 # Choice of variable and horizon
 var <- 1
 hor <- 4
 
 # Variable and Horizon to forecast #############################################################
 # ==============================================================================================
-#UKdata <- MakeDataUK(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,
 
 # Get the data
-UKdata <- MakeDataUK(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,
-                     nFac = OOS_params$nFac, lag_y = OOS_params$lagY, lag_f = OOS_params$lagX, lag_marx = OOS_params$lagMARX,
-                     versionName = "current",
-                     download = F, EM_algorithm=T, EM_last_date=NA,
-                     frequency = 1, target_new_tcode=OOS_params$target_tcode[var])
-
-data <- UKdata[[1]]$lagged_data
-
-data <- as.data.frame(data)
-
+USdata <- MakeDataUS(path = paste0(path,paths$dat,"/"), 
+                     targetName = OOS_params$targetName[var], h = hor,
+                     nFac = OOS_params$nFac, lag_y = OOS_params$lagY, 
+                     lag_f = OOS_params$lagX, lag_marx = OOS_params$lagMARX,
+                     versionName = "current", download = T, EM_algorithm=T, 
+                     EM_last_date=NA, frequency = 1, 
+                     target_new_tcode=OOS_params$target_tcode[var]
+                     #target_new_tcode = NA
+                     )
+data <- USdata[[1]]$lagged_data
 
 # Estimation parameters ########################################################################
 # ==============================================================================================
@@ -468,7 +470,7 @@ for (v in var) {
           mrf <- MRF(data=newtrain[train_pos,],
                      y.pos=1,
                      S.pos=2:ncol(newtrain),
-                     x.pos=MacroRF_hyps$x_pos,## anpassen oben!!
+                     x.pos=MacroRF_hyps$x_pos,
                      oos.pos=c(),
                      minsize=MacroRF_hyps$minsize,
                      mtry.frac=MacroRF_hyps$mtry_frac,
@@ -514,7 +516,7 @@ save(prediction_oos, err_oos, data,
 # ===========================================================================================================
 # 3. RESULTS
 # ===========================================================================================================
-  
+
 results <- process_results(paths,OOS_params = OOS_params, benchmark = "AR, BIC") # To use plain MSE put benchmark = NA
 
 # Show MSE ratio
@@ -552,6 +554,5 @@ for(var in 1:dim(results$mse_table)[3]) {
 
 # Quick view, you need to choose the postion of the target you want to see
 # targets order : (1) "CPIAUCSL", (2) "UNRATE", (3) "HOUST", (4) "PAYEMS", (5) "GDPC1"
-mse_barplot_h1[[1]]
-pred_plot_h1[[1]]
-
+mse_barplot_h1[[3]]
+pred_plot_h1[[3]]
