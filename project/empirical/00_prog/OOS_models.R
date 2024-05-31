@@ -470,7 +470,7 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
       
       tryCatch(
         {
-          load(file)
+         load(file)
           predictions[,var,hor,] <- prediction_oos[,which(dimnames(prediction_oos)[[2]] %in% OOS_params$targetName[var]),hor,]
           errors[,var,hor,] <- err_oos[,which(dimnames(err_oos)[[2]] %in% OOS_params$targetName[var]),hor,] 
           targets[hor:nrow(targets),var,hor] <- data[,1]
@@ -497,7 +497,7 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
   dimnames(mse_table)[[3]] <- dimnames(predictions)[[2]]
   
   # Until 2019
-  end <- which(dimnames(predictions)[[1]]=="12/1/2019")
+  end <- which(dimnames(predictions)[[1]]=="2019-12-01")
   mse_table_2019 <- array(data = NA, c(dim(predictions)[3],
                                        dim(predictions)[4],
                                        dim(predictions)[2]))
@@ -505,9 +505,10 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
   dimnames(mse_table_2019)[[2]] <- dimnames(predictions)[[4]]
   dimnames(mse_table_2019)[[3]] <- dimnames(predictions)[[2]]
   
-  for (var in 1:dim(predictions)[2]) {
-    for(hor in 1:dim(predictions)[3]) {
-      
+  for (var in 1:dim(predictions)[2]) { #1:dim(predictions)[2]
+   for(hor in 1:dim(predictions)[3]) {
+    #for(hor in H) {
+  
       bench <- which(dimnames(predictions)[[4]] == benchmark)
       
       mse <- apply(errors[,var,hor,]^2,2,mean, na.rm=TRUE)
@@ -592,7 +593,10 @@ quick_plot <- function(results, hor, var) {
   target = results$targets[((nrow(results$targets)-nrow(results$predictions))+1):nrow(results$targets),var,hor]
   pred <- cbind(results$predictions[,var,hor,], "Target" = target)
   pred_long <- reshape2::melt(pred)
-  pred_long$Var1 =  as.Date(as.character(pred_long$Var1), format = c("%m/%d/%Y"))
+ # pred_long$Var1 =  as.Date(as.character(pred_long$Var1), format = c("%m/%d/%Y"))
+  # pred_long$Var1 =  as.Date(as.character(pred_long$Var1), format = c("%m/%d/%Y"))
+  pred_long$Var1 <- as.character(pred_long$Var1)
+  pred_long$Var1 <- as.Date(pred_long$Var1, format = "%Y-%m-%d")
   
   # Graph parameters
   target_pos <- which(unique(pred_long$Var2) == "Target")

@@ -69,6 +69,8 @@ MakeDataUK <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, version
     }
     # 
   
+    # average growth rate over the horizon 
+  
     
      targetedSerie <- data[[targetName]]
        # rawdata <- data[[2]]

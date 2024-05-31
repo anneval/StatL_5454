@@ -68,7 +68,7 @@ torch_set_num_threads(1)
 OOS_params <- list()
 
 # Target names from FRED DB
-OOS_params$targetName <- c("IOP_PROD","CPIAUCSL")[1]
+OOS_params$targetName <- c("IOP_PROD","UNEMP_RATE","CPI_ALL")[1]
 
 # Change the transformation code of the target, "NA" to keep FRED's code
 OOS_params$target_tcode <- c(5,5) 
@@ -86,7 +86,7 @@ OOS_params$nFac <- 5
 OOS_params$lagY <- 2                          
 
 # Number of regressors lags (factors included)
-OOS_params$lagX <- 1                         
+OOS_params$lagX <- 2                         
 
 # Create MARX
 OOS_params$lagMARX <- NA    
@@ -158,19 +158,19 @@ rownames(all_options) <- c()
 
 # Choice of variable and horizon
 var <- 1
-hor <- 1
+hor <- 4
 
 # Variable and Horizon to forecast #############################################################
 # ==============================================================================================
 
 # Get the data
-USdata <- MakeDataUK(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,
+UKdata <- MakeDataUK(path = paste0(path,paths$dat,"/"), targetName = OOS_params$targetName[var], h = hor,
                      nFac = OOS_params$nFac, lag_y = OOS_params$lagY, lag_f = OOS_params$lagX, lag_marx = OOS_params$lagMARX,
                      versionName = "current",
                      download = F, EM_algorithm=T, EM_last_date=NA,
                      frequency = 1, target_new_tcode=OOS_params$target_tcode[var])
 
-data <- USdata[[1]]$lagged_data
+data <- UKdata[[1]]$lagged_data
 
 data <- as.data.frame(data)
 
@@ -551,6 +551,6 @@ for(var in 1:dim(results$mse_table)[3]) {
 
 # Quick view, you need to choose the postion of the target you want to see
 # targets order : (1) "CPIAUCSL", (2) "UNRATE", (3) "HOUST", (4) "PAYEMS", (5) "GDPC1"
-mse_barplot_h1[[3]]
-pred_plot_h1[[3]]
+mse_barplot_h1[[1]]
+pred_plot_h1[[1]]
 
