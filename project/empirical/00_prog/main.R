@@ -82,7 +82,7 @@ OOS_params$horizon <- c(3,12)
 
 
 # Out-of-sample starting date
-OOS_params$OOS_starting_date <- "2008-01-01"
+OOS_params$OOS_starting_date <- "2015-01-01"
 
 # Number of FRED's factors
 OOS_params$nFac <- 5
@@ -105,7 +105,7 @@ OOS_params$reEstimate <- 60 # each 5 years
 # Which models to used ? Possible choice c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","ELASTIC-NET","RF","GBM","NN,"AR-RF")
 #OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
 
-OOS_params$model_list <- c("AR, BIC","AR-RF","RF-MAF","FA-ARRF") #RF_MAF, RF, FA-ARRF
+OOS_params$model_list <- c("AR, BIC","RF","AR-RF","RF-MAF","FA-ARRF") #RF_MAF, RF, FA-ARRF
 
 # Folder name in 50_results
 OOS_params$save_path = "demo"

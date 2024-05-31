@@ -49,7 +49,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   
   # Variable and Horizon to forecast #############################################################
   # ==============================================================================================
-  it_pos = 1
+  #it_pos = 1
   var <- all_options$var[it_pos]
   hor <- all_options$hor[it_pos]
   
@@ -104,12 +104,24 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   FA_MacroRF_hyps <<- OOS_params$FA_MacroRF_hyps
   
   ## Storage -----------------------------------------------------------------------
+  #selected_H <- c("H3", "H12")
+  prediction_oos <- array(data = NA, dim = c(OOS, length(unique(all_options$var)), H_max, length(model_list)))
   
-  prediction_oos <- array(data = NA, dim = c(OOS,length(unique(all_options$var)),H_max,length(model_list)))
-  rownames(prediction_oos) <- rownames(data)[c((length(rownames(data))-OOS+1):nrow(data))]
+  # Set the row names
+  rownames(prediction_oos) <- rownames(data)[c((length(rownames(data)) - OOS + 1):nrow(data))]
+  
+  # Set the dimension names
+  # dimnames(prediction_oos)[[2]] <- OOS_params$targetName
+  # dimnames(prediction_oos)[[3]] <- selected_H
+  # dimnames(prediction_oos)[[4]] <- model_list
+  # 
+  
+ # prediction_oos <- array(data = NA, dim = c(OOS,length(unique(all_options$var)),H,length(model_list)))
+  #rownames(prediction_oos) <- rownames(data)[c((length(rownames(data))-OOS+1):nrow(data))]
   dimnames(prediction_oos)[[2]] <- OOS_params$targetName
   dimnames(prediction_oos)[[3]] <- paste0("H",1:H_max)
   dimnames(prediction_oos)[[4]] <- model_list
+
   
   err_oos <-  array(data = NA, dim = c(OOS,length(unique(all_options$var)),H_max,length(model_list)))
   rownames(err_oos) <- rownames(data)[c((length(rownames(data))-OOS+1):nrow(data))]
@@ -305,11 +317,13 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           # Combine the indices
           selected_cols <- unique(c(cols_2_714, cols_F_UK))
           selected_cols_1 <- selected_cols[-1]
-          RF=ranger(y~., data = as.data.frame(newtrain[train_pos,selected_cols]), mtry = (ncol(newtrain[,selected_cols_1])*RF_hyps$mtry),
-                    num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
-          pred=predict(RF, data = as.data.frame(newtrain[,]))$predictions[oos_pos]
           
-          m <- which(model_list == "RF_MAF")
+          
+          RF_MAF=ranger(y~., data = as.data.frame(newtrain[train_pos,selected_cols]), mtry = (ncol(newtrain[,selected_cols_1])*RF_hyps$mtry),
+                    num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
+          pred=predict(RF_MAF, data = as.data.frame(newtrain[,]))$predictions[oos_pos]
+          
+          m <- which(model_list == "RF-MAF")
           err_oos[pos,v,h,m] <- newtrain[oos_pos,1] - pred
           prediction_oos[pos,v,h,m] <- pred
         }
@@ -469,7 +483,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           if(((pos-1) %% reEstimate) == 0) {
             
             
-            mrf <- MRF(data=newtrain[train_pos,],
+            mrf_fa <- MRF(data=newtrain[train_pos,],
                        y.pos=1,
                        S.pos=selected_cols,                      
                        x.pos=MacroRF_hyps$x_pos,
@@ -498,7 +512,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           }
           
           rf_test <- as.data.frame(newtrain[,-1])
-          pred <- pred.given.mrf(mrf, newdata = rf_test)
+          pred <- pred.given.mrf(mrf_fa, newdata = rf_test)
           
           m <- which(model_list == "FA-ARRF")
           err_oos[pos,v,h,m] <- train_data[oos_pos,1] - pred[length(pred)]
