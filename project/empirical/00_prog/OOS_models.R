@@ -308,7 +308,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           newtrain <- train_data
           
           # Find indices for columns 2 to 258
-          cols_2_714 <- 1:714
+          cols_2_714 <- 1:710
           col_names <- colnames(newtrain)
           
           # Find indices for columns containing '_F_UK'
@@ -403,7 +403,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           
     
           # Find indices for columns 2 to 258
-          cols_2_714 <- 2:714
+          cols_2_714 <- 2:710
           col_names <- colnames(newtrain)
           
           # Find indices for columns containing '_F_UK'
@@ -469,7 +469,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           
           
           # Find indices for columns 2 to 258
-          cols_2_714 <- 2:714
+          cols_2_714 <- 2:710
           col_names <- colnames(newtrain)
           
           # Find indices for columns containing '_F_UK'
