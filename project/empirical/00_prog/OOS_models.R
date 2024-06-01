@@ -532,7 +532,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   
   save_path <- paste0(paths$rst,"/",OOS_params$save_path)
   if(!dir.exists(save_path)){dir.create(save_path)}
-  save(prediction_oos, err_oos, data,
+  save(prediction_oos, err_oos, data,mrf,mrf_fa,
        file = paste0(paths$rst,"/",OOS_params$save_path,"/",OOS_params$targetName[var],"_h",hor,".RData"))
   
 }

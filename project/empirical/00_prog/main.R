@@ -85,13 +85,13 @@ OOS_params$horizon <- c(3,12)
 OOS_params$OOS_starting_date <- "2015-01-01"
 
 # Number of FRED's factors
-OOS_params$nFac <- 5
+OOS_params$nFac <- 8
 
 # Number of target lags
-OOS_params$lagY <- 24                          
+OOS_params$lagY <- 6                          
 
 # Number of regressors lags (factors included)
-OOS_params$lagX <- 24                         
+OOS_params$lagX <- 6                         
 
 # Create MARX
 OOS_params$lagMARX <- NA    
@@ -141,14 +141,14 @@ OOS_params$RF_MAF_hyps <- list(num.trees = 500,
 
 # Macro Random Forest hyperparamaters
 OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
-                                B = 20,
+                                B = 50,
                                 mtry_frac = 0.15,
                                 minsize = 15,
                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
 
 # Macro Random Forest hyperparamaters
 OOS_params$FA_MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7,26,27), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
-                                B = 20,
+                                B = 50,
                                 mtry_frac = 0.15,
                                 minsize = 15,
                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
@@ -222,28 +222,28 @@ round(results$mse_table,3)
 round(results$mse_table_2019,3)
 
 # MSE ratio barplots and predictions plots (the plots are saved in 20_Figures)
-mse_barplot_h1 <- list()
-mse_barplot_h4 <- list()
-pred_plot_h1 <- list()
-pred_plot_h4 <- list()
+mse_barplot_h3 <- list()
+mse_barplot_h12 <- list()
+pred_plot_h3 <- list()
+pred_plot_h12 <- list()
 
 for(var in 1:dim(results$mse_table)[3]) {
   
   # MSE
-  mse_barplot_h1[[var]] <- quick_barplot(results, hor = 3, var = var)
-  mse_barplot_h4[[var]] <- quick_barplot(results, hor = 12, var = var)
+  mse_barplot_h3[[var]] <- quick_barplot(results, hor = 3, var = var)
+  mse_barplot_h12[[var]] <- quick_barplot(results, hor = 12, var = var)
   
   # Predictions
-  pred_plot_h1[[var]] <- quick_plot(results, hor = 3, var = var)
-  pred_plot_h4[[var]] <- quick_plot(results, hor = 12, var = var)
+  pred_plot_h3[[var]] <- quick_plot(results, hor = 3, var = var)
+  pred_plot_h12[[var]] <- quick_plot(results, hor = 12, var = var)
   
   # Put the 2 graphs together
-  p <- arrangeGrob(pred_plot_h1[[var]],mse_barplot_h1[[var]],
+  p <- arrangeGrob(pred_plot_h3[[var]],mse_barplot_h3[[var]],
                    nrow = 2, ncol = 1)
   ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",1,".png")
   ggsave(ptitle, plot = p, dpi=72, dev='png', height=600, width=450, units="mm")
   
-  p <- arrangeGrob(pred_plot_h4[[var]],mse_barplot_h4[[var]],
+  p <- arrangeGrob(pred_plot_h12[[var]],mse_barplot_h12[[var]],
                    nrow = 2, ncol = 1)
   ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",4,".png")
   ggsave(ptitle, plot = p, dpi=72, dev='png', height=600, width=450, units="mm")
@@ -252,7 +252,7 @@ for(var in 1:dim(results$mse_table)[3]) {
 
 # Quick view, you need to choose the position of the target you want to see
 # targets order : (1) "CPIAUCSL", (2) "UNRATE", (3) "HOUST", (4) "PAYEMS", (5) "GDPC1"
-mse_barplot_h1[[1]]
-pred_plot_h1[[1]]
-mse_barplot_h1[[2]]
-pred_plot_h1[[3]]
+mse_barplot_h3[[1]]
+pred_plot_h3[[1]]
+mse_barplot_h12[[1]]
+pred_plot_h12[[1]]

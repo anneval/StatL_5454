@@ -68,10 +68,10 @@ torch_set_num_threads(1)
 OOS_params <- list()
 
 # Target names from FRED DB
-OOS_params$targetName <- c("IOP_PROD","UNEMP_RATE","CPI_ALL")[1]
+OOS_params$targetName <- c("CPI_ALL","UNEMP_RATE","CPI_ALL")[1]
 
 # Change the transformation code of the target, "NA" to keep FRED's code
-OOS_params$target_tcode <- c(5,5) 
+OOS_params$target_tcode <- c(NA) 
 
 # Forecasting horizons (in quarter)
 OOS_params$horizon <- c(1,4)
@@ -83,10 +83,10 @@ OOS_params$OOS_starting_date <- "2015-03-01"
 OOS_params$nFac <- 5 
 
 # Number of target lags
-OOS_params$lagY <- 2                          
+OOS_params$lagY <- 24                          
 
 # Number of regressors lags (factors included)
-OOS_params$lagX <- 2                         
+OOS_params$lagX <- 24                         
 
 # Create MARX
 OOS_params$lagMARX <- NA    
@@ -95,7 +95,7 @@ OOS_params$lagMARX <- NA
 OOS_params$nfolds <- 5
 
 # How many quarters between hyperparameters CV (in quarters)
-OOS_params$reEstimate <- 20 # each 5 years 
+OOS_params$reEstimate <- 60 # each 5 years 
 
 # Which models to used ? Possible choice c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","ELASTIC-NET","RF","GBM","NN,"AR-RF")
 OOS_params$model_list <- c("AR, BIC","AR-RF") #"ARDI, BIC","LASSO","RIDGE","RF","GBM","NN"
@@ -125,25 +125,25 @@ OOS_params$RF_hyps <- list(num.trees = 500,
                            mtry = 1/3)
 
 # Macro Random Forest hyperparamaters
-OOS_params$MacroRF_hyps <- list(x_pos = c(2,3),
+OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7),
                                 B = 20,
                                 mtry_frac = 0.15,
                                 minsize = 15,
-                                block_size = 8)
+                                block_size = 24)
 
-# Neural network hyperparameters
-OOS_params$nn_hyps <- list(n_features=NA,
-                           nodes=rep(100,5),      # same number of nodes in every layers
-                           patience=10,           # Return the best model
-                           epochs=100,
-                           lr=0.001,
-                           tol=0.01,
-                           show_train=3,          # 1=show each bootstrap loss, 2=progress bar, 3+=show nothing
-                           num_average=5,
-                           dropout_rate=0.2,
-                           sampling_rate = 0.75,
-                           batch_size = 32,
-                           num_batches = NA)
+# # Neural network hyperparameters
+# OOS_params$nn_hyps <- list(n_features=NA,
+#                            nodes=rep(100,5),      # same number of nodes in every layers
+#                            patience=10,           # Return the best model
+#                            epochs=100,
+#                            lr=0.001,
+#                            tol=0.01,
+#                            show_train=3,          # 1=show each bootstrap loss, 2=progress bar, 3+=show nothing
+#                            num_average=5,
+#                            dropout_rate=0.2,
+#                            sampling_rate = 0.75,
+#                            batch_size = 32,
+#                            num_batches = NA)
 
 # ===========================================================================================================
 # 2.ESTIMATION
@@ -158,7 +158,7 @@ rownames(all_options) <- c()
 
 # Choice of variable and horizon
 var <- 1
-hor <- 4
+hor <- 3
 
 # Variable and Horizon to forecast #############################################################
 # ==============================================================================================
