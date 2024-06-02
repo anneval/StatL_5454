@@ -58,7 +58,8 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
                        nFac = OOS_params$nFac, lag_y = OOS_params$lagY, lag_f = OOS_params$lagX, lag_marx = OOS_params$lagMARX,
                        versionName = "current",
                        download = F, EM_algorithm=F, EM_last_date=NA,
-                       frequency = 1, target_new_tcode=OOS_params$target_tcode[var])
+                       frequency = 1, target_new_tcode=OOS_params$target_tcode[var],
+                       nMAF = OOS_params$nMAF)
   data <- UKdata[[1]]$lagged_data
   
   # Estimation parameters ########################################################################
@@ -74,6 +75,8 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   lagY <- OOS_params$lagY
   lagX <- OOS_params$lagX
   nfac <- OOS_params$nFac
+  nMAF <- OOS_params$nMAF
+  lagOtherX <- OOS_params$lagOtherX
   
   # Out of sample start
   OOS <- nrow(data) - which(rownames(data) == OOS_date) + 1
@@ -103,6 +106,9 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   # Macro Random Forest hyperparameters
   FA_MacroRF_hyps <<- OOS_params$FA_MacroRF_hyps
   
+  
+  
+  
   ## Storage -----------------------------------------------------------------------
   #selected_H <- c("H3", "H12")
   prediction_oos <- array(data = NA, dim = c(OOS, length(unique(all_options$var)), H_max, length(model_list)))
@@ -129,8 +135,49 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   dimnames(err_oos)[[3]] <- paste0("H",1:H_max)
   dimnames(err_oos)[[4]] <- model_list
   
+  
+  
+  
   # Estimation ######################################################################################
   # =================================================================================================
+  
+  
+  ## NOTE on Variable Selection for MacroRF (AR and FA-AR), (Plain) RF and RF-MAF 
+  
+  # STATE VARIABLES
+  # S = all lags of target (lagY) + all lags of factor (lagX) + MAFs + lags of other variables (lagOtherX)
+  # --> use for AR-RF, FA-AR-RF, RR-MAF
+  
+  # REGRESSORS for PLAIN RF
+  # X = all lags of target (lagY) + all lags of other variables lagOtherX
+  
+  # NOTE: take column selection outside the loop to speed things up a little
+  col_names <- colnames(data)
+  
+  # COLUMNS for PLAIN RF (logical vector to select appropriate columns of data frame)
+  cols_plain_rf <- !grepl('_F_U|trend|MAF_', col_names) # drop trend, factors and MAF
+  
+  # COLUMNS for RF-MAF 
+  # --> drop non-factor variables with lags > lagOtherX
+  names_factors <- col_names[grepl("^L[0-9]{1,2}_F_U", col_names)]
+  aux_regex <- paste0('^L[', lagOtherX, '-9]{1,2}_')
+  temp_drop <- col_names[grepl(aux_regex, col_names)] # all non-target variables with lag > lagOtherX (INCLUDING FACTORS)
+  temp_keep <- setdiff(col_names, temp_drop)
+  keep <- unique(c(temp_keep, names_factors)) # add factors that were (incorrectly) dropped
+  
+  cols_rf_maf <- col_names %in% keep
+  
+  # COLUMN NUMBERS for S (AR-RF, FA-AR-RF)
+  s_cols <- which(col_names %in% keep)[-1] 
+  
+  # COLUMN NUMBERS for X in AR-RF
+  x_cols_ar_rf <- which(col_names %in% MacroRF_hyps$x_vars)
+  
+  # COLUMN NUMBERS for X in FA-AR-RF
+  x_cols_fa_ar_rf <- which(col_names %in% FA_MacroRF_hyps$x_vars)
+  
+  
+  
   
   for (v in var) {
     for (h in hor) {
@@ -285,15 +332,25 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
         # we need 24 lags 
         
         if("RF" %in% model_list) {
-
+          
           newtrain <- train_data
           
-          col_names <- colnames(newtrain)
-          cols_to_keep <- !grepl('_F_UK|trend', col_names)
+          # NEW PART/SOME ADJUSTMENTS
+          mtry_temp <- (sum(cols_plain_rf)-1)*RF_hyps$mtry # number of covariates * chosen fraction
           
-      
-          RF=ranger(y~., data = as.data.frame(newtrain[train_pos,cols_to_keep]), mtry = (ncol(newtrain[,-1])*RF_hyps$mtry),
+          RF=ranger(y~., data = as.data.frame(newtrain[train_pos,cols_plain_rf]), 
+                    mtry = mtry_temp,
                     num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
+          
+          # OLD PART
+          # col_names <- colnames(newtrain)
+          # cols_to_keep <- !grepl('_F_UK|trend', col_names)
+          # 
+          # 
+          # RF=ranger(y~., data = as.data.frame(newtrain[train_pos,cols_to_keep]), 
+          #           mtry = (ncol(newtrain[,-1])*RF_hyps$mtry), # CHECK!
+          #           num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
+          
           pred=predict(RF, data = as.data.frame(newtrain[,]))$predictions[oos_pos]
           
           m <- which(model_list == "RF")
@@ -306,21 +363,29 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
         if("RF-MAF" %in% model_list) {
           
           newtrain <- train_data
+          # NEW PART/SOME ADJUSTMENTS
+          mtry_temp <- (sum(cols_rf_maf)-1)*RF_MAF_hyps$mtry
           
-          # Find indices for columns 2 to 258
-          cols_2_714 <- 1:710
-          col_names <- colnames(newtrain)
+          RF_MAF=ranger(y~., data = as.data.frame(newtrain[train_pos,cols_rf_maf]), 
+                        mtry = mtry_temp,
+                        num.trees = RF_MAF_hyps$num.trees, min.node.size = RF_MAF_hyps$min.node.size)
           
-          # Find indices for columns containing '_F_UK'
-          cols_F_UK <- grep("_F_UK","trend", col_names)
+          # # Find indices for columns 2 to 258
+          # cols_2_714 <- 1:710
+          # col_names <- colnames(newtrain)
+          # 
+          # # Find indices for columns containing '_F_UK'
+          # cols_F_UK <- grep("_F_UK","trend", col_names) # CHECK
+          # 
+          # # Combine the indices
+          # selected_cols <- unique(c(cols_2_714, cols_F_UK))
+          # selected_cols_1 <- selected_cols[-1]
+          # 
+          # 
+          # RF_MAF=ranger(y~., data = as.data.frame(newtrain[train_pos,selected_cols]),
+          #               mtry = (ncol(newtrain[,selected_cols_1])*RF_hyps$mtry),
+          #           num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
           
-          # Combine the indices
-          selected_cols <- unique(c(cols_2_714, cols_F_UK))
-          selected_cols_1 <- selected_cols[-1]
-          
-          
-          RF_MAF=ranger(y~., data = as.data.frame(newtrain[train_pos,selected_cols]), mtry = (ncol(newtrain[,selected_cols_1])*RF_hyps$mtry),
-                    num.trees = RF_hyps$num.trees, min.node.size = RF_hyps$min.node.size)
           pred=predict(RF_MAF, data = as.data.frame(newtrain[,]))$predictions[oos_pos]
           
           m <- which(model_list == "RF-MAF")
@@ -397,29 +462,30 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
 
         if("AR-RF" %in% model_list) {
           newtrain <- train_data
-
           newtrain <- as.matrix(newtrain[c(train_pos,oos_pos),])
           rownames(newtrain) <- c()
           
-    
-          # Find indices for columns 2 to 258
-          cols_2_714 <- 2:710
-          col_names <- colnames(newtrain)
           
-          # Find indices for columns containing '_F_UK'
-          cols_F_UK <- grep("_F_UK","trend", col_names)
-          
-          # Combine the indices
-          selected_cols <- unique(c(cols_2_714, cols_F_UK))
+          # OLD PART
+          # # Find indices for columns 2 to 258
+          # cols_2_714 <- 2:710
+          # col_names <- colnames(newtrain)
+          # 
+          # # Find indices for columns containing '_F_UK'
+          # cols_F_UK <- grep("_F_UK","trend", col_names) # CHECK
+          # 
+          # # Combine the indices
+          # selected_cols <- unique(c(cols_2_714, cols_F_UK))
           
           
           if(((pos-1) %% reEstimate) == 0) {
             
-            
             mrf <- MRF(data=newtrain[train_pos,],
                        y.pos=1,
-                       S.pos=selected_cols,                      
-                       x.pos=MacroRF_hyps$x_pos,
+                       S.pos=s_cols,
+                       #S.pos=selected_cols,                      
+                       x.pos=x_cols_ar_rf,
+                       #x.pos=MacroRF_hyps$x_pos,
                        oos.pos=c(),
                        minsize=MacroRF_hyps$minsize,
                        mtry.frac=MacroRF_hyps$mtry_frac,
@@ -432,8 +498,11 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
                        howmany.random.x=1,
                        howmany.keep.best.VI=20,
                        cheap.look.at.GTVPs=FALSE,
-                       prior.var=1/c(0.01,0.25,rep(1,length(MacroRF_hyps$x_pos)-1)),
-                       prior.mean=coef(lm(as.matrix(newtrain[train_pos,1])~as.matrix(newtrain[train_pos,MacroRF_hyps$x_pos]))),
+                       prior.var=1/c(0.01,0.25,rep(1,length(x_cols_ar_rf)-1)),
+                       #prior.var=1/c(0.01,0.25,rep(1,length(MacroRF_hyps$x_pos)-1)),
+                       prior.mean=coef(
+                         lm(as.matrix(newtrain[train_pos,1])~as.matrix(newtrain[train_pos,x_cols_ar_rf]))),
+                       #prior.mean=coef(lm(as.matrix(newtrain[train_pos,1])~as.matrix(newtrain[train_pos,MacroRF_hyps$x_pos]))),
                        subsampling.rate=0.70,
                        rw.regul=0.95,
                        keep.forest=TRUE,
@@ -462,53 +531,59 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
           newtrain <- as.matrix(newtrain[c(train_pos,oos_pos),])
           rownames(newtrain) <- c()
           
-          #  newtrain_df <- as.data.frame(newtrain)
-          #  S.pos_df <- newtrain_df %>%
-          #    select(2:258, contains("_F_UK"))
-          # # 
-          
-          
-          # Find indices for columns 2 to 258
-          cols_2_714 <- 2:710
-          col_names <- colnames(newtrain)
-          
-          # Find indices for columns containing '_F_UK'
-          cols_F_UK <- grep("_F_UK","trend", col_names)
-          
-          # Combine the indices
-          selected_cols <- unique(c(cols_2_714, cols_F_UK))
+          # OLD PART
+          # #  newtrain_df <- as.data.frame(newtrain)
+          # #  S.pos_df <- newtrain_df %>%
+          # #    select(2:258, contains("_F_UK"))
+          # # # 
+          # 
+          # 
+          # # Find indices for columns 2 to 258
+          # cols_2_714 <- 2:710 # CHECK
+          # col_names <- colnames(newtrain)
+          # 
+          # # Find indices for columns containing '_F_UK'
+          # cols_F_UK <- grep("_F_UK","trend", col_names) # CHECK
+          # 
+          # # Combine the indices
+          # selected_cols <- unique(c(cols_2_714, cols_F_UK))
    
           
           
           if(((pos-1) %% reEstimate) == 0) {
             
-            
+            # hyperparameters of FA_MacroRF_hyps not MacroRF_hyps!
             mrf_fa <- MRF(data=newtrain[train_pos,],
-                       y.pos=1,
-                       S.pos=selected_cols,                      
-                       x.pos=MacroRF_hyps$x_pos,
-                       oos.pos=c(),
-                       minsize=MacroRF_hyps$minsize,
-                       mtry.frac=MacroRF_hyps$mtry_frac,
-                       min.leaf.frac.of.x=1.5,
-                       VI=FALSE,
-                       ERT=FALSE,
-                       quantile.rate=0.33,
-                       S.priority.vec=NULL,
-                       random.x = FALSE,
-                       howmany.random.x=1,
-                       howmany.keep.best.VI=20,
-                       cheap.look.at.GTVPs=FALSE,
-                       prior.var=1/c(0.01,0.25,rep(1,length(MacroRF_hyps$x_pos)-1)),
-                       prior.mean=coef(lm(as.matrix(newtrain[train_pos,1])~as.matrix(newtrain[train_pos,MacroRF_hyps$x_pos]))),
-                       subsampling.rate=0.70,
-                       rw.regul=0.95,
-                       keep.forest=TRUE,
-                       block.size=MacroRF_hyps$block_size,
-                       trend.pos=ncol(newtrain),
-                       trend.push=4,
-                       fast.rw=TRUE,
-                       ridge.lambda=0.5,HRW=0,B=MacroRF_hyps$B,resampling.opt=2,printb=FALSE)
+                          y.pos=1,
+                          S.pos=s_cols,
+                          #S.pos=selected_cols,                      
+                          x.pos=x_cols_fa_ar_rf,
+                          #x.pos=MacroRF_hyps$x_pos,
+                          oos.pos=c(),
+                          minsize=FA_MacroRF_hyps$minsize,
+                          mtry.frac=FA_MacroRF_hyps$mtry_frac,
+                          min.leaf.frac.of.x=1.5,
+                          VI=FALSE,
+                          ERT=FALSE,
+                          quantile.rate=0.33,
+                          S.priority.vec=NULL,
+                          random.x = FALSE,
+                          howmany.random.x=1,
+                          howmany.keep.best.VI=20,
+                          cheap.look.at.GTVPs=FALSE,
+                          prior.var=1/c(0.01,0.25,rep(1,length(x_cols_fa_ar_rf)-1)),
+                          #prior.var=1/c(0.01,0.25,rep(1,length(MacroRF_hyps$x_pos)-1)),
+                          prior.mean=coef(
+                            lm(as.matrix(newtrain[train_pos,1])~as.matrix(newtrain[train_pos,x_cols_fa_ar_rf]))),
+                          #prior.mean=coef(lm(as.matrix(newtrain[train_pos,1])~as.matrix(newtrain[train_pos,MacroRF_hyps$x_pos]))),
+                          subsampling.rate=0.70,
+                          rw.regul=0.95,
+                          keep.forest=TRUE,
+                          block.size=FA_MacroRF_hyps$block_size,
+                          trend.pos=ncol(newtrain),
+                          trend.push=4,
+                          fast.rw=TRUE,
+                          ridge.lambda=0.5,HRW=0,B=FA_MacroRF_hyps$B,resampling.opt=2,printb=FALSE)
           }
           
           rf_test <- as.data.frame(newtrain[,-1])

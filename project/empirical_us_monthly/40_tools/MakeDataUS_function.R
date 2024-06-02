@@ -1,6 +1,6 @@
 MakeDataUS <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx, 
                        versionName="current", frequency, download=TRUE, EM_algorithm=T,
-                       EM_last_date=NA,target_new_tcode) {
+                       EM_last_date=NA,target_new_tcode, start_date = NULL, nMAF = 0) {
   
   #print(target_tcode)
   library(pracma)
@@ -28,13 +28,17 @@ MakeDataUS <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx,
   for (numOfTarget in 1:length(output)) {
     
     ## TRANSFORM DATA ---------------------------------------------------------------
+    if(!is.null(start_date)){
+      start_date <- as.Date(start_date) # make object of class "date" if necessary
+    }
+    
     if(frequency==1){
       data <- transformFRED(file = paste0(path,versionName,"_monthly.csv"),
-                            date_start = NULL, date_end = NULL, transform = TRUE, 
+                            date_start = start_date, date_end = NULL, transform = TRUE, 
                             frequency, targetName[numOfTarget], target_new_tcode[numOfTarget], h)
     } else if(frequency==2){
       data <- transformFRED(file = paste0(path,versionName,"_quarterly.csv"), 
-                            date_start = NULL, date_end = NULL,
+                            date_start = start_date, date_end = NULL,
                             transform = TRUE, frequency, targetName[numOfTarget], 
                             target_new_tcode[numOfTarget], h)
     }
@@ -98,62 +102,104 @@ MakeDataUS <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx,
     newtrain <- newtrain[(maxLag_all+h+1):nrow(newtrain),]
     
     ## MAKE MARX --------------------------------------------------------------------
-    if(!is.na(lag_marx)) {
-      if(nFac > 0) {
-        X_alt <- data[,-c(1:nFac)]
-      }else{
-        X_alt <- data
-      }
+    # if(!is.na(lag_marx)) {
+    #   if(nFac > 0) {
+    #     X_alt <- data[,-c(1:nFac)]
+    #   }else{
+    #     X_alt <- data
+    #   }
+    #   
+    #   lags <- make_reg_matrix(y=targetedSerie,Y=target,factors = X_alt , h=h, max_y = maxLag_marx+h-1, max_f = maxLag_marx+h-1)
+    #   lags <- lags[(maxLag_all+h+1):nrow(lags),-c(1:(maxLag_marx+1))]
+    #   rownames(lags) <- c()
+    #   
+    #   names.cs = colnames(X_alt)
+    #   bigX <- lags
+    #   
+    #   names.bigX = 1:dim(bigX)[2]
+    #   
+    #   lags_names <- paste0("L",0:(maxLag_marx-1),"_")
+    #   lags_names <- paste(lags_names, collapse = "|")
+    #   for(jj in 1:dim(bigX)[2]){
+    #     names.bigX[jj] = str_replace(colnames(bigX)[[jj]],lags_names,"")#substr(colnames(bigX)[jj],start=4,stop=nchar(colnames(bigX)[jj]))
+    #   }
+    #   new.facs = c()
+    #   new.marx <- c()
+    #   
+    #   for(jj in 1:length(names.cs)){
+    #     subset=bigX[,names.bigX==names.cs[jj]]
+    #     
+    #     marx <- do.call(cbind,
+    #                     lapply(1:(maxLag_marx-1), function(x) (rowMeans(subset[,1:(x+1)]))) )
+    #     colnames(marx) <- paste0(paste0("L",1:(maxLag_marx-1),"_MARX"),"_",names.cs[jj])
+    #     new.marx <- cbind(new.marx,marx)
+    #   }
+    #   
+    #   # MAF and MARX for Y
+    #   subset=newtrain[,2:(maxLag_marx+1)]
+    #   
+    #   marx <- do.call(cbind,
+    #                   lapply(1:(maxLag_marx-1), function(x) (rowMeans(subset[,1:(x+1)]))) )
+    #   colnames(marx) <- paste0(paste0("L",1:(maxLag_marx-1),"_MARX"),"_","YLag")
+    #   new.marx <- cbind(new.marx,marx)
+    #   
+    #   # Keep only marx selected lags
+    #   # toKeep <- unlist(lapply(lag_marx, function(x) paste0("L",x-1,"_|")))
+    #   lag_marx_alt <- lag_marx[-length(lag_marx)]
+    #   toKeep <- paste0("L",lag_marx_alt-1,"_|")
+    #   toKeep <- paste(toKeep, collapse = '')
+    #   toKeep <- paste0(toKeep,"L",lag_marx[length(lag_marx)]-1,"_")
+    #   new.marx <- new.marx[,grep(toKeep, colnames(new.marx))]
+    #   
+    #   newtrain <- cbind(newtrain,new.marx,trend=1:nrow(newtrain))
+    #   
+    # }else{
+    #   
+    #   newtrain <- cbind(newtrain,trend=1:nrow(newtrain))
+    #   
+    # }
+    
+    
+    ### MAKE MOVING AVERAGE FACTORS (if needed) -----------------------------------------------------
+    
+    
+    if (nMAF > 0) {
+      temp_vars <- colnames(newtrain)
+      temp_vars <- temp_vars[grepl("L[0-9]{1,2}_", temp_vars)] # exclude target and lagged target
+      temp_vars <- temp_vars[!grepl("_F_U", temp_vars)] # exclude factors
       
-      lags <- make_reg_matrix(y=targetedSerie,Y=target,factors = X_alt , h=h, max_y = maxLag_marx+h-1, max_f = maxLag_marx+h-1)
-      lags <- lags[(maxLag_all+h+1):nrow(lags),-c(1:(maxLag_marx+1))]
-      rownames(lags) <- c()
+      temp_names <- str_remove(temp_vars, "L[0-9]{1,2}_") # get variable names (without lag operator)
+      names_list <- as.list(unique(temp_names)) # list with (unique) variable names
       
-      names.cs = colnames(X_alt)
-      bigX <- lags
+      variables_maf <- lapply(names_list, function(x) temp_vars[temp_names == x]) # collect all lagged values of a particular variable
+      names(variables_maf) <- names_list
       
-      names.bigX = 1:dim(bigX)[2]
+      # get data of all lags for each variable 
+      input_maf <- lapply(variables_maf, function(x) newtrain[,x])
       
-      lags_names <- paste0("L",0:(maxLag_marx-1),"_")
-      lags_names <- paste(lags_names, collapse = "|")
-      for(jj in 1:dim(bigX)[2]){
-        names.bigX[jj] = str_replace(colnames(bigX)[[jj]],lags_names,"")#substr(colnames(bigX)[jj],start=4,stop=nchar(colnames(bigX)[jj]))
-      }
-      new.facs = c()
-      new.marx <- c()
+      # initialize output list of MAF
+      output_maf <- vector("list", length = length(input_maf))
+      names(output_maf) <- names(input_maf)
       
-      for(jj in 1:length(names.cs)){
-        subset=bigX[,names.bigX==names.cs[jj]]
+      for (i in names(output_maf)){
+        temp_input <- input_maf[[i]]
+        temp_output <- factorize(standard(temp_input)$Y, n_fac = nMAF)$factor
+        colnames(temp_output) <- paste0("MAF_",i,"_",1:nMAF)
         
-        marx <- do.call(cbind,
-                        lapply(1:(maxLag_marx-1), function(x) (rowMeans(subset[,1:(x+1)]))) )
-        colnames(marx) <- paste0(paste0("L",1:(maxLag_marx-1),"_MARX"),"_",names.cs[jj])
-        new.marx <- cbind(new.marx,marx)
+        output_maf[[i]] <- temp_output
       }
       
-      # MAF and MARX for Y
-      subset=newtrain[,2:(maxLag_marx+1)]
+      # turn list into big matrix
+      mafs <- do.call(cbind, output_maf)
       
-      marx <- do.call(cbind,
-                      lapply(1:(maxLag_marx-1), function(x) (rowMeans(subset[,1:(x+1)]))) )
-      colnames(marx) <- paste0(paste0("L",1:(maxLag_marx-1),"_MARX"),"_","YLag")
-      new.marx <- cbind(new.marx,marx)
+      # add MAFs and trend to data
+      newtrain <- cbind(newtrain,mafs, trend = 1:nrow(newtrain))
       
-      # Keep only marx selected lags
-      # toKeep <- unlist(lapply(lag_marx, function(x) paste0("L",x-1,"_|")))
-      lag_marx_alt <- lag_marx[-length(lag_marx)]
-      toKeep <- paste0("L",lag_marx_alt-1,"_|")
-      toKeep <- paste(toKeep, collapse = '')
-      toKeep <- paste0(toKeep,"L",lag_marx[length(lag_marx)]-1,"_")
-      new.marx <- new.marx[,grep(toKeep, colnames(new.marx))]
-      
-      newtrain <- cbind(newtrain,new.marx,trend=1:nrow(newtrain))
-      
-    }else{
-      
-      newtrain <- cbind(newtrain,trend=1:nrow(newtrain))
-      
+    } else {
+      mafs <- NA
+      newtrain <- cbind(newtrain, trend=1:nrow(newtrain)) # add trend
     }
+    
     
     ### COMBINE ALL ------------------------------------------------------------------
     
@@ -172,7 +218,8 @@ MakeDataUS <- function(path, targetName, h, nFac, lag_y,lag_f, lag_marx,
                     horizon=h,
                     frequency=frequencyString,
                     varNames=c(varNames),
-                    tcodes=all_tcodes)
+                    tcodes=all_tcodes,
+                    moving_average_factors = mafs)
     
     output[[numOfTarget]] <- returns
     
@@ -342,7 +389,8 @@ standard <- function(Y){
   return(list(Y=Y0, mean=mean_y, std=sd_y))
 }
 
-transformFRED <- function (file = "", date_start = NULL, date_end = NULL, transform = TRUE, frequency, targetNames, target_tcode, h) 
+transformFRED <- function (file = "", date_start = NULL, date_end = NULL, transform = TRUE, 
+                           frequency, targetNames, target_tcode, h) 
 {
 
   # Function based on fbi R Package (https://github.com/cykbennie/fbi)
@@ -448,21 +496,24 @@ transformFRED <- function (file = "", date_start = NULL, date_end = NULL, transf
       temp <- transxf(rawdata[, i], tcode[i - 1], h)
       data[, i] <- temp
     }
-  }
-  else {
+  } else {
     data <- rawdata
   }
   if (is.null(date_start)) 
     date_start <- as.Date("1959-01-01")
   if (is.null(date_end)) 
     date_end <- data[, 1][nrow(data)]
-  # index_start <- which.max(data[, 1] == date_start)
+  index_start <- which.max(as.Date(data[, 1], tryFormats = c("%m/%d/%Y")) == date_start)
   # index_end <- which.max(data[, 1] == date_end)
   # outdata <- data[index_start:index_end, ]
-  outdata <- data[, ]
+  outdata <- data[index_start:nrow(data), ]
   
   #class(outdata) <- c("data.frame", "fredmd")
   returnList <- list(outdata,rawdata,target,tcode)
   
   return(returnList)
 }
+
+
+
+

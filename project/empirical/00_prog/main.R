@@ -110,6 +110,12 @@ OOS_params$model_list <- c("AR, BIC","RF","AR-RF","RF-MAF","FA-ARRF") #RF_MAF, R
 # Folder name in 50_results
 OOS_params$save_path = "demo"
 
+# number of MAF per variable
+OOS_params$nMAF <- 2
+
+# lags of "non-factor" exogenous variables (i.e. all the fred variables that are not "target")
+OOS_params$lagOtherX <- 1
+
 ## Hyperparamters ----------------------------------------------------------------
 
 
@@ -139,19 +145,44 @@ OOS_params$RF_MAF_hyps <- list(num.trees = 500,
                            mtry = 1/3)
 
 
-# Macro Random Forest hyperparamaters
-OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
-                                B = 50,
+# NOTE for AR-RF and FA-AR-RF: user provides variable names and OOS_models(.) determines the corresponding
+#       (column) position in the data
+
+# Macro Random Forest (AR) hyperparamaters
+temp_x <- paste0("L_", 0:(OOS_params$lagY-1), "y") # names of lagged y-values
+
+OOS_params$MacroRF_hyps <- list(x_vars = temp_x,
+                                #x_pos = c(2,3,4,5,6,7),  
+                                B = 50, 
                                 mtry_frac = 0.15,
                                 minsize = 15,
                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
 
-# Macro Random Forest hyperparamaters
-OOS_params$FA_MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7,26,27), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
-                                B = 50,
-                                mtry_frac = 0.15,
-                                minsize = 15,
-                                block_size = 24) # block size is 24 in monthly i.e. 2 years
+
+# Macro Random Forest (FA-AR) hyperparamaters
+temp_x <- c(temp_x, "L0_F_UK1", "L0_F_UK2") # names of lagged y-values and first two factors
+
+OOS_params$FA_MacroRF_hyps <- list(x_vars = temp_x,
+                                   #x_pos = c(2,3,4,5,6,7,26,27), 
+                                   B = 50, # more trees?
+                                   mtry_frac = 0.15,
+                                   minsize = 15,
+                                   block_size = 24) # block size is 
+
+# OLD PART
+# # Macro Random Forest hyperparamaters
+# OOS_params$MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
+#                                 B = 50,
+#                                 mtry_frac = 0.15,
+#                                 minsize = 15,
+#                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
+# 
+# # Macro Random Forest hyperparamaters
+# OOS_params$FA_MacroRF_hyps <- list(x_pos = c(2,3,4,5,6,7,26,27), #### für den ARRF & month lags i.e. 2 Quarter before now monthly 
+#                                 B = 50,
+#                                 mtry_frac = 0.15,
+#                                 minsize = 15,
+#                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
 
 # Neural network hyperparameters
 # OOS_params$nn_hyps <- list(n_features=NA,
