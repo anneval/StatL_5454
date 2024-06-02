@@ -78,16 +78,16 @@ OOS_params$target_tcode <- c(5)
 OOS_params$horizon <- c(3,12)
 
 # Out-of-sample starting date
-OOS_params$OOS_starting_date <- "3/1/2015"
+OOS_params$OOS_starting_date <- "1/1/2015"
 
 # Number of FRED's factors
-OOS_params$nFac <- 5 
+OOS_params$nFac <- 8 
 
 # Number of target lags
-OOS_params$lagY <- 2                          
+OOS_params$lagY <- 6                          
 
 # Number of regressors lags (factors included)
-OOS_params$lagX <- 2                         
+OOS_params$lagX <- 6                         
 
 # Create MARX
 OOS_params$lagMARX <- NA    
@@ -95,31 +95,41 @@ OOS_params$lagMARX <- NA
 # Number of folds for CV
 OOS_params$nfolds <- 5
 
-# How many quarters between hyperparameters CV (in quarters)
-OOS_params$reEstimate <- 20 # each 5 years 
+# How many quarters between hyperparameters CV (in months)
+OOS_params$reEstimate <- 60 # each 5 years 
 #OOS_params$reEstimate <- 20 # each 5 years 
 
 # Which models to used ? Possible choice c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","ELASTIC-NET","RF","GBM","NN,"AR-RF")
-OOS_params$model_list <- c("AR, BIC", "ARDI, BIC","LASSO","RIDGE","RF","GBM","NN","AR-RF")
+OOS_params$model_list <- c("AR, BIC", "RF","AR-RF")
 
 # Folder name in 50_results
 OOS_params$save_path = "demo_v2"
+
+# starting date of training sample
+OOS_params$training_starting_date <- "1998-01-01"
+
+# number of MAF per variable (note: number of lags considered to construct MAF = lagX (lagY))
+OOS_params$nMAF <- 2
+
+# lags of "non-factor" exogenous variables (i.e. all the fred variables that are not "target")
+OOS_params$lagOtherX <- 1
+
 
 ## Hyperparamters ----------------------------------------------------------------
 
 
 # Elastic - Net hyperparameters (CV)
-OOS_params$EN_hyps <- list(alpha_range = round(seq(0.01,0.99, length = 100),4))
-
-
-# Boosting hyperparameters (CV)
-OOS_params$Boosting_hyps <- list(man_grid = expand.grid(n.trees = c(seq(25, 700, by = 100)),
-                                                        interaction.depth = c(3,5),
-                                                        shrinkage = c(0.01),
-                                                        n.minobsinnode = c(10)),
-                                 fitControl = trainControl(method = "cv",
-                                                           number = OOS_params$nfolds,
-                                                           search = "grid"))
+# OOS_params$EN_hyps <- list(alpha_range = round(seq(0.01,0.99, length = 100),4))
+# 
+# 
+# # Boosting hyperparameters (CV)
+# OOS_params$Boosting_hyps <- list(man_grid = expand.grid(n.trees = c(seq(25, 700, by = 100)),
+#                                                         interaction.depth = c(3,5),
+#                                                         shrinkage = c(0.01),
+#                                                         n.minobsinnode = c(10)),
+#                                  fitControl = trainControl(method = "cv",
+#                                                            number = OOS_params$nfolds,
+#                                                            search = "grid"))
 
 # Random Forest hyperparameters
 OOS_params$RF_hyps <- list(num.trees = 500,
@@ -128,24 +138,24 @@ OOS_params$RF_hyps <- list(num.trees = 500,
 
 # Macro Random Forest hyperparamaters
 OOS_params$MacroRF_hyps <- list(x_pos = c(2,3),
-                                B = 20,
+                                B = 50,
                                 mtry_frac = 0.15,
                                 minsize = 15,
-                                block_size = 8)
+                                block_size = 24)
 
 # Neural network hyperparameters
-OOS_params$nn_hyps <- list(n_features=NA,
-                           nodes=rep(100,5),      # same number of nodes in every layers
-                           patience=10,           # Return the best model
-                           epochs=100,
-                           lr=0.001,
-                           tol=0.01,
-                           show_train=3,          # 1=show each bootstrap loss, 2=progress bar, 3+=show nothing
-                           num_average=5,
-                           dropout_rate=0.2,
-                           sampling_rate = 0.75,
-                           batch_size = 32,
-                           num_batches = NA)
+# OOS_params$nn_hyps <- list(n_features=NA,
+#                            nodes=rep(100,5),      # same number of nodes in every layers
+#                            patience=10,           # Return the best model
+#                            epochs=100,
+#                            lr=0.001,
+#                            tol=0.01,
+#                            show_train=3,          # 1=show each bootstrap loss, 2=progress bar, 3+=show nothing
+#                            num_average=5,
+#                            dropout_rate=0.2,
+#                            sampling_rate = 0.75,
+#                            batch_size = 32,
+#                            num_batches = NA)
 
 # ===========================================================================================================
 # 2.ESTIMATION
@@ -161,7 +171,7 @@ rownames(all_options) <- c()
 # NOTE: loop over
 # Choice of variable and horizon
 var <- 1
-hor <- 4
+hor <- 3
 
 # Variable and Horizon to forecast #############################################################
 # ==============================================================================================
@@ -173,8 +183,10 @@ USdata <- MakeDataUS(path = paste0(path,paths$dat,"/"),
                      lag_f = OOS_params$lagX, lag_marx = OOS_params$lagMARX,
                      versionName = "current", download = T, EM_algorithm=T, 
                      EM_last_date=NA, frequency = 1, 
-                     target_new_tcode=OOS_params$target_tcode[var]
-                     #target_new_tcode = NA
+                     target_new_tcode=OOS_params$target_tcode[var],
+                     #target_new_tcode = NA,
+                     start_date = OOS_params$training_starting_date,
+                     nMAF = 2
                      )
 data <- USdata[[1]]$lagged_data
 
