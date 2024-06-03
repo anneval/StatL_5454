@@ -197,38 +197,39 @@ all_options <- expand.grid(combn)
 all_options <- all_options[order(all_options$var,all_options$hor, decreasing = F),]
 rownames(all_options) <- c()
 
-start <- Sys.time()
-
-# Parallel estimation
-if(!is.na(ncores)) {
-  
-  # Start parallel clustering
-  cl <- makeCluster(ncores)
-  registerDoParallel(cl) # Shows the number of Parallel Workers to be used
-  
-  foreach(i=c(1:nrow(all_options))) %dopar% Forecast_all(it_pos = i,
-                                                         all_options = all_options,
-                                                         paths = paths,
-                                                         OOS_params = OOS_params,
-                                                         seed = 124)
-  
-  stopImplicitCluster()
-
-# Single core estimation    
-} else{
-  
-  for (i in 1:nrow(all_options)) {
-    
-    Forecast_all(it_pos = i,
-                 all_options = all_options,
-                 paths = paths,
-                 OOS_params = OOS_params,
-                 seed = 124) 
-  }
-  
-}
-end <- Sys.time()
-end-start
+# RUN ONCE
+# start <- Sys.time()
+# 
+# # Parallel estimation
+# if(!is.na(ncores)) {
+#   
+#   # Start parallel clustering
+#   cl <- makeCluster(ncores)
+#   registerDoParallel(cl) # Shows the number of Parallel Workers to be used
+#   
+#   foreach(i=c(1:nrow(all_options))) %dopar% Forecast_all(it_pos = i,
+#                                                          all_options = all_options,
+#                                                          paths = paths,
+#                                                          OOS_params = OOS_params,
+#                                                          seed = 124)
+#   
+#   stopImplicitCluster()
+# 
+# # Single core estimation    
+# } else{
+#   
+#   for (i in 1:nrow(all_options)) {
+#     
+#     Forecast_all(it_pos = i,
+#                  all_options = all_options,
+#                  paths = paths,
+#                  OOS_params = OOS_params,
+#                  seed = 124) 
+#   }
+#   
+# }
+# end <- Sys.time()
+# end-start
 
 # ===========================================================================================================
 # 3. RESULTS
@@ -277,6 +278,27 @@ mse_barplot_h12[[1]]
 pred_plot_h12[[1]]
 
 
+#### --- betas --- ###
+
+# AR-RF
+mrfs <- results$mrf_store
+mean_betas_mrf <- lapply(mrfs, function(x) x$betas)
+mean_betas_mrf <- lapply(mean_betas_mrf, function(x) y <- cbind(x, rowSums(x[,2:7]))) # add persistence = sum over auto-regressive coefficients
+mean_output_mrf <- lapply(mean_betas_mrf, function(x){
+  y <- x[,c(1,8)] # select intercept and persistence
+  colnames(y) <- c("intercept", "persistence")
+  return(y)
+})
+
+# FA-AR-RF
+fa_mrfs <- results$fa_mrf_store
+mean_betas_fa_mrf <- lapply(fa_mrfs, function(x) x$betas)
+mean_betas_fa_mrf <- lapply(mean_betas_fa_mrf, function(x) y <- cbind(x, rowSums(x[,2:7]))) # add persistence = sum over auto-regressive coefficients
+mean_output_fa_mrf <- lapply(mean_betas_fa_mrf, function(x){
+  y <- x[,c(1,10,8,9)] # select intercept and persistence
+  colnames(y) <- c("intercept", "persistence","real_factor", "forward_factor")
+  return(y)
+})
 
 
 
