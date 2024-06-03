@@ -8,7 +8,9 @@ set.seed(1234)
 
 # Set paths
 #path <- '~/Dropbox/GCS_SIDEsummerschool_codes/GouletCoulombe/Couture_OOS/'
-path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly/'
+#path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly/'
+path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical_us_monthly/'
+
 setwd(path)
 
 paths <- list(pro = "00_prog",
