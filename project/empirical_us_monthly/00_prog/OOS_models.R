@@ -534,7 +534,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   
   save_path <- paste0(paths$rst,"/",OOS_params$save_path)
   if(!dir.exists(save_path)){dir.create(save_path)}
-  save(prediction_oos, err_oos, data,
+  save(prediction_oos, err_oos, data, mrf, mrf_fa,
        file = paste0(paths$rst,"/",OOS_params$save_path,"/",OOS_params$targetName[var],"_h",hor,".RData"))
   
 }
@@ -585,16 +585,24 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
   dimnames(errors)[[3]] <- dimnames(prediction_oos)[[3]]
   dimnames(errors)[[4]] <- model_list
   
-  targets <- array(data = NA, dim = c(nrow(data),
+  targets <- array(data = NA, dim = c(dim(prediction_oos)[1],
                                       dim(prediction_oos)[2],
                                       dim(prediction_oos)[3]))
-  rownames(targets) <- rownames(data)
+  rownames(targets) <- rownames(prediction_oos)
   dimnames(targets)[[2]] <- colnames(prediction_oos)
   dimnames(targets)[[3]] <- dimnames(prediction_oos)[[3]]
   
   ## Store results ------------------------------------------------------------------------------
   
   H <- OOS_params$horizon
+  
+  # initialize lists for mrf objects
+  mrf_store <- vector("list", length=length(H))
+  names(mrf_store) <- H
+  
+  mrf_fa_store <- vector("list", length = 2)
+  names(mrf_fa_store) <- H
+  
   for (var in 1:length(OOS_params$targetName)) {
     posH <- 1
     for(hor in H) {
@@ -607,7 +615,11 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
           load(file)
           predictions[,var,hor,] <- prediction_oos[,which(dimnames(prediction_oos)[[2]] %in% OOS_params$targetName[var]),hor,]
           errors[,var,hor,] <- err_oos[,which(dimnames(err_oos)[[2]] %in% OOS_params$targetName[var]),hor,] 
-          targets[hor:nrow(targets),var,hor] <- data[,1]
+          y <- data[,1]
+          targets[,var,hor] <- y[rownames(predictions)]
+          
+          mrf_store[[as.character(hor)]] <- mrf
+          mrf_fa_store[[as.character(hor)]] <- mrf_fa
         },
         error = function(e) {
           print(file)
@@ -665,7 +677,9 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
                  "errors" = errors,
                  "targets" = targets,
                  "mse_table" = mse_table,
-                 "mse_table_2019" = mse_table_2019)
+                 "mse_table_2019" = mse_table_2019,
+                 "mrf_store" = mrf_store,
+                 "mrf_fa" = mrf_fa_store)
   
   return(output)
   
