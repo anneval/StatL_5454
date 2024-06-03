@@ -7,7 +7,7 @@ rm(list = ls())
 set.seed(1234)
 
 # Set paths
-path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical/'
+path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical_100T/'
 setwd(path)
 
 paths <- list(pro = "00_prog",
@@ -153,7 +153,7 @@ temp_x <- paste0("L_", 0:(OOS_params$lagY-1), "y") # names of lagged y-values
 
 OOS_params$MacroRF_hyps <- list(x_vars = temp_x,
                                 #x_pos = c(2,3,4,5,6,7),  
-                                B = 50, 
+                                B = 100, 
                                 mtry_frac = 0.15,
                                 minsize = 15,
                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
@@ -164,7 +164,7 @@ temp_x <- c(temp_x, "L0_F_UK1", "L0_F_UK2") # names of lagged y-values and first
 
 OOS_params$FA_MacroRF_hyps <- list(x_vars = temp_x,
                                    #x_pos = c(2,3,4,5,6,7,26,27), 
-                                   B = 50, # more trees?
+                                   B = 100, # more trees?
                                    mtry_frac = 0.15,
                                    minsize = 15,
                                    block_size = 24) # block size is 
@@ -245,6 +245,7 @@ end-start
 # ===========================================================================================================
 # 3. RESULTS
 # ===========================================================================================================
+#install.packages("RColorBrewer")
 
 results <- process_results(paths,OOS_params = OOS_params, benchmark = "AR, BIC") # To use plain MSE put benchmark = NA
 
@@ -285,12 +286,12 @@ for(var in 1:dim(results$mse_table)[3]) {
   # Put the 2 graphs together
   p <- arrangeGrob(pred_plot_h3[[var]],mse_barplot_h3[[var]],
                    nrow = 2, ncol = 1)
-  ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",1,".png")
+  ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",3,".png")
   ggsave(ptitle, plot = p, dpi=72, dev='png', height=600, width=450, units="mm")
   
   p <- arrangeGrob(pred_plot_h12[[var]],mse_barplot_h12[[var]],
                    nrow = 2, ncol = 1)
-  ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",4,".png")
+  ptitle = paste0(paths$fig,"/",OOS_params$targetName[var],"_h",12,".png")
   ggsave(ptitle, plot = p, dpi=72, dev='png', height=600, width=450, units="mm")
   
 }
