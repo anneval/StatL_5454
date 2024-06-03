@@ -108,7 +108,6 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   
   
   
-  
   ## Storage -----------------------------------------------------------------------
   #selected_H <- c("H3", "H12")
   prediction_oos <- array(data = NA, dim = c(OOS, length(unique(all_options$var)), H_max, length(model_list)))
@@ -634,10 +633,12 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
   #
   
   ## Create storage --------------------------------------------------------------------------
-  
+  #hor <- 12
   results_path <- paste(paths$rst,OOS_params$save_path, sep = "/")
   results_files <- list.files(results_path)
   load(paste(results_path,results_files[1], sep = "/"))
+  
+ # hor <- 3
   model_list <- OOS_params$model_list
   
   predictions <- array(data = NA, dim = c(dim(prediction_oos)[1],
@@ -657,36 +658,50 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
   dimnames(errors)[[2]] <- colnames(prediction_oos)
   dimnames(errors)[[3]] <- dimnames(prediction_oos)[[3]]
   dimnames(errors)[[4]] <- model_list
+  # 
+  # targets <- array(data = NA, dim = c(nrow(data),
+  #                                     dim(prediction_oos)[2],
+  #                                     dim(prediction_oos)[3]))
+  # rownames(targets) <- rownames(data)
+  # dimnames(targets)[[2]] <- colnames(prediction_oos)
+  # dimnames(targets)[[3]] <- dimnames(prediction_oos)[[3]]
   
-  targets <- array(data = NA, dim = c(nrow(data),
-                                      dim(prediction_oos)[2],
-                                      dim(prediction_oos)[3]))
-  rownames(targets) <- rownames(data)
-  dimnames(targets)[[2]] <- colnames(prediction_oos)
-  dimnames(targets)[[3]] <- dimnames(prediction_oos)[[3]]
+   targets <- array(data = NA, dim = c(dim(prediction_oos)[1],
+  
+                                       dim(prediction_oos)[2],
+  
+                                       dim(prediction_oos)[3]))
+
+   rownames(targets) <- rownames(prediction_oos)
+   dimnames(targets)[[2]] <- colnames(prediction_oos)
+   dimnames(targets)[[3]] <- dimnames(prediction_oos)[[3]]
   
   ## Store results ------------------------------------------------------------------------------
-  
+ # var<- "CPI_ALL"
+ #    hor <- 3
   H <- OOS_params$horizon
   for (var in 1:length(OOS_params$targetName)) {
     posH <- 1
     for(hor in H) {
       
       # Load results
-      file <- paste0(results_path,"/",OOS_params$targetName[var],"_h",hor,".RData")
+      file <- paste0(results_path,"/",OOS_params$targetName,"_h",hor,".RData")
       
       tryCatch(
         {
          load(file)
           predictions[,var,hor,] <- prediction_oos[,which(dimnames(prediction_oos)[[2]] %in% OOS_params$targetName[var]),hor,]
           errors[,var,hor,] <- err_oos[,which(dimnames(err_oos)[[2]] %in% OOS_params$targetName[var]),hor,] 
-          targets[hor:nrow(targets),var,hor] <- data[,1]
+          y <- data[,1]
+          targets[,var,hor] <- y[rownames(predictions)]
+          #targets[hor:nrow(targets),var,hor] <- data[,1]#
         },
         error = function(e) {
           print(file)
           predictions[,var,hor,] <- NA
           errors[,var,hor,] <- NA
-          targets[,var,hor] <- NA
+          
+         targets[,var,hor] <- NA #data[,1] #NA
         }) # Some results may not be there
       
       posH <- posH + 1
@@ -739,8 +754,9 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
                  "errors" = errors,
                  "targets" = targets,
                  "mse_table" = mse_table,
-                 "mse_table_2019" = mse_table_2019)
-  
+                 "mse_table_2019" = mse_table_2019,
+                 "mrf" = mrf,
+                 "mrf_fa" = mrf_fa)
   return(output)
   
 }
@@ -830,4 +846,9 @@ quick_plot <- function(results, hor, var) {
           axis.text=element_text(size=25),
           plot.title = element_text(size = 25, face = "bold", hjust = 0.5))
   return(p)
+  
+  
+#  beta_plot <- 
+  
 }
+
