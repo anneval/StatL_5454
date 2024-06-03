@@ -176,7 +176,8 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
   x_cols_fa_ar_rf <- which(col_names %in% FA_MacroRF_hyps$x_vars)
   
   
-  
+  mrf_store <- vector("list", length(hor))
+  names(mrf_store)
   
   for (v in var) {
     for (h in hor) {
@@ -601,6 +602,7 @@ Forecast_all <- function(it_pos, all_options, paths, OOS_params, seed) {
         gc()
         
       } #oos
+      
     } #h
   } #v
   
@@ -675,6 +677,12 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
    rownames(targets) <- rownames(prediction_oos)
    dimnames(targets)[[2]] <- colnames(prediction_oos)
    dimnames(targets)[[3]] <- dimnames(prediction_oos)[[3]]
+   
+   mrf_store <- vector("list", length = length(OOS_params$horizon))
+   names(mrf_store) <- OOS_params$horizon
+   
+   mrf_fa_store <- vector("list", length = length(OOS_params$horizon))
+   names(mrf_fa_store) <- OOS_params$horizon
   
   ## Store results ------------------------------------------------------------------------------
  # var<- "CPI_ALL"
@@ -694,6 +702,10 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
           errors[,var,hor,] <- err_oos[,which(dimnames(err_oos)[[2]] %in% OOS_params$targetName[var]),hor,] 
           y <- data[,1]
           targets[,var,hor] <- y[rownames(predictions)]
+          #
+          mrf_store[[as.character(hor)]] <- mrf
+          mrf_fa_store[[as.character(hor)]] <- mrf_fa
+          
           #targets[hor:nrow(targets),var,hor] <- data[,1]#
         },
         error = function(e) {
@@ -755,8 +767,10 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
                  "targets" = targets,
                  "mse_table" = mse_table,
                  "mse_table_2019" = mse_table_2019,
-                 "mrf" = mrf,
-                 "mrf_fa" = mrf_fa)
+                # "mrf" = mrf,
+                # "mrf_fa" = mrf_fa
+                "mrf_store" = mrf_store,
+                "mrf_fa_store" = mrf_fa_store)
   return(output)
   
 }
@@ -777,21 +791,21 @@ quick_barplot <- function(results, hor, var) {
   
   # Graph
   mse_long <- reshape2::melt(mse)
-  title <- paste0(dimnames(results$mse_table)[[3]][var]," - ",dimnames(results$mse_table)[[1]][hor])
+  title <- paste0("RMSPE: ",dimnames(results$mse_table)[[3]][var]," - ",dimnames(results$mse_table)[[1]][hor]," (out of sample)")
   
   p <- ggplot(data=mse_long, aes(x=Var2, y=value,fill=Var1)) +
     geom_bar(stat="identity",position=position_dodge()) +
     ggtitle(title)+
     theme_bw()+
     theme(legend.position="bottom",
-          legend.text=element_text(size=25),
+          legend.text=element_text(size=18),
           legend.key.size = unit(3,"line"),
-          strip.text = element_text(face="bold", colour = "white",size=23,family="Arial"),
+          strip.text = element_text(face="bold", colour = "white",size=18,family="Arial"),
           legend.title=element_blank(),axis.text.x = element_text(face = c('plain', 'plain', 'plain', 'plain', 'plain')),
           strip.background=element_rect(colour="black",fill="black"),
-          axis.text=element_text(size=23),
-          plot.title = element_text(size = 25, face = "bold", hjust = 0.5)) +
-    scale_fill_manual(values=c("#386cb0","#ef3b2c")) +
+          axis.text=element_text(size=18),
+          plot.title = element_text(size = 18, hjust = 0.5)) +
+    scale_fill_manual(values=c("#386cb0","lightblue")) +
     xlab("")+
     ylab("")+ 
     geom_hline(yintercept = 1)
@@ -838,13 +852,13 @@ quick_plot <- function(results, hor, var) {
     ggtitle(title)+
     theme_bw() +
     theme(legend.position="bottom",
-          legend.text=element_text(size=25),
+          legend.text=element_text(size=18),
           legend.key.size = unit(3,"line"),
-          strip.text = element_text(face="bold", colour = "white",size=23,family="Arial"),
+          strip.text = element_text(face="bold", colour = "white",size=18,family="Arial"),
           legend.title=element_blank(),axis.text.x = element_text(face = c('plain', 'plain', 'plain', 'plain', 'plain')),
           strip.background=element_rect(colour="black",fill="black"),
-          axis.text=element_text(size=25),
-          plot.title = element_text(size = 25, face = "bold", hjust = 0.5))
+          axis.text=element_text(size=18),
+          plot.title = element_text(size = 18, face = "bold", hjust = 0.5))
   return(p)
   
   
