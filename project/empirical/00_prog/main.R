@@ -7,7 +7,7 @@ rm(list = ls())
 set.seed(1234)
 
 # Set paths
-path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical/'
+path <- 'C:/Users/avalder/OneDrive - WU Wien/Documents/Study/SoSe_24/Statistical Learning/assignments/StatL_5454/project/empirical_nrTree/'
 setwd(path)
 
 paths <- list(pro = "00_prog",
@@ -74,7 +74,7 @@ OOS_params <- list()
 OOS_params$targetName <- c("CPI_ALL")
 
 # Change the transformation code of the target, "NA" to keep FRED's code
-OOS_params$target_tcode <- c(NA) # not really needed here since we use the balanced UK data set 
+OOS_params$target_tcode <- c(5) # not really needed here since we use the balanced UK data set 
 
 # Forecasting horizons (in quarter), month here 
 OOS_params$horizon <- c(3,12)
@@ -153,7 +153,7 @@ temp_x <- paste0("L_", 0:(OOS_params$lagY-1), "y") # names of lagged y-values
 
 OOS_params$MacroRF_hyps <- list(x_vars = temp_x,
                                 #x_pos = c(2,3,4,5,6,7),  
-                                B = 50, 
+                                B = 100, 
                                 mtry_frac = 0.15,
                                 minsize = 15,
                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
@@ -248,6 +248,15 @@ end-start
 
 results <- process_results(paths,OOS_params = OOS_params, benchmark = "AR, BIC") # To use plain MSE put benchmark = NA
 
+betas_mrffa <- as.data.frame(results$mrf_fa$betas)
+persistence <- rowSums(betas_mrffa[,2:7])
+persistence_p <- ts.plot(as.ts(persistence))
+F1_p <-  ts.plot(as.ts(betas_mrffa[,8]))
+F2_p <-  ts.plot(as.ts(betas_mrffa[,9]))
+intercept_p <- ts.plot(as.ts(betas_mrffa[,1]))
+
+
+
 # Show MSE ratio
 round(results$mse_table,3)
 round(results$mse_table_2019,3)
@@ -287,3 +296,4 @@ mse_barplot_h3[[1]]
 pred_plot_h3[[1]]
 mse_barplot_h12[[1]]
 pred_plot_h12[[1]]
+
