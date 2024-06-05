@@ -29,7 +29,10 @@ rm(list=ls())
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE}
-
+library("nnet")
+library(ISLR2)
+library(torch)
+library(caret)
 ```
 
 
@@ -125,12 +128,139 @@ For this small training data overfitting is an issue. Visualize the performance 
 In the following we will estimate a predictive model for the Default data from the \textbf{ISLR2} pacakge. We fit a neural network using a single hidden layer with 10 units and dropout regularization. We use the hint and use James et al. (2021, Chapter 10).
 
 ```{r}
+rm(list=ls())
+
+data("Default", package = "ISLR2") # Load data
+head(Default)
+#Converting the default column to a binary numeric variable for the neural network model.
+
+Default$default <- ifelse(Default$default == "Yes", 1, 0)
+Default$student <- ifelse(Default$student == "Yes", 1, 0)
+
+# seperating the data into train and test
+set.seed(123)
+n <- nrow(Default)
+ntest <- trunc(n/3)
+testid <- sample(1:n, ntest)
+
+Default_test <- Default[testid,]
+Default_train <- Default[-testid, ]
+
+# Logistic regression model
+logit_model <- glm(default ~ ., data = Default_train, family = binomial)
+# Predicting on test data
+logit_pred <- predict(logit_model, newdata = Default_test, type = "response")
+logit_pred_class <- ifelse(logit_pred > 0.5,1,0)
+y_test <- Default[testid,]$default
+accuracy_logistic <- mean(y_test == logit_pred_class)
+
+# scaling the data for neural networks to ensure that the model converges more efficiently
+
+maxs <- apply(Default[, -1], 2, max)
+mins <- apply(Default[, -1], 2, min)
+x <-  sweep(sweep(Default[,-1], 2, mins, "-"), 2, maxs - mins, "/")
+
+#Convert the data to torch tensors
+x_train <- torch_tensor(as.matrix(x[-testid, ]), dtype = torch_float())
+y_train <- torch_tensor(matrix(Default[-testid,1]), dtype = torch_float())$unsqueeze(2)
+x_test <- torch_tensor(as.matrix(x[testid, ]), dtype = torch_float())
+y_test <- torch_tensor(matrix(Default[testid,1]), dtype = torch_float())$unsqueeze(2)
+
+
+# Neural network model
+#torch::install_torch()
+
+
+## Define the neural network model
+model_nn <- nn_module(
+  initialize = function() {
+    self$fc1 <- nn_linear(ncol(x_train) , 10)
+    self$dropout <- nn_dropout(p = 0.4)
+    self$fc2 <- nn_linear(10, 1)
+  },
+  forward = function(x) {
+    x %>% 
+      self$fc1() %>% 
+      nnf_relu() %>% 
+      self$dropout() %>% 
+      self$fc2() %>% 
+      nnf_sigmoid()
+  }
+)
+
+net <- model_nn()
+optimizer <- optim_adam(net$parameters, lr = 0.001)
+
+
+# Training the model and recording loss
+epochs <- 10
+train_loss <- numeric(epochs)
+valid_loss <- numeric(epochs)
+
+for (epoch in 1:epochs) {
+  net$train()
+  optimizer$zero_grad()
+  output <- net(x_train)
+  loss <- nnf_binary_cross_entropy(output, y_train)
+  loss$backward()
+  optimizer$step()
+  train_loss[epoch] <- loss$item()
+  
+  # Calculate validation loss
+  net$eval()
+  with_no_grad({
+    output_valid <- net(x_test) #nnf_binary_cross_entropy
+    loss_valid <- nnf_binary_cross_entropy(output_valid, y_test)
+    valid_loss[epoch] <- loss_valid$item()
+  })
+  
+  if (epoch %% 10 == 0) {
+    cat(sprintf("Epoch: %d, Train Loss: %3f, Validation Loss: %3f\n", epoch, train_loss[epoch], valid_loss[epoch]))
+  }
+}
+
+  
+# Predicting on test data
+nn_pred_prob <- net(x_test)
+nn_pred <- ifelse(nn_pred_prob > 0.5, 1,0)
+y_test <- Default[testid,]$default
+accuracy_nn <- mean(y_test == nn_pred)
+
+# Plot training and validation loss
+plot(1:epochs, train_loss, type = "l", col = "red", ylim = range(c(train_loss, valid_loss)), 
+     xlab = "Epoch", ylab = "Loss", main = "Training and Validation Loss")
+lines(1:epochs, valid_loss, col = "green")
+legend("topright", legend = c("Train", "Validation"), col = c("red", "green"), lwd = 2)
 
 ```
 
 We ompare the classification performance of this model with that of linear logistic regression.
-```{r}
 
+```{r}
+# Plot ROC Curves and Calculate AUC
+library(pROC)
+
+roc_nn <- roc(Default_test$default, as.numeric(nn_pred_prob))
+roc_logit <- roc(Default_test$default, logit_pred)
+
+# Plot ROC curve
+plot(roc_nn, col = "blue", main = "ROC Curves for Neural Network and Logistic Regression")
+lines(roc_logit, col = "red")
+legend("bottomright", legend = c("Neural Network", "Logistic Regression"), col = c("blue", "red"), lwd = 2)
+
+# Print AUC values
+cat("AUC for Neural Network:", auc(roc_nn), "\n")
+cat("AUC for Logistic Regression:", auc(roc_logit), "\n")
+
+
+# comparing model performance
+# Confusion Matrix for Neural Network
+nn_conf_matrix <- confusionMatrix(factor(as.integer(nn_pred)), factor(Default_test$default))
+print(nn_conf_matrix)
+
+# Confusion Matrix for Logistic Regression
+logit_conf_matrix <- confusionMatrix(factor(logit_pred_class), factor(Default_test$default))
+print(logit_conf_matrix)
 ```
 
 
@@ -141,6 +271,10 @@ We ompare the classification performance of this model with that of linear logis
 Consider the \textit{IMDb} dataset from the \textbf{keras} package to perform document classification. Restrict the vocabulary to the most frequently-used words and tokens. Again, we use the hint and use James et al. (2021, Chapter 10).
 
 ```{r}
+rm(list=ls())
+set.seed(123)
+
+data("IMDb", package = "keras") # Load data
 
 ```
 
