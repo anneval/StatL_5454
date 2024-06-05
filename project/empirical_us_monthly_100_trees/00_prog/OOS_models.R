@@ -679,7 +679,7 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
                  "mse_table" = mse_table,
                  "mse_table_2019" = mse_table_2019,
                  "mrf_store" = mrf_store,
-                 "mrf_fa" = mrf_fa_store)
+                 "fa_mrf_store" = mrf_fa_store)
   
   return(output)
   

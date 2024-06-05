@@ -8,7 +8,7 @@ set.seed(1234)
 
 # Set paths
 #path <- '~/Dropbox/GCS_SIDEsummerschool_codes/GouletCoulombe/Couture_OOS/'
-path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly/'
+path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly_100_trees/'
 setwd(path)
 
 paths <- list(pro = "00_prog",
@@ -153,7 +153,7 @@ temp_x <- paste0("L_", 0:(OOS_params$lagY-1), "y") # names of lagged y-values
 
 OOS_params$MacroRF_hyps <- list(x_vars = temp_x,
                                 #x_pos = c(2,3,4,5,6,7),  
-                                B = 50, # more trees?
+                                B = 100, # more trees?
                                 mtry_frac = 0.15,
                                 minsize = 15,
                                 block_size = 24) # block size is 24 in monthly i.e. 2 years
@@ -164,7 +164,7 @@ temp_x <- c(temp_x, "L0_F_US1", "L0_F_US2") # names of lagged y-values and first
 # QUESTION: should we use L1_F_.. instead?
 OOS_params$FA_MacroRF_hyps <- list(x_vars = temp_x,
                                    #x_pos = c(2,3,4,5,6,7,26,27), 
-                                   B = 50, # more trees?
+                                   B = 100, # more trees?
                                    mtry_frac = 0.15,
                                    minsize = 15,
                                    block_size = 24) # block size is 
@@ -197,36 +197,37 @@ rownames(all_options) <- c()
 
 start <- Sys.time()
 
-# Parallel estimation
-if(!is.na(ncores)) {
-  
-  # Start parallel clustering
-  cl <- makeCluster(ncores)
-  registerDoParallel(cl) # Shows the number of Parallel Workers to be used
-  
-  foreach(i=c(1:nrow(all_options))) %dopar% Forecast_all(it_pos = i,
-                                                         all_options = all_options,
-                                                         paths = paths,
-                                                         OOS_params = OOS_params,
-                                                         seed = 124)
-  
-  stopImplicitCluster()
-
-# Single core estimation    
-} else{
-  
-  for (i in 1:nrow(all_options)) {
-    
-    Forecast_all(it_pos = i,
-                 all_options = all_options,
-                 paths = paths,
-                 OOS_params = OOS_params,
-                 seed = 124) 
-  }
-  
-}
-end <- Sys.time()
-end-start
+# RUN ONCE
+# # Parallel estimation
+# if(!is.na(ncores)) {
+#   
+#   # Start parallel clustering
+#   cl <- makeCluster(ncores)
+#   registerDoParallel(cl) # Shows the number of Parallel Workers to be used
+#   
+#   foreach(i=c(1:nrow(all_options))) %dopar% Forecast_all(it_pos = i,
+#                                                          all_options = all_options,
+#                                                          paths = paths,
+#                                                          OOS_params = OOS_params,
+#                                                          seed = 124)
+#   
+#   stopImplicitCluster()
+# 
+# # Single core estimation    
+# } else{
+#   
+#   for (i in 1:nrow(all_options)) {
+#     
+#     Forecast_all(it_pos = i,
+#                  all_options = all_options,
+#                  paths = paths,
+#                  OOS_params = OOS_params,
+#                  seed = 124) 
+#   }
+#   
+# }
+# end <- Sys.time()
+# end-start
 
 # ===========================================================================================================
 # 3. RESULTS
