@@ -33,6 +33,9 @@ library("nnet")
 library(ISLR2)
 library(torch)
 library(caret)
+library(ggplot2)
+library(MASS)
+
 ```
 
 
@@ -49,23 +52,126 @@ by the respective variances equals four.
 
 We Generate a training set of size 100 and a test sample of size 10,000.
 ```{r}
+set.seed(123)
+
+a1 <- c(3,3)
+a2 <- c(3,-3)
+n_train <- 100
+n_test <- 10000
+p <- 2
+
+
+# Generate data
+generate_data <- function(n, a1, a2, p) {
+  X <- mvrnorm(n, mu = rep(0, p), Sigma = diag(p))
+  epsilon <- rnorm(n, mean = 0, sd = sqrt(var(X %*% a1) / 4)) # SNR=4
+  Y <- 1 / (1 + exp(-X %*% a1)) + 1 / (1 + exp(-X %*% a2)) + epsilon
+  list(X = X, Y = Y)
+}
+
+# Generatethe train and test set
+train_data <- generate_data(n_train, a1, a2, p)
+test_data <- generate_data(n_test, a1, a2, p)
+
+x_train <- train_data$X
+y_train <- train_data$
+x_test <- test_data$X
+y_test <- test_data$Y
 
 ```
 
+We then fit a neural networks with weight decay of 0.0005 and we vary the number of hidden units from 0 to 10 and record the average test error $E_{Test}(Y − \hat{f}(X_1,X_2))^2$ for each of 10 random starting weights. I.e. for each of the settings with a different number of hidden units we fit a neural network 10 times with different initial values.
 
-we then fit a neural networks with weight decay of 0.0005 and we vary the number of hidden units from 0 to 10 and
-record the average test error $E_{Test}(Y − \hat{f}(X_1,X_2))^2$ for each of 10 random starting weights. I.e. for each of the settings with a different number of hidden units we fit a neural network 10 times with different initial values.
+```{r, warning=F}
+# Define the neural network model
+net <- nn_module(
+  initialize = function(hidden_units) {
+    self$hidden_units <- hidden_units
+    if (hidden_units > 0) {
+      self$fc1 <- nn_linear(p, hidden_units)
+      self$fc2 <- nn_linear(hidden_units, 1)
+    } else {
+      self$fc <- nn_linear(p, 1)
+    }
+  },
+  forward = function(x) {
+    if (self$hidden_units > 0) {
+      x %>%
+        self$fc1() %>%
+        nnf_relu() %>%
+        self$fc2()
+    } else {
+      x %>% self$fc()
+    }
+  }
+)
 
-```{r}
+
+hidden_units_list <- 0:10
+n_repeats <- 10
+results <- data.frame()
+
+for (hidden_units in hidden_units_list) {
+  cat(sprintf("Training with %d hidden units\n", hidden_units))
+  test_errors <- numeric(n_repeats)
+  
+  for (rep in 1:n_repeats) {
+    model <- net(hidden_units)
+    optimizer <- optim_adam(model$parameters, lr = 0.001, weight_decay = 0.0005)
+    criterion <- nn_mse_loss()
+    
+    x_train_tensor <- torch_tensor(as.matrix(x_train), dtype = torch_float())
+    y_train_tensor <- torch_tensor(y_train, dtype = torch_float())$unsqueeze(2)
+    x_test_tensor <- torch_tensor(as.matrix(x_test), dtype = torch_float())
+    y_test_tensor <- torch_tensor(y_test, dtype = torch_float())$unsqueeze(2)
+    
+    # Training loop
+    model$train()
+    for (epoch in 1:100) {
+      optimizer$zero_grad()
+      output <- model(x_train_tensor)
+      loss <- criterion(output, y_train_tensor)
+      loss$backward()
+      optimizer$step()
+    }
+    
+    # Evaluate the model on the test data
+    model$eval()
+    with_no_grad({
+      output_test <- model(x_test_tensor)
+      test_error <- criterion(output_test, y_test_tensor)$item()
+    })
+    
+    test_errors[rep] <- test_error
+  }
+  
+  mean_test_error <- mean(test_errors)
+  sd_test_error <- sd(test_errors)
+  
+  results <- rbind(results, data.frame(hidden_units = hidden_units, mean_test_error = mean_test_error, sd_test_error = sd_test_error))
+}
+
+print(results)
 
 ```
 
 Let's now visualize the results and interpret them.
 
 ```{r}
+ggplot(results, aes(x = hidden_units, y = mean_test_error)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean_test_error - sd_test_error, ymax = mean_test_error + sd_test_error), width = 0.2) +
+  labs(title = "Test Error vs. Number of Hidden Units",
+       x = "Number of Hidden Units",
+       y = "Mean Test Error") +
+  theme_minimal()
 
 ```
 
+```{r}
+
+```
 
 \newpage
 <!-- EXERCISE 2 -->
@@ -271,6 +377,8 @@ print(logit_conf_matrix)
 Consider the \textit{IMDb} dataset from the \textbf{keras} package to perform document classification. Restrict the vocabulary to the most frequently-used words and tokens. Again, we use the hint and use James et al. (2021, Chapter 10).
 
 ```{r}
+#https://www.casact.org/sites/default/files/2022-12/James-G.-et-al.-2nd-edition-Springer-2021.pdf
+
 rm(list=ls())
 set.seed(123)
 library(keras)
