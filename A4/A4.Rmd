@@ -276,8 +276,100 @@ set.seed(123)
 library(keras)
 
 max_features <- 10000
-imdb <- dataset_imdb(num_words = max_features)
 
+# Function to preprocess and pad sequences
+preprocess_data <- function(max_features, maxlen = 100) {
+  # Load the dataset with the specified vocabulary size
+  imdb <- dataset_imdb(num_words = max_features)
+  c(c(x_train, y_train), c(x_test, y_test)) %<-% imdb
+  
+  # Pad sequences to ensure uniform length
+  x_train <- pad_sequences(x_train, maxlen = maxlen)
+  x_test <- pad_sequences(x_test, maxlen = maxlen)
+  
+  return(list(x_train = x_train, y_train = y_train, x_test = x_test, y_test = y_test))
+}
+
+# Function to create and compile the neural network model
+create_model <- function(input_shape) {
+  model <- keras_model_sequential() %>%
+    layer_dense(units = 16, activation = 'relu', input_shape = input_shape) %>%
+    layer_dense(units = 16, activation = 'relu') %>%
+    layer_dense(units = 1, activation = 'sigmoid')
+  
+  model %>% compile(
+    optimizer = 'adam', #rmsprop"?
+    loss = 'binary_crossentropy',
+    metrics = c('accuracy')
+  )
+  
+  return(model)
+}
+
+
+# Dictionary sizes to evaluate
+dictionary_sizes <- c(500, 1000, 3000, 5000, 10000)
+
+# Number of epochs and batch size for training
+epochs <- 10
+batch_size <- 32
+
+# Initialize a list to store the results
+results <- list()
+
+for (max_features in dictionary_sizes) {
+  cat(sprintf("Training with dictionary size: %d\n", max_features))
+  
+  # Preprocess the data
+  data <- preprocess_data(max_features)
+  x_train <- data$x_train
+  y_train <- data$y_train
+  x_test <- data$x_test
+  y_test <- data$y_test
+  
+  # Create the model
+  model <- create_model(input_shape = dim(x_train)[2])
+  
+  # Train the model
+  history <- model %>% fit(
+    x_train, y_train,
+    epochs = epochs,
+    batch_size = batch_size,
+    validation_split = 0.2,
+    verbose = 2
+  )
+  
+  # Evaluate the model on the test data
+  score <- model %>% evaluate(x_test, y_test, verbose = 0)
+  cat(sprintf("Test loss: %.4f, Test accuracy: %.4f\n\n", score$loss, score$acc))
+  
+  # Store the results
+  results[[as.character(max_features)]] <- score$acc
+}
+
+# Print the results
+results
+
+## Visulaiation 
+# Convert results to a data frame
+results_df <- data.frame(
+  dictionary_size = as.numeric(names(results)),
+  accuracy = unlist(results)
+)
+
+# Plot the results
+library(ggplot2)
+
+ggplot(results_df, aes(x = dictionary_size, y = accuracy)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = dictionary_sizes) +
+  labs(
+    title = "Effect of Dictionary Size on Model Accuracy",
+    x = "Dictionary Size",
+    y = "Test Accuracy"
+  ) +
+  theme_minimal()
 
 ```
 
