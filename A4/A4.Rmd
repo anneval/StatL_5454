@@ -273,8 +273,11 @@ Consider the \textit{IMDb} dataset from the \textbf{keras} package to perform do
 ```{r}
 rm(list=ls())
 set.seed(123)
+library(keras)
 
-data("IMDb", package = "keras") # Load data
+max_features <- 10000
+imdb <- dataset_imdb(num_words = max_features)
+
 
 ```
 
