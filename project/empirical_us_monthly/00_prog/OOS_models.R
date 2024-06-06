@@ -679,7 +679,7 @@ process_results <- function(paths, OOS_params, benchmark = NA) {
                  "mse_table" = mse_table,
                  "mse_table_2019" = mse_table_2019,
                  "mrf_store" = mrf_store,
-                 "mrf_fa" = mrf_fa_store)
+                 "fa_mrf_store" = mrf_fa_store)
   
   return(output)
   
@@ -708,14 +708,14 @@ quick_barplot <- function(results, hor, var) {
     ggtitle(title)+
     theme_bw()+
     theme(legend.position="bottom",
-          legend.text=element_text(size=25),
+          legend.text=element_text(size=18),
           legend.key.size = unit(3,"line"),
-          strip.text = element_text(face="bold", colour = "white",size=23,family="Arial"),
+          strip.text = element_text(face="bold", colour = "white",size=18,family="Arial"),
           legend.title=element_blank(),axis.text.x = element_text(face = c('plain', 'plain', 'plain', 'plain', 'plain')),
           strip.background=element_rect(colour="black",fill="black"),
-          axis.text=element_text(size=23),
-          plot.title = element_text(size = 25, face = "bold", hjust = 0.5)) +
-    scale_fill_manual(values=c("#386cb0","#ef3b2c")) +
+          axis.text=element_text(size=18),
+          plot.title = element_text(size = 18, hjust = 0.5)) +
+    scale_fill_manual(values=c("#386cb0","lightblue")) +
     xlab("")+
     ylab("")+ 
     geom_hline(yintercept = 1)
@@ -744,8 +744,8 @@ quick_plot <- function(results, hor, var) {
   
   # Graph parameters
   target_pos <- which(unique(pred_long$Var2) == "Target")
-  sizeline <- rep(1.2,length(unique(pred_long$Var2)))
-  sizeline[target_pos] <- 2
+  sizeline <- rep(1,length(unique(pred_long$Var2)))
+  sizeline[target_pos] <- 1
   colvector <- rainbow(length(unique(pred_long$Var2)))
   colvector[target_pos] <- "black"
   title <- paste0(dimnames(results$predictions)[[2]][var]," - ",dimnames(results$predictions)[[3]][hor])
@@ -759,12 +759,12 @@ quick_plot <- function(results, hor, var) {
     ggtitle(title)+
     theme_bw() +
     theme(legend.position="bottom",
-          legend.text=element_text(size=25),
+          legend.text=element_text(size=18),
           legend.key.size = unit(3,"line"),
-          strip.text = element_text(face="bold", colour = "white",size=23,family="Arial"),
+          strip.text = element_text(face="bold", colour = "white",size=18,family="Arial"),
           legend.title=element_blank(),axis.text.x = element_text(face = c('plain', 'plain', 'plain', 'plain', 'plain')),
           strip.background=element_rect(colour="black",fill="black"),
-          axis.text=element_text(size=25),
-          plot.title = element_text(size = 25, face = "bold", hjust = 0.5))
+          axis.text=element_text(size=18),
+          plot.title = element_text(size = "18", hjust = 0.5))
   return(p)
 }

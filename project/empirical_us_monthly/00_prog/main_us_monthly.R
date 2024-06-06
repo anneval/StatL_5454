@@ -8,7 +8,9 @@ set.seed(1234)
 
 # Set paths
 #path <- '~/Dropbox/GCS_SIDEsummerschool_codes/GouletCoulombe/Couture_OOS/'
-path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly/'
+#path <- 'C:/Private/lpirnbac/PhD Courses/Statistical Learning/StatL_5454/project/empirical_us_monthly/'
+path <- 'C:/Users/mhochhol/OneDrive - WU Wien/Desktop/empirical_us_monthly/empirical_us_monthly/'
+
 setwd(path)
 
 paths <- list(pro = "00_prog",
@@ -195,38 +197,39 @@ all_options <- expand.grid(combn)
 all_options <- all_options[order(all_options$var,all_options$hor, decreasing = F),]
 rownames(all_options) <- c()
 
-start <- Sys.time()
-
-# Parallel estimation
-if(!is.na(ncores)) {
-  
-  # Start parallel clustering
-  cl <- makeCluster(ncores)
-  registerDoParallel(cl) # Shows the number of Parallel Workers to be used
-  
-  foreach(i=c(1:nrow(all_options))) %dopar% Forecast_all(it_pos = i,
-                                                         all_options = all_options,
-                                                         paths = paths,
-                                                         OOS_params = OOS_params,
-                                                         seed = 124)
-  
-  stopImplicitCluster()
-
-# Single core estimation    
-} else{
-  
-  for (i in 1:nrow(all_options)) {
-    
-    Forecast_all(it_pos = i,
-                 all_options = all_options,
-                 paths = paths,
-                 OOS_params = OOS_params,
-                 seed = 124) 
-  }
-  
-}
-end <- Sys.time()
-end-start
+# RUN ONCE
+# start <- Sys.time()
+# 
+# # Parallel estimation
+# if(!is.na(ncores)) {
+#   
+#   # Start parallel clustering
+#   cl <- makeCluster(ncores)
+#   registerDoParallel(cl) # Shows the number of Parallel Workers to be used
+#   
+#   foreach(i=c(1:nrow(all_options))) %dopar% Forecast_all(it_pos = i,
+#                                                          all_options = all_options,
+#                                                          paths = paths,
+#                                                          OOS_params = OOS_params,
+#                                                          seed = 124)
+#   
+#   stopImplicitCluster()
+# 
+# # Single core estimation    
+# } else{
+#   
+#   for (i in 1:nrow(all_options)) {
+#     
+#     Forecast_all(it_pos = i,
+#                  all_options = all_options,
+#                  paths = paths,
+#                  OOS_params = OOS_params,
+#                  seed = 124) 
+#   }
+#   
+# }
+# end <- Sys.time()
+# end-start
 
 # ===========================================================================================================
 # 3. RESULTS
@@ -275,6 +278,253 @@ mse_barplot_h12[[1]]
 pred_plot_h12[[1]]
 
 
+#### --- betas --- ###
+
+# AR-RF
+mrfs <- results$mrf_store
+mean_betas_mrf <- lapply(mrfs, function(x) x$betas)
+mean_betas_mrf <- lapply(mean_betas_mrf, function(x) y <- cbind(x, rowSums(x[,2:7]))) # add persistence = sum over auto-regressive coefficients
+mean_output_mrf <- lapply(mean_betas_mrf, function(x){
+  y <- x[,c(1,8)] # select intercept and persistence
+  colnames(y) <- c("intercept", "persistence")
+  return(y)
+})
+
+# FA-AR-RF
+fa_mrfs <- results$fa_mrf_store
+mean_betas_fa_mrf <- lapply(fa_mrfs, function(x) x$betas)
+mean_betas_fa_mrf <- lapply(mean_betas_fa_mrf, function(x) y <- cbind(x, rowSums(x[,2:7]))) # add persistence = sum over auto-regressive coefficients
+mean_output_fa_mrf <- lapply(mean_betas_fa_mrf, function(x){
+  y <- x[,c(1,10,8,9)] # select intercept and persistence
+  colnames(y) <- c("intercept", "persistence","real_factor", "forward_factor")
+  return(y)
+})
+
+
+#########
+
+
+
+
+betas_mrffa_H3 <- results$fa_mrf_store[['3']][['betas']]
+betas_mrf_H3 <- results$mrf_store[['3']][['betas']]
+betas_mrffa_H12 <- results$fa_mrf_store[['12']][['betas']]
+betas_mrf_H12 <- results$mrf_store[['12']][['betas']]
+
+# Quantiles
+quant_mrffa_H3 <- results$fa_mrf_store[['3']][['betas.draws.raw']]
+quant_mrf_H3 <- results$mrf_store[['3']][['betas.draws.raw']]
+quant_mrffa_H3_per <- apply(quant_mrffa_H3[,2:7,], 3, rowSums)
+quant_mrf_H3_per <- apply(quant_mrf_H3[,2:7,], 3, rowSums)
+
+quantiles_mrffa_H3 <- apply(quant_mrffa_H3, c(1,2), function(x) quantile(x, probs = c(0.1, 0.16, 0.84, 0.9)))
+quantiles_mrf_H3 <- apply(quant_mrf_H3, c(1,2), function(x) quantile(x, probs = c(0.1,  0.16, 0.84, 0.9)))
+quantiles_mrffa_H3_per <- apply(quant_mrffa_H3_per, 1, function(x) quantile(x, probs = c(0.1, 0.16, 0.84, 0.9)))
+quantiles_mrf_H3_per <- apply(quant_mrf_H3_per, 1, function(x) quantile(x, probs = c(0.1,  0.16, 0.84, 0.9)))
+
+quant_mrffa_H12 <- results$fa_mrf_store[['12']][['betas.draws.raw']]
+quant_mrf_H12 <- results$mrf_store[['12']][['betas.draws.raw']]
+quant_mrffa_H12_per <- apply(quant_mrffa_H12[,2:7,], 3, rowSums)
+quant_mrf_H12_per <- apply(quant_mrf_H12[,2:7,], 3, rowSums)
+
+quantiles_mrffa_H12 <- apply(quant_mrffa_H12, c(1,2), function(x) quantile(x, probs = c(0.1, 0.16, 0.84, 0.9)))
+quantiles_mrf_H12 <- apply(quant_mrf_H12, c(1,2), function(x) quantile(x, probs = c(0.1,  0.16, 0.84, 0.9)))
+quantiles_mrffa_H12_per <- apply(quant_mrffa_H12_per, 1, function(x) quantile(x, probs = c(0.1, 0.16, 0.84, 0.9)))
+quantiles_mrf_H12_per <- apply(quant_mrf_H12_per, 1, function(x) quantile(x, probs = c(0.1,  0.16, 0.84, 0.9)))
+
+
+
+
+png("20_figures/MRFFA_H3.png", height=650, width=1000)
+par(mfrow = c(2, 2))
+
+# MRFFA- H3
+
+var <- betas_mrffa_H3[,1]
+var_q <- quantiles_mrffa_H3[,,1]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n')
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2019, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Intercept-H3")
+abline(v = 205, lty = 2, col = "black")
+
+
+var <- rowSums(betas_mrffa_H3[,2:7])
+var_q <- quantiles_mrffa_H3_per[,]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2019, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Persistence-H3")
+abline(v = 205, lty = 2, col = "black")
+
+
+var <- betas_mrffa_H3[,8]
+var_q <- quantiles_mrffa_H3[,,8]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2019, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Real Activity Factor-H3")
+abline(v = 205, lty = 2, col = "black")
+
+
+var <- betas_mrffa_H3[,9]
+var_q <- quantiles_mrffa_H3[,,9]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2019, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Forward-Looking Factor-H3")
+abline(v = 205, lty = 2, col = "black")
+
+dev.off()
+
+# MRFFA- H12
+
+png("20_figures/MRFFA_H12.png", height=650, width=1000)
+par(mfrow = c(2, 2))
+
+var <- betas_mrffa_H12[,1]
+var_q <- quantiles_mrffa_H12[,,1]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2017, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Intercept-H12")
+abline(v = 205, lty = 2, col = "black")
+
+var <- rowSums(betas_mrffa_H12[,2:7])
+var_q <- quantiles_mrffa_H12_per[,]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2017, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Persistence-H12")
+abline(v = 205, lty = 2, col = "black")
+
+var <- betas_mrffa_H12[,8]
+var_q <- quantiles_mrffa_H12[,,8]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2017, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Real Activity Factor-H12")
+abline(v = 205, lty = 2, col = "black")
+
+var <- betas_mrffa_H12[,9]
+var_q <- quantiles_mrffa_H12[,,9]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2017, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRFFA-Forward-Looking Factor-H12")
+abline(v = 205, lty = 2, col = "black")
+
+dev.off()
+
+# MRF- H3
+
+png("20_figures/MRF_H3.png", height=325, width=1000)
+par(mfrow = c(1, 2))
+
+
+var <- betas_mrf_H3[,1]
+var_q <- quantiles_mrf_H3[,,1]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2019, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRF-Intercept-H3")
+abline(v = 205, lty = 2, col = "black")
+
+
+var <- rowSums(betas_mrf_H3[,2:7])
+var_q <- quantiles_mrf_H3_per[,]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2019, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRF-Persistence-H3")
+abline(v = 205, lty = 2, col = "black")
+
+dev.off()
+
+# MRF- H12
+
+png("20_figures/MRF_H12.png", height=325, width=1000)
+par(mfrow = c(1, 2))
+
+
+var <- betas_mrf_H12[,1]
+var_q <- quantiles_mrf_H12[,,1]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2017, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRF-Intercept-H12")
+abline(v = 205, lty = 2, col = "black")
+
+var <- rowSums(betas_mrf_H12[,2:7])
+var_q <- quantiles_mrf_H12_per[,]
+y_range <- range(c(var_q[1,], var_q[4,]))
+plot(1:length(var), as.ts(var), type="n", xlab="", ylab="", ylim=y_range, xaxt='n' )
+x <- 1:length(var)
+polygon(c(x, rev(x)), c(var_q[1,], rev(var_q[4,])), col = "darkgray")
+polygon(c(x, rev(x)), c(var_q[2,], rev(var_q[3,])), col = "lightgray")
+lines(x, as.ts(var), lwd = 2, col = "black")
+years <- seq(1998, 2017, by = 2)
+axis(1, at = seq(1, length(x), by = 24), labels = years)
+title("MRF-Persistence-H12")
+abline(v = 205, lty = 2, col = "black")
+
+dev.off()
+par(mfrow = c(1, 1))
 
 
 

@@ -29,6 +29,12 @@ rm(list=ls())
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE}
+library("nnet")
+library(ISLR2)
+library(torch)
+library(caret)
+library(ggplot2)
+library(MASS)
 
 ```
 
@@ -46,23 +52,126 @@ by the respective variances equals four.
 
 We Generate a training set of size 100 and a test sample of size 10,000.
 ```{r}
+set.seed(123)
+
+a1 <- c(3,3)
+a2 <- c(3,-3)
+n_train <- 100
+n_test <- 10000
+p <- 2
+
+
+# Generate data
+generate_data <- function(n, a1, a2, p) {
+  X <- mvrnorm(n, mu = rep(0, p), Sigma = diag(p))
+  epsilon <- rnorm(n, mean = 0, sd = sqrt(var(X %*% a1) / 4)) # SNR=4
+  Y <- 1 / (1 + exp(-X %*% a1)) + 1 / (1 + exp(-X %*% a2)) + epsilon
+  list(X = X, Y = Y)
+}
+
+# Generatethe train and test set
+train_data <- generate_data(n_train, a1, a2, p)
+test_data <- generate_data(n_test, a1, a2, p)
+
+x_train <- train_data$X
+y_train <- train_data$
+x_test <- test_data$X
+y_test <- test_data$Y
 
 ```
 
+We then fit a neural networks with weight decay of 0.0005 and we vary the number of hidden units from 0 to 10 and record the average test error $E_{Test}(Y − \hat{f}(X_1,X_2))^2$ for each of 10 random starting weights. I.e. for each of the settings with a different number of hidden units we fit a neural network 10 times with different initial values.
 
-we then fit a neural networks with weight decay of 0.0005 and we vary the number of hidden units from 0 to 10 and
-record the average test error $E_{Test}(Y − \hat{f}(X_1,X_2))^2$ for each of 10 random starting weights. I.e. for each of the settings with a different number of hidden units we fit a neural network 10 times with different initial values.
+```{r, warning=F}
+# Define the neural network model
+net <- nn_module(
+  initialize = function(hidden_units) {
+    self$hidden_units <- hidden_units
+    if (hidden_units > 0) {
+      self$fc1 <- nn_linear(p, hidden_units)
+      self$fc2 <- nn_linear(hidden_units, 1)
+    } else {
+      self$fc <- nn_linear(p, 1)
+    }
+  },
+  forward = function(x) {
+    if (self$hidden_units > 0) {
+      x %>%
+        self$fc1() %>%
+        nnf_relu() %>%
+        self$fc2()
+    } else {
+      x %>% self$fc()
+    }
+  }
+)
 
-```{r}
+
+hidden_units_list <- 0:10
+n_repeats <- 10
+results <- data.frame()
+
+for (hidden_units in hidden_units_list) {
+  cat(sprintf("Training with %d hidden units\n", hidden_units))
+  test_errors <- numeric(n_repeats)
+  
+  for (rep in 1:n_repeats) {
+    model <- net(hidden_units)
+    optimizer <- optim_adam(model$parameters, lr = 0.001, weight_decay = 0.0005)
+    criterion <- nn_mse_loss()
+    
+    x_train_tensor <- torch_tensor(as.matrix(x_train), dtype = torch_float())
+    y_train_tensor <- torch_tensor(y_train, dtype = torch_float())$unsqueeze(2)
+    x_test_tensor <- torch_tensor(as.matrix(x_test), dtype = torch_float())
+    y_test_tensor <- torch_tensor(y_test, dtype = torch_float())$unsqueeze(2)
+    
+    # Training loop
+    model$train()
+    for (epoch in 1:100) {
+      optimizer$zero_grad()
+      output <- model(x_train_tensor)
+      loss <- criterion(output, y_train_tensor)
+      loss$backward()
+      optimizer$step()
+    }
+    
+    # Evaluate the model on the test data
+    model$eval()
+    with_no_grad({
+      output_test <- model(x_test_tensor)
+      test_error <- criterion(output_test, y_test_tensor)$item()
+    })
+    
+    test_errors[rep] <- test_error
+  }
+  
+  mean_test_error <- mean(test_errors)
+  sd_test_error <- sd(test_errors)
+  
+  results <- rbind(results, data.frame(hidden_units = hidden_units, mean_test_error = mean_test_error, sd_test_error = sd_test_error))
+}
+
+print(results)
 
 ```
 
 Let's now visualize the results and interpret them.
 
 ```{r}
+ggplot(results, aes(x = hidden_units, y = mean_test_error)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = mean_test_error - sd_test_error, ymax = mean_test_error + sd_test_error), width = 0.2) +
+  labs(title = "Test Error vs. Number of Hidden Units",
+       x = "Number of Hidden Units",
+       y = "Mean Test Error") +
+  theme_minimal()
 
 ```
 
+```{r}
+
+```
 
 \newpage
 <!-- EXERCISE 2 -->
@@ -125,12 +234,139 @@ For this small training data overfitting is an issue. Visualize the performance 
 In the following we will estimate a predictive model for the Default data from the \textbf{ISLR2} pacakge. We fit a neural network using a single hidden layer with 10 units and dropout regularization. We use the hint and use James et al. (2021, Chapter 10).
 
 ```{r}
+rm(list=ls())
+
+data("Default", package = "ISLR2") # Load data
+head(Default)
+#Converting the default column to a binary numeric variable for the neural network model.
+
+Default$default <- ifelse(Default$default == "Yes", 1, 0)
+Default$student <- ifelse(Default$student == "Yes", 1, 0)
+
+# seperating the data into train and test
+set.seed(123)
+n <- nrow(Default)
+ntest <- trunc(n/3)
+testid <- sample(1:n, ntest)
+
+Default_test <- Default[testid,]
+Default_train <- Default[-testid, ]
+
+# Logistic regression model
+logit_model <- glm(default ~ ., data = Default_train, family = binomial)
+# Predicting on test data
+logit_pred <- predict(logit_model, newdata = Default_test, type = "response")
+logit_pred_class <- ifelse(logit_pred > 0.5,1,0)
+y_test <- Default[testid,]$default
+accuracy_logistic <- mean(y_test == logit_pred_class)
+
+# scaling the data for neural networks to ensure that the model converges more efficiently
+
+maxs <- apply(Default[, -1], 2, max)
+mins <- apply(Default[, -1], 2, min)
+x <-  sweep(sweep(Default[,-1], 2, mins, "-"), 2, maxs - mins, "/")
+
+#Convert the data to torch tensors
+x_train <- torch_tensor(as.matrix(x[-testid, ]), dtype = torch_float())
+y_train <- torch_tensor(matrix(Default[-testid,1]), dtype = torch_float())$unsqueeze(2)
+x_test <- torch_tensor(as.matrix(x[testid, ]), dtype = torch_float())
+y_test <- torch_tensor(matrix(Default[testid,1]), dtype = torch_float())$unsqueeze(2)
+
+
+# Neural network model
+#torch::install_torch()
+
+
+## Define the neural network model
+model_nn <- nn_module(
+  initialize = function() {
+    self$fc1 <- nn_linear(ncol(x_train) , 10)
+    self$dropout <- nn_dropout(p = 0.4)
+    self$fc2 <- nn_linear(10, 1)
+  },
+  forward = function(x) {
+    x %>% 
+      self$fc1() %>% 
+      nnf_relu() %>% 
+      self$dropout() %>% 
+      self$fc2() %>% 
+      nnf_sigmoid()
+  }
+)
+
+net <- model_nn()
+optimizer <- optim_adam(net$parameters, lr = 0.001)
+
+
+# Training the model and recording loss
+epochs <- 10
+train_loss <- numeric(epochs)
+valid_loss <- numeric(epochs)
+
+for (epoch in 1:epochs) {
+  net$train()
+  optimizer$zero_grad()
+  output <- net(x_train)
+  loss <- nnf_binary_cross_entropy(output, y_train)
+  loss$backward()
+  optimizer$step()
+  train_loss[epoch] <- loss$item()
+  
+  # Calculate validation loss
+  net$eval()
+  with_no_grad({
+    output_valid <- net(x_test) #nnf_binary_cross_entropy
+    loss_valid <- nnf_binary_cross_entropy(output_valid, y_test)
+    valid_loss[epoch] <- loss_valid$item()
+  })
+  
+  if (epoch %% 10 == 0) {
+    cat(sprintf("Epoch: %d, Train Loss: %3f, Validation Loss: %3f\n", epoch, train_loss[epoch], valid_loss[epoch]))
+  }
+}
+
+  
+# Predicting on test data
+nn_pred_prob <- net(x_test)
+nn_pred <- ifelse(nn_pred_prob > 0.5, 1,0)
+y_test <- Default[testid,]$default
+accuracy_nn <- mean(y_test == nn_pred)
+
+# Plot training and validation loss
+plot(1:epochs, train_loss, type = "l", col = "red", ylim = range(c(train_loss, valid_loss)), 
+     xlab = "Epoch", ylab = "Loss", main = "Training and Validation Loss")
+lines(1:epochs, valid_loss, col = "green")
+legend("topright", legend = c("Train", "Validation"), col = c("red", "green"), lwd = 2)
 
 ```
 
 We ompare the classification performance of this model with that of linear logistic regression.
-```{r}
 
+```{r}
+# Plot ROC Curves and Calculate AUC
+library(pROC)
+
+roc_nn <- roc(Default_test$default, as.numeric(nn_pred_prob))
+roc_logit <- roc(Default_test$default, logit_pred)
+
+# Plot ROC curve
+plot(roc_nn, col = "blue", main = "ROC Curves for Neural Network and Logistic Regression")
+lines(roc_logit, col = "red")
+legend("bottomright", legend = c("Neural Network", "Logistic Regression"), col = c("blue", "red"), lwd = 2)
+
+# Print AUC values
+cat("AUC for Neural Network:", auc(roc_nn), "\n")
+cat("AUC for Logistic Regression:", auc(roc_logit), "\n")
+
+
+# comparing model performance
+# Confusion Matrix for Neural Network
+nn_conf_matrix <- confusionMatrix(factor(as.integer(nn_pred)), factor(Default_test$default))
+print(nn_conf_matrix)
+
+# Confusion Matrix for Logistic Regression
+logit_conf_matrix <- confusionMatrix(factor(logit_pred_class), factor(Default_test$default))
+print(logit_conf_matrix)
 ```
 
 
@@ -141,6 +377,107 @@ We ompare the classification performance of this model with that of linear logis
 Consider the \textit{IMDb} dataset from the \textbf{keras} package to perform document classification. Restrict the vocabulary to the most frequently-used words and tokens. Again, we use the hint and use James et al. (2021, Chapter 10).
 
 ```{r}
+#https://www.casact.org/sites/default/files/2022-12/James-G.-et-al.-2nd-edition-Springer-2021.pdf
+
+rm(list=ls())
+set.seed(123)
+library(keras)
+
+max_features <- 10000
+
+# Function to preprocess and pad sequences
+preprocess_data <- function(max_features, maxlen = 100) {
+  # Load the dataset with the specified vocabulary size
+  imdb <- dataset_imdb(num_words = max_features)
+  c(c(x_train, y_train), c(x_test, y_test)) %<-% imdb
+  
+  # Pad sequences to ensure uniform length
+  x_train <- pad_sequences(x_train, maxlen = maxlen)
+  x_test <- pad_sequences(x_test, maxlen = maxlen)
+  
+  return(list(x_train = x_train, y_train = y_train, x_test = x_test, y_test = y_test))
+}
+
+# Function to create and compile the neural network model
+create_model <- function(input_shape) {
+  model <- keras_model_sequential() %>%
+    layer_dense(units = 16, activation = 'relu', input_shape = input_shape) %>%
+    layer_dense(units = 16, activation = 'relu') %>%
+    layer_dense(units = 1, activation = 'sigmoid')
+  
+  model %>% compile(
+    optimizer = 'adam', #rmsprop"?
+    loss = 'binary_crossentropy',
+    metrics = c('accuracy')
+  )
+  
+  return(model)
+}
+
+
+# Dictionary sizes to evaluate
+dictionary_sizes <- c(500, 1000, 3000, 5000, 10000)
+
+# Number of epochs and batch size for training
+epochs <- 10
+batch_size <- 32
+
+# Initialize a list to store the results
+results <- list()
+
+for (max_features in dictionary_sizes) {
+  cat(sprintf("Training with dictionary size: %d\n", max_features))
+  
+  # Preprocess the data
+  data <- preprocess_data(max_features)
+  x_train <- data$x_train
+  y_train <- data$y_train
+  x_test <- data$x_test
+  y_test <- data$y_test
+  
+  # Create the model
+  model <- create_model(input_shape = dim(x_train)[2])
+  
+  # Train the model
+  history <- model %>% fit(
+    x_train, y_train,
+    epochs = epochs,
+    batch_size = batch_size,
+    validation_split = 0.2,
+    verbose = 2
+  )
+  
+  # Evaluate the model on the test data
+  score <- model %>% evaluate(x_test, y_test, verbose = 0)
+  cat(sprintf("Test loss: %.4f, Test accuracy: %.4f\n\n", score$loss, score$acc))
+  
+  # Store the results
+  results[[as.character(max_features)]] <- score$acc
+}
+
+# Print the results
+results
+
+## Visulaiation 
+# Convert results to a data frame
+results_df <- data.frame(
+  dictionary_size = as.numeric(names(results)),
+  accuracy = unlist(results)
+)
+
+# Plot the results
+library(ggplot2)
+
+ggplot(results_df, aes(x = dictionary_size, y = accuracy)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = dictionary_sizes) +
+  labs(
+    title = "Effect of Dictionary Size on Model Accuracy",
+    x = "Dictionary Size",
+    y = "Test Accuracy"
+  ) +
+  theme_minimal()
 
 ```
 
