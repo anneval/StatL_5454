@@ -384,20 +384,24 @@ library(torchdatasets)
 library(luz)
 
 gen_path<-"~/"  #Specific to the computer
-
-path <- paste(gen_path,"Ex5/",sep="") #Relative to gen path
-
 max_features <- c(500, 1000, 3000, 5000, 10000)
+# Function to create a directory and set it as the working directory
+
+# Define the base path where directories will be created
+
+# Function to create a directory and set it as the working directory
+set_working_directory <- function(path) {
+  if (!dir.exists(path)) {
+    dir.create(path, recursive = TRUE)
+  }
+  setwd(path)
+}
 
 
 set.seed(1)
 
 for (f in max_features) {
   f <- 500
-dictionary <- as.character(f)
-wd_dictionary <-paste(path,dictionary,sep="")
-setwd(wd_dictionary)
-
 
 # Load the IMDb dataset from torchdatasets
 
@@ -543,15 +547,36 @@ gg_loss <- ggplot(df, aes(x = Epoch)) +
   theme_minimal() +
   ggtitle("Loss per Epoch")
 
-g_acc <- ggplot(df, aes(x = Epoch)) +
+gg_acc <- ggplot(df, aes(x = Epoch)) +
   geom_line(aes(y = Accuracy, color = Metric)) +
   labs(y = "Accuracy") +
   scale_color_manual(values = c("blue", "red", "orange")) +
   theme_minimal() +
   ggtitle("Accuracy per Epoch")
 
-setwd(wd_dictionary)
-save("gg_loss", "gg_acc","df")
+
+
+  # Save ggplot2 plots
+
+  ggsave(filename = paste0("gg_loss_", dictionary, ".png"), plot = gg_loss 
+         + theme(plot.background = element_rect(fill = "white")))
+  ggsave(filename = paste0("gg_acc_", dictionary, ".png"), plot = gg_acc
+         + theme(plot.background = element_rect(fill = "white")))
+  
+ # Save base R plots
+  png(filename = paste0("p_fitted_", dictionary, ".png"))
+  p_fitted
+  dev.off()
+  
+  png(filename = paste0("p_fittedtest_", dictionary, ".png"))
+  p_fittedtest
+  dev.off()
+  
+  #objects_to_keep <- c("gg_loss", "gg_acc","df","p_fittedtest","p_fitted")
+#rm(list = setdiff(ls(), objects_to_keep))
+
+  # Save data frame
+  save(df, file = paste0("df_", dictionary, ".RData"))
 
 }
 ```
