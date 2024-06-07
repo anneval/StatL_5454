@@ -276,8 +276,6 @@ y_test <- torch_tensor(matrix(Default[testid,1]), dtype = torch_float())$unsquee
 
 
 # Neural network model
-#torch::install_torch()
-
 
 ## Define the neural network model
 model_nn <- nn_module(
@@ -375,8 +373,9 @@ print(logit_conf_matrix)
 \newpage
 <!-- EXERCISE 5 -->
 # Exercise 5
+Now we perform document classification on the  \textit{IMDb} data set, which is available as part of the \textbf{torchdatasets} package. We limit the dictionary size to the 10,000 most frequently-used words and tokens. Again, we use James et al. (2021, Chapter 10). We begin by loading the data and creating a imdb_tain and imdb_test object. Each element of imdb_train is a vector of numbers between 1 and 10000 (the document), referring to the words found in the dictionary. Next we write a function to one-hot encode each document in a list of documents, and return a binary matrix in sparse-matrix format. To construct the sparse matrix, one supplies just the entries that are nonzero. In the last line we call the function sparseMatrix() and supply the row indices corresponding to each document and the column indices corresponding to the words in each document, since we omit the values they are taken to be all ones. Words that appear more than once in any given document still get recorded as a one.
 
-Consider the \textit{IMDb} dataset from the \textbf{keras} package to perform document classification. Restrict the vocabulary to the most frequently-used words and tokens. Again, we use the hint and use James et al. (2021, Chapter 10).
+
 
 ```{r}
 #https://www.casact.org/sites/default/files/2022-12/James-G.-et-al.-2nd-edition-Springer-2021.pdf
@@ -385,13 +384,17 @@ library(torchdatasets)
 library(luz)
 
 set.seed(1)
-max_features <- 500
+max_features <- 1000
+
+# Load the IMDb dataset from torchdatasets
+
 imdb_train <- imdb_dataset(
   root = ".", 
   download = TRUE,
   split="train",
   num_words = max_features
 )
+
 imdb_test <- imdb_dataset(
   root = ".", 
   download = TRUE,
@@ -400,16 +403,6 @@ imdb_test <- imdb_dataset(
 )
 
 imdb_train[1]$x[1:12]
-
-word_index <- imdb_train$vocabulary
-decode_review <- function(text, word_index) {
-   word <- names(word_index)
-   idx <- unlist(word_index, use.names = FALSE)
-   word <- c("<PAD>", "<START>", "<UNK>", word)
-   words <- word[text]
-   paste(words, collapse = " ")
-}
-decode_review(imdb_train[1]$x[1:12], word_index)
 
 library(Matrix)
 one_hot <- function(sequences, dimension) {
@@ -420,6 +413,8 @@ one_hot <- function(sequences, dimension) {
    sparseMatrix(i = rowind, j = colind,
       dims = c(n, dimension))
 }
+
+# collect all values into a list
 train <- seq_along(imdb_train) %>% 
   lapply(function(i) imdb_train[i]) %>% 
   purrr::transpose()
@@ -428,21 +423,23 @@ test <- seq_along(imdb_test) %>%
   purrr::transpose()
 
 # num_words + padding + start + oov token = 10000 + 3
-x_train_1h <- one_hot(train$x, 10000 + 3)
-x_test_1h <- one_hot(test$x, 10000 + 3)
+x_train_1h <- one_hot(train$x, 1000 + 3)
+x_test_1h <- one_hot(test$x, 1000 + 3)
 dim(x_train_1h)
 
+#nnzero(x_train_1h) / (25000 * (10000 + 3))
+#Only 1.3% of the entries are nonzero, so this amounts to considerable savings in memory. We create a validation set of size 2,000, leaving 23,000 for training.
 
 set.seed(3)
-ival <- sample(seq(along = train$y), 2000)
+ival <- sample(seq(along = train$y), 200)
 itrain <- seq_along(train$y)[-ival]
 ```
 
-Fit a fully-connected neural network with two hidden layers, each with 16 units and ReLU activation to the data with dictionary size 1000.
+Next we fit a fully-connected neural network with two hidden layers, each with 16 units and ReLU activation.
 
 ```{r}
 model <- nn_module(
-  initialize = function(input_size = 10000 + 3) {
+  initialize = function(input_size = 1000 + 3) {
     self$dense1 <- nn_linear(input_size, 16)
     self$relu <- nn_relu()
     self$dense2 <- nn_linear(16, 16)
@@ -466,6 +463,8 @@ model <- model %>%
   ) %>% 
   set_opt_hparams(lr = 0.001)
 
+# Fit the model with training and validation data
+
 fitted <- model %>% 
   fit(
     # we transform the training and validation data into torch tensors
@@ -483,20 +482,68 @@ fitted <- model %>%
 
 plot(fitted) 
 
+```
 
-fitted <- model %>% 
+
+```{r}
+
+# Fit the model with test data as validation data to get test accuracy
+fitted_test <- model %>% 
   fit(
     list(
-      torch_tensor(as.matrix(x_train_1h[itrain,]), dtype = torch_float()), 
-      torch_tensor(unlist(train$y[itrain]))
+      torch_tensor(as.matrix(x_train_1h[itrain, ]), dtype = torch_float()), 
+      torch_tensor(unlist(train$y[itrain]), dtype = torch_float())
     ),
     valid_data = list(
       torch_tensor(as.matrix(x_test_1h), dtype = torch_float()), 
-      torch_tensor(unlist(test$y))
+      torch_tensor(unlist(test$y), dtype = torch_float())
     ),
     dataloader_options = list(batch_size = 512),
     epochs = 10
   )
+
+plot(fitted_test)
+# Helper function to extract metrics
+extract_metric <- function(metric_list, metric_name) {
+  sapply(metric_list, function(epoch) epoch[[metric_name]])}
+  
+  
+# Extract metrics
+train_loss <- extract_metric(fitted$records$metrics$train, "loss")
+val_loss <- extract_metric(fitted$records$metrics$valid, "loss")
+test_loss <- extract_metric(fitted_test$records$metrics$valid, "loss")
+
+
+train_acc <- extract_metric(fitted$records$metrics$train, "acc")
+val_acc <- extract_metric(fitted$records$metrics$valid, "acc")
+test_acc <- extract_metric(fitted_test$records$metrics$valid, "acc")  
+
+
+
+# Create data frame for plotting
+df <- data.frame(
+  Epoch = rep(1:10, 3),
+  Metric = c(rep("Train", 10), rep("Validation", 10), rep("Test", 10)),
+  Loss = c(train_loss, val_loss, test_loss),
+  Accuracy = c(train_acc, val_acc, test_acc)
+)
+
+library(ggplot2)
+# Plotting the results
+ggplot(df, aes(x = Epoch)) +
+  geom_line(aes(y = Loss, color = Metric), na.rm = TRUE) +
+  labs(y = "Loss") +
+  scale_color_manual(values = c("blue", "red", "orange")) +
+  theme_minimal() +
+  ggtitle("Loss per Epoch")
+
+ggplot(df, aes(x = Epoch)) +
+  geom_line(aes(y = Accuracy, color = Metric)) +
+  labs(y = "Accuracy") +
+  scale_color_manual(values = c("blue", "red", "orange")) +
+  theme_minimal() +
+  ggtitle("Accuracy per Epoch")
+
 ```
 
 Consider the effects of varying the dictionary size. Try the values 500, 1000, 3000, 5000, and 10,000, and compare the results.
