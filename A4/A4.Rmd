@@ -29,203 +29,397 @@ rm(list=ls())
 ```
 
 ```{r, echo=FALSE, include=FALSE, warning=FALSE}
-library("nnet")
+library(nnet)
 library(ISLR2)
 library(torch)
+library(luz)
 library(caret)
 library(ggplot2)
 library(MASS)
+library(ElemStatLearn)
 
 ```
+
+
 
 
 
 <!-- EXERCISE 1 -->
 # Exercise 1
 
-We generate data from the following additive error model $Y = f(X_1,X_2) + \epsilon$. The sum of sigmoids is
-$$ Y = \sigma(a_1^\top X_1) + \sigma(a_2^\top X_2) + \epsilon, $$
-with $a_1 = (3, 3)$, $a_2 = (3,−3)$.
-– Each $X_j$ , $j = 1, 2$, is a standard Gaussian variate with $p = 2$.
-– $\epsilon$ is an independent Gaussian error with variance chosen such that the signal-to-noise ratio as measured
-by the respective variances equals four.
+We generate data from the additive error model $Y = f(X_1,X_2) + \epsilon$, where $f(X_1, X_2)$ is a sum of sigmoids, i.e.
+$$ f(X_1,X_2) = \sigma(a_1^\top X_1) + \sigma(a_2^\top X_2), $$
+with $a_1 = (3, 3)'$, $a_2 = (3,-3)'$ and bivariate standard Gaussian variables $X_j$, $j = 1, 2$. The variance of the independent Gaussian error $\epsilon$ is chosen such that the signal-to-noise ratio as measured by the respective variances equals four. We generate a training set of size 100 and a test sample of size 10,000.
 
-We Generate a training set of size 100 and a test sample of size 10,000.
 ```{r}
 set.seed(123)
 
-a1 <- c(3,3)
-a2 <- c(3,-3)
 n_train <- 100
 n_test <- 10000
-p <- 2
 
-# X1,X2 richtig generiret?
-# variance von f(...)?
-# learning rate?
+# helper for sigmoid
+sigmoid <- function(x){
+  1/(1+exp(-x))
+}
 
-# Generate data
-generate_data <- function(n, a1, a2, p) {
-  X <- mvrnorm(n, mu = rep(0, p), Sigma = diag(p))
-  epsilon <- rnorm(n, mean = 0, sd = sqrt(var(X %*% a1) / 4)) # SNR=4
-  Y <- 1 / (1 + exp(-X %*% a1)) + 1 / (1 + exp(-X %*% a2)) + epsilon
+# data generating function
+generate_data <- function(n, a1 = c(3,3), a2 = c(3,-3)){
+  p1 <- length(a1)
+  p2 <- length(a2)
+  
+  X1 <- mvrnorm(n, mu = rep(0,p1), Sigma = diag(p1))
+  X2 <- mvrnorm(n, mu = rep(0,p2), Sigma = diag(p2))
+  X <- cbind(X1, X2)
+  
+  fX <- sigmoid(X1%*%a1) + sigmoid(X2%*%a2)
+  
+  epsilon <- rnorm(n, mean = 0, sd = sqrt(var(fX)/4)) # SNR=4
+  Y <- fX + epsilon
+  
   list(X = X, Y = Y)
 }
 
-# Generatethe train and test set
-train_data <- generate_data(n_train, a1, a2, p)
-test_data <- generate_data(n_test, a1, a2, p)
+# Generate the train and test set
+train_data <- generate_data(n_train)
+test_data <- generate_data(n_test)
 
 x_train <- train_data$X
 y_train <- train_data$Y
 x_test <- test_data$X
 y_test <- test_data$Y
+
+
 ```
 
-We then fit a neural networks with weight decay of 0.0005 and we vary the number of hidden units from 0 to 10 and record the average test error $E_{Test}(Y − \hat{f}(X_1,X_2))^2$ for each of 10 random starting weights. I.e. for each of the settings with a different number of hidden units we fit a neural network 10 times with different initial values.
-
-```{r, warning=F}
-# Define the neural network model
+We then fit neural networks with weight decay of 0.0005 and vary the number of hidden units from 0 to 10. We record the average test error $E_{\text{Test}}(Y - \hat{f}(X_1,X_2))^2$ for each of 10 random starting weights.
+  
+```{r }
+# set seed for torch
+torch_manual_seed(123)
+  
+# define the neural network
 net <- nn_module(
-  initialize = function(hidden_units) {
-    self$hidden_units <- hidden_units
-    if (hidden_units > 0) {
-      self$fc1 <- nn_linear(p, hidden_units)
-      self$fc2 <- nn_linear(hidden_units, 1)
+  initialize = function(hidden_units){
+    self$hidden_units <- hidden_units # number of hidden units
+    if(hidden_units>0){
+      self$hidden <- nn_linear(4, hidden_units) # hidden layer
+      self$activation <- nn_sigmoid() # sigmoid activation function
+      self$output <- nn_linear(hidden_units, 1) # output layer
     } else {
-      self$fc <- nn_linear(p, 1)
+      self$output <- nn_linear(4, 1) # no hidden units --> just output layer
     }
   },
-  forward = function(x) {
-    if (self$hidden_units > 0) {
+  forward = function(x){
+    if(self$hidden_units > 0){
       x %>%
-        self$fc1() %>%
-        nnf_relu() %>%
-        self$fc2()
+        self$hidden() %>%
+        self$activation() %>%
+        self$output()
     } else {
-      x %>% self$fc()
+      x %>% self$output()
     }
   }
 )
-
-
-hidden_units_list <- 0:5
-n_repeats <- 10
+  
+# set up for estimation
+net <- net %>%
+  setup(
+    loss = nn_mse_loss(), # MSE loss
+    optimizer = optim_rmsprop # choose optimizer
+  ) %>%
+  set_opt_hparams(weight_decay = 0.0005) # set weight decay
+  
+  
+  
+  
+hidden_units_list <- 0:10
+n_repeats <- 10 # iteration for different starting weights
+  
+# containers for results
 results <- data.frame()
-
-for (hidden_units in hidden_units_list) {
-  cat(sprintf("Training with %d hidden units\n", hidden_units))
+errors_list <- vector("list", length(hidden_units_list))
+names(errors_list) <- paste0('h=',hidden_units_list)
+  
+  
+  
+for (h in hidden_units_list) {
+    
+  #cat(sprintf("Training with %d hidden units\n", h))
   test_errors <- numeric(n_repeats)
-  
+    
   for (rep in 1:n_repeats) {
-    model <- net(hidden_units)
-    optimizer <- optim_adam(model$parameters, lr = 0.001, weight_decay = 0.0005)
-    criterion <- nn_mse_loss()
+      
+    fitted <- net %>%
+      set_hparams(hidden_units = h) %>%
+      fit(
+        data = list(x_train, y_train),
+        epochs = 30 # in-sample MSE quickly drops for only a few epochs 
+      )
+      
+    pred <- as.matrix(predict(fitted, x_test)) # predictions on test data
+    mse <- mean((y_test-pred)^2) # average test error
+      
+    test_errors[rep] <- mse
+      
+   }
     
-    x_train_tensor <- torch_tensor(as.matrix(x_train), dtype = torch_float())
-    y_train_tensor <- torch_tensor(y_train, dtype = torch_float())#$unsqueeze(2)
-    x_test_tensor <- torch_tensor(as.matrix(x_test), dtype = torch_float())
-    y_test_tensor <- torch_tensor(y_test, dtype = torch_float())#$unsqueeze(2)
+   errors_list[[paste0("h=",h)]] <- test_errors
     
-    # Training loop
-    model$train()
-    for (epoch in 1:200) {
-      optimizer$zero_grad()
-      output <- model(x_train_tensor)
-      loss <- criterion(output, y_train_tensor)
-      loss$backward()
-      optimizer$step()
-    }
+   mean_test_error <- mean(test_errors)
+   sd_test_error <- sd(test_errors)
     
-    # Evaluate the model on the test data
-    model$eval()
-    with_no_grad({
-      output_test <- model(x_test_tensor)
-      test_error <- criterion(output_test, y_test_tensor)$item()
-    })
-    
-    test_errors[rep] <- test_error
-  }
-  
-  mean_test_error <- mean(test_errors)
-  sd_test_error <- sd(test_errors)
-  
-  results <- rbind(results, data.frame(hidden_units = hidden_units, mean_test_error = mean_test_error, sd_test_error = sd_test_error))
+   results <- rbind(results, data.frame(hidden_units = h, 
+                                        mean_test_error = mean_test_error, 
+                                        sd_test_error = sd_test_error))
 }
-
-print(results)
-
+  
+  
+print(results)    
+  
 ```
 
-Let's now visualize the results and interpret them.
+Let us now visualize the results and interpret them.
 
 ```{r}
 ggplot(results, aes(x = hidden_units, y = mean_test_error)) +
   geom_point() +
   geom_line() +
-  geom_errorbar(aes(ymin = mean_test_error - sd_test_error, ymax = mean_test_error + sd_test_error), width = 0.2) +
+  geom_errorbar(
+    aes(ymin = mean_test_error - sd_test_error, ymax = mean_test_error + sd_test_error), 
+    width = 0.2) +
   labs(title = "Test Error vs. Number of Hidden Units",
        x = "Number of Hidden Units",
        y = "Mean Test Error") +
   theme_minimal()
 
-```
+```  
 
-```{r}
+Out of all the models under consideration, the neural network with a single hidden unit performs worst. It has the largest mean average test error and also the largest variation in the average test error  for different random starting weights. Somewhat surprisingly, the linear model, i.e. the neural network with no hidden units, performs almost as good as the neural network with two hidden units. While the mean average test errors of these two models are similar, the average test error is much less sensitive to different starting weights in case of the linear model. All neural networks with 3 or more hidden units have a similar performance, both in terms of the mean average test error and the standard deviation of the average test error for different random starting weights. Overall, we conclude that choosing a larger number of hidden units and imposing shrinkage via weight decay appears to be better than having too few hidden units in the first place.
 
-```
 
-\newpage
+
+
+
+
+
 <!-- EXERCISE 2 -->
 
 # Exercise 2
 
-The data sets \texit{zip.train} and \textit{zip.test} from package \textbf{ElemStatLearn} contain the information on the gray color
-values of the pixels on a $16 \times 16$ pixel image of hand-written digits. We first visualize for each digit one randomly selected observation.
+The data sets `zip.train` and `zip.test` from package \textbf{ElemStatLearn} contain information on the gray color values of the pixels on a $16 \times 16$ pixel image of hand-written digits. We first visualize for each digit one randomly selected observation.
 
 ```{r}
+set.seed(1234)
+
+data("zip.train")
+data("zip.test")
+
+# helper to select observations
+findRows <- function(zip, n) {
+ # find  n (random) rows with zip representing 0,1,2,...,9
+ res <- vector(length=10, mode="list")
+ names(res) <- 0:9
+ ind <- zip[,1]
+ for (j in 0:9) {
+    res[[j+1]] <- sample(which(ind==j), n, replace = FALSE) 
+    }
+ return(res) 
+ }
+
+# make plot
+digits <- vector(length=10, mode="list")
+names(digits) <- 0:9
+rows <- findRows(zip.train, 1) # get one observation for each digit
+for (j in 0:9) {
+    digits[[j+1]] <- zip2image(zip.train, rows[[j+1]])
+}
+im <- do.call("rbind", digits)
+image(im, col=gray(256:0/256), zlim=c(0,1), xlab="", ylab="" ) 
+
 
 ```
 
-we then fit a multinomial logistic regression model to the training data and evaluate it on the training and the test data. We determine the overall misclassification rate on the training and the test data and the digit-specific misclassification rates on the test data. 
+We now fit a multinomial logistic regression model to the training data and evaluate it on the training and the test data. Before fitting the model, however, we transform the data such that the regressors are scaled on the unit interval.
 
 ```{r}
 
+helper_transform <- function(x){
+  maxs <- apply(x, 2, max)
+  mins <- apply(x, 2, min)
+  
+  output <- sweep(sweep(x, 2, mins, "-"), 2, maxs - mins, "/")
+  return(output)
+}
+
+zip_train_df <- as.data.frame(zip.train)
+zip_test_df <- as.data.frame(zip.test)
+
+# scale rhs variables to [0,1]
+zip_train_df[,2:ncol(zip_train_df)] <- helper_transform(zip_train_df[,2:ncol(zip_train_df)])
+zip_test_df[,2:ncol(zip_test_df)] <- helper_transform(zip_test_df[,2:ncol(zip_test_df)])
+
+# turn dependent variable into factor
+zip_train_df[,1] <- as.factor(zip_train_df[,1])
+zip_test_df[,1] <- as.factor(zip_test_df[,1])
+
+colnames(zip_train_df) <- c("y", paste0("x",1:(ncol(zip_train_df)-1)))
+colnames(zip_test_df) <- c("y", paste0("x",1:(ncol(zip_test_df)-1)))
+
+# fit the model
+multinom_fit <- multinom(y~., data = zip_train_df, MaxNWts = 10000)
+
+
 ```
 
-Which digits are the most difficult and the easiest to classify?
 
-We add a positive weight decay of 0.05 when fitting the multinomial logistic regression model to the training data and evaluate the model on the training and the test data. We determine the overall misclassification rate on the training and the test data. 
+We now determine the overall misclassification rate on the training and the test data and the digit-specific misclassification rates on the test data. 
 
 ```{r}
+# misclassification rate on training data
+mcr_train <- mean(predict(multinom_fit) != zip_train_df$y)
+print(paste0("misclassification rate (training data): ", round(100*mcr_train,2),"%"))
+
+# misclassification rate on test data
+mcr_test <- mean(predict(multinom_fit, newdata = zip_test_df) != zip_test_df$y)
+print(paste0("misclassification rate (test data): ", round(100*mcr_test,2),"%"))
+
+# digit-specific misclassification rate on test data
+misclassified <- which(predict(multinom_fit, newdata = zip_test_df) != zip_test_df$y)
+mcr_digit <- paste0(round(100*table(zip_test_df[misclassified,"y"])/table(zip_test_df$y),2),"%")
+names(mcr_digit) <- 0:9
+print("digit-specific misclassification rates (test data):")
+print(mcr_digit)
 
 ```
+The misclassification rate on the training data is exceptionally low, while the one on the test data is fairly high. The digits 8,4 and 2 are particularly difficult to classify, whereas the model does a good job in classifying 0,1, and 9. 
+
+The substantial discrepancy in performance between training and test data suggests that overfitting may be an issue. Hence, we add a positive weight decay of 0.05 when fitting the multinomial logistic regression model in order to regularize it.
+
+```{r}
+multinom_fit2 <- multinom(y~., data = zip_train_df, MaxNWts = 10000, 
+                                     decay = 0.05)
+
+# misclassification rate on training data
+mcr_train <- mean(predict(multinom_fit2) != zip_train_df$y)
+print(paste0("misclassification rate (training data): ", round(100*mcr_train,2),"%"))
+
+# misclassification rate on test data
+mcr_test <- mean(predict(multinom_fit2, newdata = zip_test_df) != zip_test_df$y)
+print(paste0("misclassification rate (test data): ", round(100*mcr_test,2),"%"))
+
+# digit-specific misclassification rate on test data
+misclassified <- which(predict(multinom_fit2, newdata = zip_test_df) != zip_test_df$y)
+mcr_digit <- paste0(round(100*table(zip_test_df[misclassified,"y"])/table(zip_test_df$y),2),"%")
+names(mcr_digit) <- 0:9
+print("digit-specific misclassification rates (test data):")
+print(mcr_digit)
+```
+Adding weight decay slightly increases the misclassification rate on the training data, but reduces the misclassification rate on the test data. The improved classification performance is particularly pronounced for the ``difficult'' digits (8 and 4). Overall, adding a Ridge penalty to the loss function, i.e. adding the weight decay, improves the out-of-sample performance of our model by mitigating the overfitting problem.
 
 
-Explain why it makes sense to also include weight decay when fitting this multinomial logistic regression model.
 
 \newpage
 <!-- EXERCISE 3 -->
 # Exercise 3
 
-The data sets \textit{zip.train} and \textit{zip.test} from package \textbf{ElemStatLearn} contain the information on the gray color values of the pixels on a $16 \times 16$ pixel image of hand-written digits. Use only a subset from \textit{zip.train} of size 320 observations with an equal number of observations for each
-digit to fit a multinomial logistic regression model and a neural network.
+We continue using the data sets `zip.train` and `zip.test` from package \textbf{ElemStatLearn}. However, we now only use a subset of size 320 from \textit{zip.train}, with an equal number of observations for each digit to fit a multinomial logistic regression model and a neural network. We use the remaining observations from `zip.train` and the test data to evaluate the fitted models.
+
+Given the small sample size of the training data, overfitting is most likely an issue. We therefore  visualize the performance on the test data in dependence of the training epochs when fitting the models.
 
 ```{r}
+set.seed(1234)
+
+# select observations for new training data
+train_rows <- unlist(findRows(zip.train,n=32),use.names = FALSE)
+zip_new_train_df <- as.data.frame(zip.train[train_rows,])
+
+# combine "zip.test" and other observations from "zip.test"
+zip_new_test_df <- as.data.frame(rbind(zip.train[-train_rows,], zip.test))
+
+# scale rhs variables to [0,1]
+zip_new_train_df[,2:ncol(zip_new_train_df)] <- helper_transform(
+  zip_new_train_df[,2:ncol(zip_new_train_df)])
+zip_new_test_df[,2:ncol(zip_new_test_df)] <- helper_transform(
+  zip_new_test_df[,2:ncol(zip_new_test_df)])
+
+# turn dependent variable into factor
+zip_new_train_df[,1] <- as.factor(zip_new_train_df[,1])
+zip_new_test_df[,1] <- as.factor(zip_new_test_df[,1])
+
+colnames(zip_new_train_df) <- c("y", paste0("x",1:(ncol(zip_new_train_df)-1)))
+colnames(zip_new_test_df) <- c("y", paste0("x",1:(ncol(zip_new_test_df)-1)))
+
+# list of training epochs
+epochs_list <- list(10,20,30,50,100,150,200)
+names(epochs_list) <- paste0("e=", epochs_list)
+
+# multinomial logistic regression
+mcrs_multinom <- lapply(epochs_list, function(e){
+  fit <- multinom(y ~ ., data = zip_new_train_df, maxit = e, MaxNWts = 10000)
+  c(train = mean(predict(fit) != zip_new_train_df$y),
+    test = mean(predict(fit, newdata = zip_new_test_df) != zip_new_test_df$y))
+})
+
+mcrs_multinom <- do.call(rbind,mcrs_multinom)
+
+
+# neural network with 5 hidden units
+mcrs_nn5 <- lapply(epochs_list, function(e){
+  fit <- nnet(y ~ ., data = zip_new_train_df, size = 5, maxit = e, 
+              MaxNWts = 10000, skip = TRUE)
+  c(train = mean(predict(fit, type = "class") != zip_new_train_df$y),
+    test = mean(predict(fit, newdata = zip_new_test_df, type = "class") != zip_new_test_df$y))
+})
+
+mcrs_nn5 <- do.call(rbind,mcrs_nn5)
+
+# neural network with 10 hidden units
+mcrs_nn10 <- lapply(epochs_list, function(e){
+  fit <- nnet(y ~ ., data = zip_new_train_df, size = 10, maxit = e, 
+              MaxNWts = 10000, skip = TRUE)
+  c(train = mean(predict(fit, type = "class") != zip_new_train_df$y),
+    test = mean(predict(fit, newdata = zip_new_test_df, type = "class") != zip_new_test_df$y))
+})
+
+mcrs_nn10 <- do.call(rbind,mcrs_nn10)
+
+# neural network with 30 hidden units
+mcrs_nn20 <- lapply(epochs_list, function(e){
+  fit <- nnet(y ~ ., data = zip_new_train_df, size = 20, maxit = e,  
+              MaxNWts = 10000, skip = TRUE)
+  c(train = mean(predict(fit, type = "class") != zip_new_train_df$y),
+    test = mean(predict(fit, newdata = zip_new_test_df, type = "class") != zip_new_test_df$y))
+})
+
+mcrs_nn20 <- do.call(rbind,mcrs_nn20)
+
+
+# make plots
+matplot(epochs_list, mcrs_multinom, type="b",pch=19,lty=1, xaxt = 'n',
+        xlab = "epochs", ylab = "misclassification rate", main = "Multinomial Logit")
+axis(1,epochs_list, cex.axis = 1)
+legend("right", c("train", "test"), lty = 1, col = 1:2, box.lwd = 0)
+
+matplot(epochs_list, mcrs_nn5, type="b",pch=19,lty=1, xaxt = 'n',
+        xlab = "epochs", ylab = "misclassification rate", main = "NN (5 hidden units)")
+axis(1,epochs_list, cex.axis = 1)
+legend("topright", c("train", "test"), lty = 1, col = 1:2, box.lwd = 0)
+
+matplot(epochs_list, mcrs_nn10, type="b",pch=19,lty=1, xaxt = 'n',
+        xlab = "epochs", ylab = "misclassification rate", main = "NN (10 hidden units)")
+axis(1,epochs_list, cex.axis = 1)
+legend("right", c("train", "test"), lty = 1, col = 1:2, box.lwd = 0)
+
+matplot(epochs_list, mcrs_nn20, type="b",pch=19,lty=1, xaxt = 'n',
+        xlab = "epochs", ylab = "misclassification rate", main = "NN (20 hidden units)")
+axis(1,epochs_list, cex.axis = 1)
+legend("topright", c("train", "test"), lty = 1, col = 1:2, box.lwd = 0)
+
+
 
 ```
+The plots are in line with our assumption that overfitting is an issue in this exercise. For all models (multinomial logit, neural networks with 5, 10 and 20 hidden units) the misclassification rate on the test data increases as the number of training epochs exceeds 30. Hence, in the absence of a more explicit form of regularization (e.g. a positive weight decay) stopping the optimization routine early can be helpful to improve out-of-sample performance.
 
-Use all remaining training observations and the test data set to evaluate the fitted models.
-
-```{r}
-
-```
-
-For this small training data overfitting is an issue. Visualize the performance on the test data in dependence of the training epochs when fitting the models.
-
-```{r}
-
-```
 
 
 
@@ -233,20 +427,22 @@ For this small training data overfitting is an issue. Visualize the performance 
 <!-- EXERCISE 4 -->
 # Exercise 4
 
-In the following we will estimate a predictive model for the Default data from the \textbf{ISLR2} pacakge. We fit a neural network using a single hidden layer with 10 units and dropout regularization. We use the hint and use James et al. (2021, Chapter 10).
+In the following we will estimate a predictive model for the `Default` data from the \textbf{ISLR2} pacakge. We fit a neural network using a single hidden layer with 10 units and dropout regularization.
 
-```{r}
+```{r }
 rm(list=ls())
 
 data("Default", package = "ISLR2") # Load data
 head(Default)
-#Converting the default column to a binary numeric variable for the neural network model.
 
+# Converting "default" and "student"  binary numeric variables for the neural network model.
 Default$default <- ifelse(Default$default == "Yes", 1, 0)
 Default$student <- ifelse(Default$student == "Yes", 1, 0)
 
-# seperating the data into train and test
+# separating the data into train and test (66:33 split)
 set.seed(123)
+torch_manual_seed(123)
+
 n <- nrow(Default)
 ntest <- trunc(n/3)
 testid <- sample(1:n, ntest)
@@ -254,95 +450,148 @@ testid <- sample(1:n, ntest)
 Default_test <- Default[testid,]
 Default_train <- Default[-testid, ]
 
-# Logistic regression model
-logit_model <- glm(default ~ ., data = Default_train, family = binomial)
+
+### --- Logistic Regression --- ###
+
+logit_model <- glm(default ~ ., data = Default_train, family = binomial(link = "logit"))
+
 # Predicting on test data
 logit_pred <- predict(logit_model, newdata = Default_test, type = "response")
 logit_pred_class <- ifelse(logit_pred > 0.5,1,0)
 y_test <- Default[testid,]$default
 accuracy_logistic <- mean(y_test == logit_pred_class)
 
-# scaling the data for neural networks to ensure that the model converges more efficiently
-
-maxs <- apply(Default[, -1], 2, max)
-mins <- apply(Default[, -1], 2, min)
-x <-  sweep(sweep(Default[,-1], 2, mins, "-"), 2, maxs - mins, "/")
-
-#Convert the data to torch tensors
-x_train <- torch_tensor(as.matrix(x[-testid, ]), dtype = torch_float())
-y_train <- torch_tensor(matrix(Default[-testid,1]), dtype = torch_float())$unsqueeze(2)
-x_test <- torch_tensor(as.matrix(x[testid, ]), dtype = torch_float())
-y_test <- torch_tensor(matrix(Default[testid,1]), dtype = torch_float())$unsqueeze(2)
 
 
-# Neural network model
+### --- Neural Network --- ###
 
-## Define the neural network model
-model_nn <- nn_module(
-  initialize = function() {
-    self$fc1 <- nn_linear(ncol(x_train) , 10)
-    self$dropout <- nn_dropout(p = 0.4)
-    self$fc2 <- nn_linear(10, 1)
+net <- nn_module(
+  initialize = function(input_size) {
+    self$linear1 <- nn_linear(input_size, 10)# hidden layer with 10 hidden units
+    self$linear2 <- nn_linear(10, 1) # output layer
+    self$activation1 <- nn_relu() # RELU activation function for hidden layer
+    self$activation2 <- nn_sigmoid() # sigmoid activation function for output layer (binary logit)
+    self$dropout <- nn_dropout(p = 0.4) # randomly remove 40% of observations in hidden layer
   },
   forward = function(x) {
     x %>% 
-      self$fc1() %>% 
-      nnf_relu() %>% 
-      self$dropout() %>% 
-      self$fc2() %>% 
-      nnf_sigmoid()
+      self$linear1() %>%
+      self$activation1() %>%
+      self$dropout() %>%
+      self$linear2() %>%
+      self$activation2()
   }
-)
-
-net <- model_nn()
-optimizer <- optim_adam(net$parameters, lr = 0.001)
-
-
-# Training the model and recording loss
-epochs <- 10
-train_loss <- numeric(epochs)
-valid_loss <- numeric(epochs)
-
-for (epoch in 1:epochs) {
-  net$train()
-  optimizer$zero_grad()
-  output <- net(x_train)
-  loss <- nnf_binary_cross_entropy(output, y_train)
-  loss$backward()
-  optimizer$step()
-  train_loss[epoch] <- loss$item()
-  
-  # Calculate validation loss
-  net$eval()
-  with_no_grad({
-    output_valid <- net(x_test) #nnf_binary_cross_entropy
-    loss_valid <- nnf_binary_cross_entropy(output_valid, y_test)
-    valid_loss[epoch] <- loss_valid$item()
-  })
-  
-  if (epoch %% 10 == 0) {
-    cat(sprintf("Epoch: %d, Train Loss: %3f, Validation Loss: %3f\n", epoch, train_loss[epoch], valid_loss[epoch]))
-  }
-}
+) %>%
+  setup( # setup for estimation
+    loss = nn_bce_loss(),
+    optimizer = optim_rmsprop,
+    metrics = list(luz_metric_binary_accuracy())
+  )
+# Note: we don't need a (sigmoid) transformation function, since the loss function
+#       we employ combines a sigmoid layer with a binary cross entropy loss
 
   
+# transform the data (scale to unit interval)
+y_train <- as.matrix(Default_train$default)
+x_train <- Default_train[,-1]
+maxs <- apply(x_train, 2, max)
+mins <- apply(x_train, 2, min)
+x_train <- as.matrix(sweep(sweep(x_train, 2, mins, "-"), 2, maxs-mins, "/"))
+
+y_test <- as.matrix(Default_test$default)
+x_test <- Default_test[,-1]
+maxs <- apply(x_test, 2, max)
+mins <- apply(x_test, 2, min)
+x_test <- as.matrix(sweep(sweep(x_test, 2, mins, "-"), 2, maxs-mins, "/"))
+
+# fit the model
+fitted <- net %>%
+      set_hparams(input_size = ncol(x_train)) %>%
+      fit(
+        data = list(x_train, y_train),
+        valid_data = list(x_test, y_test),
+        epochs = 50 # in-sample MSE quickly drops for only a few epochs 
+      ) 
+plot(fitted)
+
+
+
+# #Convert the data to torch tensors
+# x_train <- torch_tensor(as.matrix(x[-testid, ]), dtype = torch_float())
+# y_train <- torch_tensor(matrix(Default[-testid,1]), dtype = torch_float())$unsqueeze(2)
+# x_test <- torch_tensor(as.matrix(x[testid, ]), dtype = torch_float())
+# y_test <- torch_tensor(matrix(Default[testid,1]), dtype = torch_float())$unsqueeze(2)
+# 
+# 
+# 
+# 
+# ## Define the neural network model
+# model_nn <- nn_module(
+#   initialize = function() {
+#     self$fc1 <- nn_linear(ncol(x_train) , 10)
+#     self$dropout <- nn_dropout(p = 0.4)
+#     self$fc2 <- nn_linear(10, 1)
+#   },
+#   forward = function(x) {
+#     x %>% 
+#       self$fc1() %>% 
+#       nnf_relu() %>% 
+#       self$dropout() %>% 
+#       self$fc2() %>% 
+#       nnf_sigmoid()
+#   }
+# )
+# 
+# net <- model_nn()
+# optimizer <- optim_adam(net$parameters, lr = 0.001)
+# 
+# 
+# # Training the model and recording loss
+# epochs <- 10
+# train_loss <- numeric(epochs)
+# valid_loss <- numeric(epochs)
+# 
+# for (epoch in 1:epochs) {
+#   net$train()
+#   optimizer$zero_grad()
+#   output <- net(x_train)
+#   loss <- nnf_binary_cross_entropy(output, y_train)
+#   loss$backward()
+#   optimizer$step()
+#   train_loss[epoch] <- loss$item()
+#   
+#   # Calculate validation loss
+#   net$eval()
+#   with_no_grad({
+#     output_valid <- net(x_test) #nnf_binary_cross_entropy
+#     loss_valid <- nnf_binary_cross_entropy(output_valid, y_test)
+#     valid_loss[epoch] <- loss_valid$item()
+#   })
+#   
+#   if (epoch %% 10 == 0) {
+#     cat(sprintf("Epoch: %d, Train Loss: %3f, Validation Loss: %3f\n", epoch, train_loss[epoch], valid_loss[epoch]))
+#   }
+# }
+
 # Predicting on test data
-nn_pred_prob <- net(x_test)
+nn_pred_prob <- as.matrix((predict(fitted, x_test)))
 nn_pred <- ifelse(nn_pred_prob > 0.5, 1,0)
-y_test <- Default[testid,]$default
 accuracy_nn <- mean(y_test == nn_pred)
 
-# Plot training and validation loss
-plot(1:epochs, train_loss, type = "l", col = "red", ylim = range(c(train_loss, valid_loss)), 
-     xlab = "Epoch", ylab = "Loss", main = "Training and Validation Loss")
-lines(1:epochs, valid_loss, col = "green")
-legend("topright", legend = c("Train", "Validation"), col = c("red", "green"), lwd = 2)
+# # Plot training and validation loss
+# plot(1:epochs, train_loss, type = "l", col = "red", ylim = range(c(train_loss, valid_loss)), 
+#      xlab = "Epoch", ylab = "Loss", main = "Training and Validation Loss")
+# lines(1:epochs, valid_loss, col = "green")
+# legend("topright", legend = c("Train", "Validation"), col = c("red", "green"), lwd = 2)
 
 ```
 
-We ompare the classification performance of this model with that of linear logistic regression.
+The linear logistic regression model performs very well on the test data and has a classification accuracy of `r round(100*accuracy_logistic,2)`. Our neural network also performs quite well and has a slightly lower accuracy of `r round(100*accuracy_nn, 2)`. Looking at the plots above, we can see that the value of the loss function decreases as the number of training epochs increases - for both the training and the test data. Given that the loss function evaluated at the test data does not increase as the number of epochs grows larger, we find no evidence for overfitting.  The classification performance slightly improves as the number of training epochs increases. However, it does not improve monotonically and the marginal gains are rather negligible. 
 
-```{r}
+We now compare the classification performance of the two models more closely.
+
+```{r }
+
 # Plot ROC Curves and Calculate AUC
 library(pROC)
 
@@ -352,7 +601,8 @@ roc_logit <- roc(Default_test$default, logit_pred)
 # Plot ROC curve
 plot(roc_nn, col = "blue", main = "ROC Curves for Neural Network and Logistic Regression")
 lines(roc_logit, col = "red")
-legend("bottomright", legend = c("Neural Network", "Logistic Regression"), col = c("blue", "red"), lwd = 2)
+legend("bottomright", legend = c("Neural Network", "Logistic Regression"), 
+       col = c("blue", "red"), lwd = 2)
 
 # Print AUC values
 cat("AUC for Neural Network:", auc(roc_nn), "\n")
@@ -377,7 +627,7 @@ Now we perform document classification on the  \textit{IMDb} data set, which is 
 
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 #https://www.casact.org/sites/default/files/2022-12/James-G.-et-al.-2nd-edition-Springer-2021.pdf
 library(torch)
 library(torchdatasets)
