@@ -94,8 +94,8 @@ training set of size 100 and a test sample of size 10,000.
 
 We then fit neural networks with weight decay of 0.0005 and vary the
 number of hidden units from 0 to 10. We record the average test error
-\(E_{\text{Test}}(Y - \hat{f}(X_1,X_2))^2\) for each of 10 random
-starting weights.
+\[\mathbb{E}_{\text{Test}}(Y - \hat{f}(X_1,X_2))^2\] for each of 10
+random starting weights.
 
 \begin{verbatim}
 ##    hidden_units mean_test_error sd_test_error
@@ -131,6 +131,8 @@ starting weights. Overall, we conclude that choosing a larger number of
 hidden units and imposing shrinkage via weight decay appears to be
 better than having too few hidden units in the first place.
 
+\newpage
+
 \section{Exercise 2}\label{exercise-2}
 
 The data sets \texttt{zip.train} and \texttt{zip.test} from package
@@ -138,42 +140,12 @@ The data sets \texttt{zip.train} and \texttt{zip.test} from package
 the pixels on a \(16 \times 16\) pixel image of hand-written digits. We
 first visualize for each digit one randomly selected observation.
 
-\begin{verbatim}
-## [1] "digit  0  taken"
-## [1] "digit  1  taken"
-## [1] "digit  2  taken"
-## [1] "digit  3  taken"
-## [1] "digit  4  taken"
-## [1] "digit  5  taken"
-## [1] "digit  6  taken"
-## [1] "digit  7  taken"
-## [1] "digit  8  taken"
-## [1] "digit  9  taken"
-\end{verbatim}
-
-\includegraphics{A4_files/figure-latex/unnamed-chunk-6-1.pdf}
+\includegraphics{A4_files/figure-latex/unnamed-chunk-7-1.pdf}
 
 We now fit a multinomial logistic regression model to the training data
 and evaluate it on the training and the test data. Before fitting the
 model, however, we transform the data such that the regressors are
 scaled on the unit interval.
-
-\begin{verbatim}
-## # weights:  2580 (2313 variable)
-## initial  value 16788.147913 
-## iter  10 value 2894.781800
-## iter  20 value 1387.388893
-## iter  30 value 805.767631
-## iter  40 value 512.133103
-## iter  50 value 274.070966
-## iter  60 value 196.424106
-## iter  70 value 148.210904
-## iter  80 value 107.021614
-## iter  90 value 72.525058
-## iter 100 value 42.177330
-## final  value 42.177330 
-## stopped after 100 iterations
-\end{verbatim}
 
 We now determine the overall misclassification rate on the training and
 the test data and the digit-specific misclassification rates on the test
@@ -209,23 +181,6 @@ weight decay of 0.05 when fitting the multinomial logistic regression
 model in order to regularize it.
 
 \begin{verbatim}
-## # weights:  2580 (2313 variable)
-## initial  value 16788.147913 
-## iter  10 value 2909.202379
-## iter  20 value 1423.990004
-## iter  30 value 894.021900
-## iter  40 value 614.653802
-## iter  50 value 455.360357
-## iter  60 value 417.148011
-## iter  70 value 395.150898
-## iter  80 value 384.312406
-## iter  90 value 378.834838
-## iter 100 value 376.137836
-## final  value 376.137836 
-## stopped after 100 iterations
-\end{verbatim}
-
-\begin{verbatim}
 ## [1] "misclassification rate (training data): 0.3%"
 \end{verbatim}
 
@@ -247,7 +202,7 @@ model in order to regularize it.
 Adding weight decay slightly increases the misclassification rate on the
 training data, but reduces the misclassification rate on the test data.
 The improved classification performance is particularly pronounced for
-the ``difficult'\,' digits (8 and 4). Overall, adding a Ridge penalty to
+the ``difficult'' digits (8 and 4). Overall, adding a Ridge penalty to
 the loss function, i.e.~adding the weight decay, improves the
 out-of-sample performance of our model by mitigating the overfitting
 problem.
@@ -258,326 +213,29 @@ problem.
 
 We continue using the data sets \texttt{zip.train} and \texttt{zip.test}
 from package \textbf{ElemStatLearn}. However, we now only use a subset
-of size 320 from \textit{zip.train}, with an equal number of
+of size 320 from \texttt{zip.train}, with an equal number of
 observations for each digit to fit a multinomial logistic regression
 model and a neural network. We use the remaining observations from
 \texttt{zip.train} and the test data to evaluate the fitted models.
 
 Given the small sample size of the training data, overfitting is most
 likely an issue. We therefore visualize the performance on the test data
-in dependence of the training epochs when fitting the models.
+in dependence of the training epochs (\# epochs
+\(\in \{10,20,30,50,100,150,200\}\)) when fitting the models.
 
-\begin{verbatim}
-## # weights:  2580 (2313 variable)
-## initial  value 736.827230 
-## iter  10 value 48.364930
-## final  value 48.364930 
-## stopped after 10 iterations
-## # weights:  2580 (2313 variable)
-## initial  value 736.827230 
-## iter  10 value 48.364930
-## iter  20 value 0.871059
-## final  value 0.871059 
-## stopped after 20 iterations
-## # weights:  2580 (2313 variable)
-## initial  value 736.827230 
-## iter  10 value 48.364930
-## iter  20 value 0.871059
-## iter  30 value 0.071842
-## final  value 0.071842 
-## stopped after 30 iterations
-## # weights:  2580 (2313 variable)
-## initial  value 736.827230 
-## iter  10 value 48.364930
-## iter  20 value 0.871059
-## iter  30 value 0.071842
-## iter  40 value 0.024620
-## iter  50 value 0.012972
-## final  value 0.012972 
-## stopped after 50 iterations
-## # weights:  2580 (2313 variable)
-## initial  value 736.827230 
-## iter  10 value 48.364930
-## iter  20 value 0.871059
-## iter  30 value 0.071842
-## iter  40 value 0.024620
-## iter  50 value 0.012972
-## iter  60 value 0.006339
-## iter  70 value 0.003518
-## iter  80 value 0.002358
-## iter  90 value 0.001610
-## iter 100 value 0.000943
-## final  value 0.000943 
-## stopped after 100 iterations
-## # weights:  2580 (2313 variable)
-## initial  value 736.827230 
-## iter  10 value 48.364930
-## iter  20 value 0.871059
-## iter  30 value 0.071842
-## iter  40 value 0.024620
-## iter  50 value 0.012972
-## iter  60 value 0.006339
-## iter  70 value 0.003518
-## iter  80 value 0.002358
-## iter  90 value 0.001610
-## iter 100 value 0.000943
-## iter 110 value 0.000645
-## iter 120 value 0.000491
-## iter 130 value 0.000251
-## iter 140 value 0.000245
-## iter 150 value 0.000148
-## final  value 0.000148 
-## stopped after 150 iterations
-## # weights:  2580 (2313 variable)
-## initial  value 736.827230 
-## iter  10 value 48.364930
-## iter  20 value 0.871059
-## iter  30 value 0.071842
-## iter  40 value 0.024620
-## iter  50 value 0.012972
-## iter  60 value 0.006339
-## iter  70 value 0.003518
-## iter  80 value 0.002358
-## iter  90 value 0.001610
-## iter 100 value 0.000943
-## iter 110 value 0.000645
-## iter 120 value 0.000491
-## iter 130 value 0.000251
-## iter 140 value 0.000245
-## iter 150 value 0.000148
-## final  value 0.000097 
-## converged
-\end{verbatim}
+\includegraphics[width=0.9\linewidth]{A4_files/figure-latex/unnamed-chunk-13-1}
 
-\begin{verbatim}
-## # weights:  3905
-## initial  value 1663.464935 
-## iter  10 value 79.681992
-## final  value 79.681992 
-## stopped after 10 iterations
-## # weights:  3905
-## initial  value 1672.904167 
-## iter  10 value 72.661942
-## iter  20 value 2.169041
-## final  value 2.169041 
-## stopped after 20 iterations
-## # weights:  3905
-## initial  value 1718.087019 
-## iter  10 value 26.083447
-## iter  20 value 0.310144
-## iter  30 value 0.027409
-## final  value 0.027409 
-## stopped after 30 iterations
-## # weights:  3905
-## initial  value 1414.276942 
-## iter  10 value 49.144805
-## iter  20 value 0.711485
-## iter  30 value 0.040968
-## iter  40 value 0.012149
-## iter  50 value 0.005050
-## final  value 0.005050 
-## stopped after 50 iterations
-## # weights:  3905
-## initial  value 1423.970760 
-## iter  10 value 51.484734
-## iter  20 value 1.462150
-## iter  30 value 0.075633
-## iter  40 value 0.017703
-## iter  50 value 0.007656
-## iter  60 value 0.003753
-## iter  70 value 0.001567
-## iter  80 value 0.001186
-## iter  90 value 0.000469
-## iter 100 value 0.000376
-## final  value 0.000376 
-## stopped after 100 iterations
-## # weights:  3905
-## initial  value 1716.030320 
-## iter  10 value 53.207437
-## iter  20 value 0.907040
-## iter  30 value 0.056523
-## iter  40 value 0.014348
-## iter  50 value 0.005803
-## iter  60 value 0.003249
-## iter  70 value 0.001491
-## iter  80 value 0.001056
-## iter  90 value 0.000716
-## iter 100 value 0.000387
-## iter 110 value 0.000318
-## iter 120 value 0.000176
-## iter 130 value 0.000171
-## final  value 0.000079 
-## converged
-## # weights:  3905
-## initial  value 1945.337703 
-## iter  10 value 93.956697
-## iter  20 value 0.499032
-## iter  30 value 0.065199
-## iter  40 value 0.019139
-## iter  50 value 0.007662
-## iter  60 value 0.003780
-## iter  70 value 0.002467
-## iter  80 value 0.001238
-## iter  90 value 0.000932
-## iter 100 value 0.000293
-## iter 110 value 0.000255
-## iter 120 value 0.000223
-## final  value 0.000092 
-## converged
-\end{verbatim}
+\includegraphics[width=0.9\linewidth]{A4_files/figure-latex/unnamed-chunk-14-1}
 
-\begin{verbatim}
-## # weights:  5240
-## initial  value 1733.045132 
-## iter  10 value 34.775126
-## final  value 34.775126 
-## stopped after 10 iterations
-## # weights:  5240
-## initial  value 1775.725557 
-## iter  10 value 48.130639
-## iter  20 value 0.940412
-## final  value 0.940412 
-## stopped after 20 iterations
-## # weights:  5240
-## initial  value 2019.009483 
-## iter  10 value 65.782554
-## iter  20 value 0.447219
-## iter  30 value 0.035726
-## final  value 0.035726 
-## stopped after 30 iterations
-## # weights:  5240
-## initial  value 1830.764123 
-## iter  10 value 109.463346
-## iter  20 value 0.604526
-## iter  30 value 0.034259
-## iter  40 value 0.007428
-## iter  50 value 0.003200
-## final  value 0.003200 
-## stopped after 50 iterations
-## # weights:  5240
-## initial  value 1862.966329 
-## iter  10 value 112.738462
-## iter  20 value 1.364118
-## iter  30 value 0.054795
-## iter  40 value 0.010239
-## iter  50 value 0.003593
-## iter  60 value 0.001317
-## iter  70 value 0.000752
-## iter  80 value 0.000446
-## iter  90 value 0.000247
-## iter 100 value 0.000179
-## final  value 0.000179 
-## stopped after 100 iterations
-## # weights:  5240
-## initial  value 2257.881719 
-## iter  10 value 138.424472
-## iter  20 value 2.937467
-## iter  30 value 0.086749
-## iter  40 value 0.016862
-## iter  50 value 0.004691
-## iter  60 value 0.002354
-## iter  70 value 0.001360
-## iter  80 value 0.000739
-## iter  90 value 0.000341
-## iter 100 value 0.000231
-## final  value 0.000094 
-## converged
-## # weights:  5240
-## initial  value 1815.038186 
-## iter  10 value 71.281739
-## iter  20 value 0.655870
-## iter  30 value 0.048885
-## iter  40 value 0.011945
-## iter  50 value 0.004802
-## iter  60 value 0.002787
-## iter  70 value 0.001407
-## iter  80 value 0.000837
-## iter  90 value 0.000416
-## iter 100 value 0.000232
-## iter 110 value 0.000164
-## iter 120 value 0.000146
-## final  value 0.000099 
-## converged
-\end{verbatim}
+\includegraphics[width=0.9\linewidth]{A4_files/figure-latex/unnamed-chunk-15-1}
 
-\begin{verbatim}
-## # weights:  7910
-## initial  value 1881.948733 
-## iter  10 value 109.088936
-## final  value 109.088936 
-## stopped after 10 iterations
-## # weights:  7910
-## initial  value 1452.629520 
-## iter  10 value 18.532800
-## iter  20 value 0.301964
-## final  value 0.301964 
-## stopped after 20 iterations
-## # weights:  7910
-## initial  value 1707.344006 
-## iter  10 value 55.575636
-## iter  20 value 0.553530
-## iter  30 value 0.039971
-## final  value 0.039971 
-## stopped after 30 iterations
-## # weights:  7910
-## initial  value 1663.993040 
-## iter  10 value 61.140362
-## iter  20 value 1.455502
-## iter  30 value 0.049836
-## iter  40 value 0.008999
-## iter  50 value 0.003133
-## final  value 0.003133 
-## stopped after 50 iterations
-## # weights:  7910
-## initial  value 1577.776309 
-## iter  10 value 19.437617
-## iter  20 value 0.447892
-## iter  30 value 0.023991
-## iter  40 value 0.005424
-## iter  50 value 0.002308
-## iter  60 value 0.001038
-## iter  70 value 0.000399
-## iter  80 value 0.000315
-## iter  90 value 0.000161
-## iter 100 value 0.000130
-## final  value 0.000130 
-## stopped after 100 iterations
-## # weights:  7910
-## initial  value 1367.205805 
-## iter  10 value 79.214546
-## iter  20 value 0.815774
-## iter  30 value 0.030266
-## iter  40 value 0.007252
-## iter  50 value 0.003066
-## iter  60 value 0.001554
-## iter  70 value 0.000748
-## iter  80 value 0.000539
-## iter  90 value 0.000214
-## iter 100 value 0.000168
-## final  value 0.000092 
-## converged
-## # weights:  7910
-## initial  value 1653.554576 
-## iter  10 value 85.165965
-## iter  20 value 3.621547
-## iter  30 value 0.089329
-## iter  40 value 0.005340
-## iter  50 value 0.001577
-## iter  60 value 0.000309
-## iter  70 value 0.000187
-## final  value 0.000096 
-## converged
-\end{verbatim}
+\includegraphics[width=0.9\linewidth]{A4_files/figure-latex/unnamed-chunk-16-1}
 
-\includegraphics{A4_files/figure-latex/unnamed-chunk-10-1.pdf}
-\includegraphics{A4_files/figure-latex/unnamed-chunk-10-2.pdf}
-\includegraphics{A4_files/figure-latex/unnamed-chunk-10-3.pdf}
-\includegraphics{A4_files/figure-latex/unnamed-chunk-10-4.pdf} The plots
-are in line with our assumption that overfitting is an issue in this
-exercise. For all models (multinomial logit, neural networks with 5, 10
-and 20 hidden units) the misclassification rate on the test data
-increases as the number of training epochs exceeds 30. Hence, in the
-absence of a more explicit form of regularization (e.g.~a positive
+The plots are in line with our assumption that overfitting is an issue
+in this exercise. For all models (multinomial logit, neural networks
+with 5, 10 and 20 hidden units) the misclassification rate on the test
+data increases as the number of training epochs exceeds 30. Hence, in
+the absence of a more explicit form of regularization (e.g.~a positive
 weight decay) stopping the optimization routine early can be helpful to
 improve out-of-sample performance.
 
@@ -586,26 +244,16 @@ improve out-of-sample performance.
 \section{Exercise 4}\label{exercise-4}
 
 In the following we will estimate a predictive model for the
-\texttt{Default} data from the \textbf{ISLR2} pacakge. We fit a neural
+\texttt{Default} data from the \textbf{ISLR2} package. We fit a neural
 network using a single hidden layer with 10 units and dropout
 regularization.
 
-\begin{verbatim}
-##   default student   balance    income
-## 1      No      No  729.5265 44361.625
-## 2      No     Yes  817.1804 12106.135
-## 3      No      No 1073.5492 31767.139
-## 4      No      No  529.2506 35704.494
-## 5      No      No  785.6559 38463.496
-## 6      No     Yes  919.5885  7491.559
-\end{verbatim}
-
-\includegraphics{A4_files/figure-latex/unnamed-chunk-11-1.pdf}
+\includegraphics{A4_files/figure-latex/unnamed-chunk-18-1.pdf}
 
 The linear logistic regression model performs very well on the test data
-and has a classification accuracy of 97.18. Our neural network also
-performs quite well and has a slightly lower accuracy of 97.09. Looking
-at the plots above, we can see that the value of the loss function
+and has a classification accuracy of 97.18\%. Our neural network also
+performs well and has a slightly lower accuracy of 97.09\%. Looking at
+the plots above, we can see that the value of the loss function
 decreases as the number of training epochs increases - for both the
 training and the test data. Given that the loss function evaluated at
 the test data does not increase as the number of epochs grows larger, we
@@ -615,22 +263,13 @@ it does not improve monotonically and the marginal gains are rather
 negligible.
 
 We now compare the classification performance of the two models more
-closely.
-
-\begin{verbatim}
-## Type 'citation("pROC")' for a citation.
-\end{verbatim}
-
-\begin{verbatim}
-## 
-## Attaching package: 'pROC'
-\end{verbatim}
-
-\begin{verbatim}
-## The following objects are masked from 'package:stats':
-## 
-##     cov, smooth, var
-\end{verbatim}
+closely, by looking at their ROC curve and confusion matrix. In the ROC
+plot we observe that the curves for the linear logistic regression model
+and the neural network follow each other closely. The confusion
+matrices, however, highlight some subtle differences between the two
+models. The logistic regression model predicts almost twice as many
+defaults (50 in total, 13 of them incorrectly) as the neural network (27
+in total, 3 of them incorrectly).
 
 \begin{verbatim}
 ## Setting levels: control = 0, case = 1
@@ -648,7 +287,7 @@ closely.
 ## Setting direction: controls < cases
 \end{verbatim}
 
-\includegraphics{A4_files/figure-latex/unnamed-chunk-12-1.pdf}
+\includegraphics{A4_files/figure-latex/unnamed-chunk-19-1.pdf}
 
 \begin{verbatim}
 ## AUC for Neural Network: 0.9611066
@@ -656,6 +295,10 @@ closely.
 
 \begin{verbatim}
 ## AUC for Logistic Regression: 0.9622321
+\end{verbatim}
+
+\begin{verbatim}
+## [1] "Neural Network:"
 \end{verbatim}
 
 \begin{verbatim}
@@ -686,6 +329,10 @@ closely.
 ##                                           
 ##        'Positive' Class : 0               
 ## 
+\end{verbatim}
+
+\begin{verbatim}
+## [1] "Logistic Regression:"
 \end{verbatim}
 
 \begin{verbatim}
@@ -722,23 +369,56 @@ closely.
 
 \section{Exercise 5}\label{exercise-5}
 
-Now we perform document classification on the \textit{IMDb} data set,
+Now we perform document classification on the \texttt{IMDb} data set,
 which is available as part of the \textbf{torchdatasets} package. We
 limit the dictionary size to the 10,000 most frequently-used words and
-tokens. Again, we use James et al.~(2021, Chapter 10). We begin by
-loading the data and creating a imdb\_tain and imdb\_test object. Each
-element of imdb\_train is a vector of numbers between 1 and 10000 (the
-document), referring to the words found in the dictionary. Next we write
-a function to one-hot encode each document in a list of documents, and
-return a binary matrix in sparse-matrix format. To construct the sparse
-matrix, one supplies just the entries that are nonzero. In the last line
-we call the function sparseMatrix() and supply the row indices
-corresponding to each document and the column indices corresponding to
-the words in each document, since we omit the values they are taken to
-be all ones. Words that appear more than once in any given document
-still get recorded as a one.
+tokens. Again, we use James et al.~(2021, Chapter 10 torch version). We
+begin by loading the data and creating a \texttt{imdb\_tain} and
+\texttt{imdb\_test} object. Each element of \texttt{imdb\_train} is a
+vector of numbers between 1 and 10000 (the document), referring to the
+words found in the dictionary. Next we write a function to one-hot
+encode each document in a list of documents, and return a binary matrix
+in sparse-matrix format. To construct the sparse matrix, one supplies
+just the entries that are nonzero. In the last line we call the function
+\texttt{sparseMatrix()} and supply the row indices corresponding to each
+document and the column indices corresponding to the words in each
+document, since we omit the values they are taken to be all ones. Words
+that appear more than once in any given document still get recorded as a
+one. Next we fit a fully-connected neural network with two hidden
+layers, each with 16 units and ReLU activation.
 
-Consider the effects of varying the dictionary size. Try the values 500,
-1000, 3000, 5000, and 10,000, and compare the results.
+After fitting the fully-connected neural network we can now look at the
+results with the dictionary size 1000. We look at how the accuracy and
+the loss of our train, test and validation set evolve over 10 epochs.
+The accuracy graph displays that for the dictionary size of 1000 the
+accuracy is highest for the validation set (above 0.88), followed by the
+train set and lowest for the test set. Also for the train set the
+accuracy increased sharply after the first 2 epochs. For test and train
+it starts higher up but has higher variability. Considering the loss, we
+see a similar development for our train set: For the first 2 epochs the
+loss is rather high and then drops down and remains at more stable
+level. The loss for the test and validation sets starts at a lower point
+again, with the validation loss being below the test loss.
+
+\includegraphics{A4_files/figure-latex/unnamed-chunk-21-1.pdf} We then
+vary the dictionary size and try out values 500, 1000, 3000, 5000,
+10,000 and consider the effects of this varying dictionary size. We
+observe that the larger the dictionary size the higher the accuracy
+(above 0.95 for dictionary size 10,000) and the lower the loss for the
+training set. Moreover, the higher the accuracy of the training set, the
+(slightly) higher the accuracy of the validation and test sets. In
+addition, from the loss plots we can observe that the higher the
+dictionary size, the more the loss varies between training, test and
+validation set. Furthermore, the loss for the test set increases
+strongly with more epochs, while the loss for the training data set
+decreases (with more epochs).
+
+\includegraphics{A4_files/figure-latex/unnamed-chunk-22-1.pdf}
+
+\includegraphics{A4_files/figure-latex/unnamed-chunk-23-1.pdf}
+
+\includegraphics{A4_files/figure-latex/unnamed-chunk-24-1.pdf}
+
+\includegraphics{A4_files/figure-latex/unnamed-chunk-25-1.pdf}
 
 \end{document}
