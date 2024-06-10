@@ -41,9 +41,6 @@ library(ElemStatLearn)
 ```
 
 
-
-
-
 <!-- EXERCISE 1 -->
 # Exercise 1
 
@@ -197,11 +194,6 @@ ggplot(results, aes(x = hidden_units, y = mean_test_error)) +
 Out of all the models under consideration, the neural network with a single hidden unit performs worst. It has the largest mean average test error and also the largest variation in the average test error  for different random starting weights. Somewhat surprisingly, the linear model, i.e. the neural network with no hidden units, performs almost as good as the neural network with two hidden units. While the mean average test errors of these two models are similar, the average test error is much less sensitive to different starting weights in case of the linear model. All neural networks with 3 or more hidden units have a similar performance, both in terms of the mean average test error and the standard deviation of the average test error for different random starting weights. Overall, we conclude that choosing a larger number of hidden units and imposing shrinkage via weight decay appears to be better than having too few hidden units in the first place.
 
 
-
-
-
-
-
 <!-- EXERCISE 2 -->
 
 # Exercise 2
@@ -271,7 +263,6 @@ multinom_fit <- multinom(y~., data = zip_train_df, MaxNWts = 10000)
 
 ```
 
-
 We now determine the overall misclassification rate on the training and the test data and the digit-specific misclassification rates on the test data. 
 
 ```{r}
@@ -315,8 +306,6 @@ print("digit-specific misclassification rates (test data):")
 print(mcr_digit)
 ```
 Adding weight decay slightly increases the misclassification rate on the training data, but reduces the misclassification rate on the test data. The improved classification performance is particularly pronounced for the ``difficult'' digits (8 and 4). Overall, adding a Ridge penalty to the loss function, i.e. adding the weight decay, improves the out-of-sample performance of our model by mitigating the overfitting problem.
-
-
 
 \newpage
 <!-- EXERCISE 3 -->
@@ -420,14 +409,11 @@ legend("topright", c("train", "test"), lty = 1, col = 1:2, box.lwd = 0)
 ```
 The plots are in line with our assumption that overfitting is an issue in this exercise. For all models (multinomial logit, neural networks with 5, 10 and 20 hidden units) the misclassification rate on the test data increases as the number of training epochs exceeds 30. Hence, in the absence of a more explicit form of regularization (e.g. a positive weight decay) stopping the optimization routine early can be helpful to improve out-of-sample performance.
 
-
-
-
 \newpage
 <!-- EXERCISE 4 -->
 # Exercise 4
 
-In the following we will estimate a predictive model for the `Default` data from the \textbf{ISLR2} pacakge. We fit a neural network using a single hidden layer with 10 units and dropout regularization.
+In the following we will estimate a predictive model for the `Default` data from the \textbf{ISLR2} package. We fit a neural network using a single hidden layer with 10 units and dropout regularization.
 
 ```{r }
 rm(list=ls())
@@ -516,63 +502,6 @@ plot(fitted)
 
 
 
-# #Convert the data to torch tensors
-# x_train <- torch_tensor(as.matrix(x[-testid, ]), dtype = torch_float())
-# y_train <- torch_tensor(matrix(Default[-testid,1]), dtype = torch_float())$unsqueeze(2)
-# x_test <- torch_tensor(as.matrix(x[testid, ]), dtype = torch_float())
-# y_test <- torch_tensor(matrix(Default[testid,1]), dtype = torch_float())$unsqueeze(2)
-# 
-# 
-# 
-# 
-# ## Define the neural network model
-# model_nn <- nn_module(
-#   initialize = function() {
-#     self$fc1 <- nn_linear(ncol(x_train) , 10)
-#     self$dropout <- nn_dropout(p = 0.4)
-#     self$fc2 <- nn_linear(10, 1)
-#   },
-#   forward = function(x) {
-#     x %>% 
-#       self$fc1() %>% 
-#       nnf_relu() %>% 
-#       self$dropout() %>% 
-#       self$fc2() %>% 
-#       nnf_sigmoid()
-#   }
-# )
-# 
-# net <- model_nn()
-# optimizer <- optim_adam(net$parameters, lr = 0.001)
-# 
-# 
-# # Training the model and recording loss
-# epochs <- 10
-# train_loss <- numeric(epochs)
-# valid_loss <- numeric(epochs)
-# 
-# for (epoch in 1:epochs) {
-#   net$train()
-#   optimizer$zero_grad()
-#   output <- net(x_train)
-#   loss <- nnf_binary_cross_entropy(output, y_train)
-#   loss$backward()
-#   optimizer$step()
-#   train_loss[epoch] <- loss$item()
-#   
-#   # Calculate validation loss
-#   net$eval()
-#   with_no_grad({
-#     output_valid <- net(x_test) #nnf_binary_cross_entropy
-#     loss_valid <- nnf_binary_cross_entropy(output_valid, y_test)
-#     valid_loss[epoch] <- loss_valid$item()
-#   })
-#   
-#   if (epoch %% 10 == 0) {
-#     cat(sprintf("Epoch: %d, Train Loss: %3f, Validation Loss: %3f\n", epoch, train_loss[epoch], valid_loss[epoch]))
-#   }
-# }
-
 # Predicting on test data
 nn_pred_prob <- as.matrix((predict(fitted, x_test)))
 nn_pred <- ifelse(nn_pred_prob > 0.5, 1,0)
@@ -586,9 +515,9 @@ accuracy_nn <- mean(y_test == nn_pred)
 
 ```
 
-The linear logistic regression model performs very well on the test data and has a classification accuracy of `r round(100*accuracy_logistic,2)`. Our neural network also performs quite well and has a slightly lower accuracy of `r round(100*accuracy_nn, 2)`. Looking at the plots above, we can see that the value of the loss function decreases as the number of training epochs increases - for both the training and the test data. Given that the loss function evaluated at the test data does not increase as the number of epochs grows larger, we find no evidence for overfitting.  The classification performance slightly improves as the number of training epochs increases. However, it does not improve monotonically and the marginal gains are rather negligible. 
+The linear logistic regression model performs very well on the test data and has a classification accuracy of `r round(100*accuracy_logistic,2)`. Our neural network also performs well and has a slightly lower accuracy of `r round(100*accuracy_nn, 2)`. Looking at the plots above, we can see that the value of the loss function decreases as the number of training epochs increases - for both the training and the test data. Given that the loss function evaluated at the test data does not increase as the number of epochs grows larger, we find no evidence for overfitting. The classification performance slightly improves as the number of training epochs increases. However, it does not improve monotonically and the marginal gains are rather negligible. 
 
-We now compare the classification performance of the two models more closely.
+We now compare the classification performance of the two models more closely, by looking at their ROC curve and accuracy. In the ROC plot we observe that the curves for the linear logistic regression model and the neural network follow each other closely. Similar to our previous results the linear logistic regression model performs slightly better. This also confirmed by the results we get for the accuracy and from the confusion matrices, with a accuracy of 0.962232 for the linear logistic regression model and 0.9611066 for the neural net. 
 
 ```{r }
 
@@ -623,11 +552,9 @@ print(logit_conf_matrix)
 \newpage
 <!-- EXERCISE 5 -->
 # Exercise 5
-Now we perform document classification on the  \textit{IMDb} data set, which is available as part of the \textbf{torchdatasets} package. We limit the dictionary size to the 10,000 most frequently-used words and tokens. Again, we use James et al. (2021, Chapter 10). We begin by loading the data and creating a imdb_tain and imdb_test object. Each element of imdb_train is a vector of numbers between 1 and 10000 (the document), referring to the words found in the dictionary. Next we write a function to one-hot encode each document in a list of documents, and return a binary matrix in sparse-matrix format. To construct the sparse matrix, one supplies just the entries that are nonzero. In the last line we call the function sparseMatrix() and supply the row indices corresponding to each document and the column indices corresponding to the words in each document, since we omit the values they are taken to be all ones. Words that appear more than once in any given document still get recorded as a one.
+Now we perform document classification on the  \textit{IMDb} data set, which is available as part of the \textbf{torchdatasets} package. We limit the dictionary size to the 10,000 most frequently-used words and tokens. Again, we use James et al. (2021, Chapter 10  torch version). We begin by loading the data and creating a imdb_tain and imdb_test object. Each element of imdb_train is a vector of numbers between 1 and 10000 (the document), referring to the words found in the dictionary. Next we write a function to one-hot encode each document in a list of documents, and return a binary matrix in sparse-matrix format. To construct the sparse matrix, one supplies just the entries that are nonzero. In the last line we call the function sparseMatrix() and supply the row indices corresponding to each document and the column indices corresponding to the words in each document, since we omit the values they are taken to be all ones. Words that appear more than once in any given document still get recorded as a one. Next we fit a fully-connected neural network with two hidden layers, each with 16 units and ReLU activation.
 
-
-
-```{r eval=FALSE, include=FALSE}
+```{r eval=False, include=FALSE}
 #https://www.casact.org/sites/default/files/2022-12/James-G.-et-al.-2nd-edition-Springer-2021.pdf
 library(torch)
 library(torchdatasets)
@@ -832,49 +759,53 @@ gg_acc <- ggplot(df, aes(x = Epoch)) +
 
 }
 ```
+After fitting the fully-connected neural network we can now look at the results with the dictionary size 1000. We look at how the accuracy and the loss of our train, test and validation set evolve over 10 epochs. The accuracy graph displays that for the dictionary size of 1000 the accuracy is highest for the validation set (above 0.88), followed by the train set and lowest for the test set. Also for the train set the accuracy increased sharply after the first 2 epochs. For test and train it strts higher up but has higher variability. Considerling the loss we see a similar development for our train set: For the first 2 epochs the loss is ratehr high and then drops down and remains at more stbale level. The loss for the test and validation sets starts at a lower point again, with the validation loss being below the test loss.  
 
 ```{r}
+library(gridExtra)
 
 load("1000.RData")
-p_fitted
-p_fittedtest
-gg_acc
-gg_loss
-```
+#p_fitted
+#p_fittedtest
+grid.arrange(gg_acc, gg_loss, ncol = 2)
 
-Consider the effects of varying the dictionary size. Try the values 500, 1000, 3000, 5000, and 10,000, and compare the results.
+
+
+```
+We then vary the dictionary size and try out values 500, 1000, 3000, 5000, 10,000 and consider the effects of this varying dictionary size. We observe that the larger the dictionary size the higher the accuracy (above 0.95 for dictionary size 10,000) and the lower the loss for the training set. Moreover, the higher the accuracy of the training set; the (slightly) higher the accuracy of the validation and test sets. In addition, from the loss plots we can observe that the higher the dictionary size, the more the loss varies between training, test and validation set. Furthermore, the loss for the test set gets increases strongly (with more epochs), while the loss for the training data set decreases (with more epochs).
+
 ```{r}
 
 load("500.RData")
-p_fitted
-p_fittedtest
-gg_acc
-gg_loss
+#p_fitted
+#p_fittedtest
+grid.arrange(gg_acc, gg_loss, ncol = 2)
+
 ```
 
 ```{r}
 
 load("3000.RData")
-p_fitted
-p_fittedtest
-gg_acc
-gg_loss 
+#p_fitted
+#p_fittedtest
+grid.arrange(gg_acc, gg_loss, ncol = 2)
+ 
 ```
 
 ```{r}
 
 load("5000.RData")
-p_fitted
-p_fittedtest
-gg_acc
-gg_loss  
+#p_fitted
+#p_fittedtest
+grid.arrange(gg_acc, gg_loss, ncol = 2)
+
 ```
 
 ```{r}
 
 load("10000.RData")
- p_fitted
-p_fittedtest
-gg_acc
-gg_loss 
+#p_fitted
+#p_fittedtest
+grid.arrange(gg_acc, gg_loss, ncol = 2)
+
 ```
